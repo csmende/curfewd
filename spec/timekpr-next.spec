@@ -2,8 +2,8 @@
 %define _sitelib %( echo %{python3_sitelib} | cut -c 10- )
 
 Name:             timekpr-next
-Version:          0.5.8
-Release:          0.3%{?dist}
+Version:          0.5.9
+Release:          0.1%{?dist}
 Summary:          Keep control of computer usage
 Group:            System Environment/Daemons
 License:          GPLv3
@@ -126,6 +126,8 @@ update-desktop-database &> /dev/null || :
 %{_sysconfdir}/xdg/autostart/*
 
 %changelog
+* Thu May 22 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-0.1
+- Updated spec file for version 0.5.9, release 0.1 (BETA)
 * Tue Apr 29 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.8-0.3
 - Updated spec file for version 0.5.8, release 0.3 (BETA)
 * Mon Apr 28 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.8-0.2
