@@ -1,3 +1,10 @@
+timekpr-next-beta (0.5.9-1ubuntu1~ppa1) unstable; urgency=medium
+
+  * fixed a bug in notifications when time is not limited was shown even the time was limited
+      this bug manifested itself only when there were only weekly or monthly time limits enforced on users
+
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Thu, 22 May 2025 19:03:52 +0300
+
 timekpr-next-beta (0.5.8-9ubuntu2~ppa1) unstable; urgency=medium
 
   * added translations for Russian, Dutch, Portugese languages
@@ -13,7 +20,7 @@ timekpr-next-beta (0.5.8-9ubuntu2~ppa1) unstable; urgency=medium
   * implement a workaround for weird CMOS date reset bug which results time being reported 55 years in the future
       which results in a lot of free time for the subordinate (this is exceptionally rare condition)
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Tue, 29 Apr 2025 13:07:03 +0200
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Tue, 29 Apr 2025 13:07:03 +0300
 
 timekpr-next-beta (0.5.7-1ubuntu2~ppa1) UNRELEASED; urgency=medium
 
