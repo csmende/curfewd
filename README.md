@@ -787,6 +787,8 @@ Timekpr-nExT is available in:
 
 * packages for manual installation for Fedora 32+ and openSUSE Leap 15.2+ are provided as is
 
+* packages and options for NixOS are available in nixos-unstable (and future nixos-25.11) channel
+
 </br>
 
 #### Stable
@@ -797,6 +799,7 @@ Timekpr-nExT is available in:
 | ArchLinux & Manjaro (via AUR) | ```yay -S timekpr-next``` | ```sudo pacman -Rdd timekpr-next``` |
 | Fedora | [copr repo](https://copr.fedorainfracloud.org/coprs/johanh/timekpr-next/) _(preferred)_</br>**or**</br>[manual installation](https://drive.google.com/drive/folders/1iN1wcPctGhd_OISqzWZ5DigFMVvgSGq9) _(README and packages)_| [copr repo](https://copr.fedorainfracloud.org/coprs/johanh/timekpr-next/) _(preferred)_</br>**or**</br>[manual uninstallation](https://drive.google.com/drive/folders/1iN1wcPctGhd_OISqzWZ5DigFMVvgSGq9) _(README)_ |
 | openSUSE | [manual installation](https://drive.google.com/drive/folders/1iN1wcPctGhd_OISqzWZ5DigFMVvgSGq9)</br>_(README and packages)_| [manual uninstallation](https://drive.google.com/drive/folders/1iN1wcPctGhd_OISqzWZ5DigFMVvgSGq9)</br>_(README)_ |
+| NixOS | set [services.timekpr.enable](https://search.nixos.org/options?channel=unstable&show=services.timekpr.enable) option to `true`| set [services.timekpr.enable](https://search.nixos.org/options?channel=unstable&show=services.timekpr.enable) option to `false` |
 
 #### Beta
 
