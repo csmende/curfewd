@@ -1,9 +1,10 @@
-timekpr-next (0.5.9-1ubuntu1~ppa1) unstable; urgency=medium
+timekpr-next (0.5.9-1ubuntu2~ppa1) unstable; urgency=medium
 
   * fixed a bug in notifications when time is not limited was shown even the time was limited
       this bug manifested itself only when there were only weekly or monthly time limits enforced on users
+  * fixed a bug with dbus notification signals for unknown python version (MR !492908 from alexandre-nunes / Houston4444)
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Thu, 22 May 2025 19:03:52 +0300
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Mon, 22 Sep 2025 16:56:17 +0300
 
 timekpr-next (0.5.8-9ubuntu2~ppa1) unstable; urgency=medium
 
