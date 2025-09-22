@@ -907,7 +907,7 @@ class timekprUser(object):
 
     def processFinalWarning(self, pFinalNotificationType, pSecondsLeft):
         """Process emergency message about killing"""
-        self._timekprUserNotification.processEmergencyNotification(pFinalNotificationType, max(pSecondsLeft, 0))
+        self._timekprUserNotification.processEmergencyNotification(pFinalNotificationType, max(int(pSecondsLeft), 0))
 
     def lockUserSessions(self):
         """Lock all user sessions"""
