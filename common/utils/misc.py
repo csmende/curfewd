@@ -15,6 +15,8 @@ import os
 import pwd
 import inspect
 import stat
+import sys
+import traceback
 try:
     import psutil
     _PSUTIL = True
@@ -27,10 +29,18 @@ from timekpr.common.constants import constants as cons
 from timekpr.common.log import log
 
 
-# this is needed for debugging purposes
 def whoami():
-    """Return callers name from the call stack, the 0 is this function, prev is the one needd"""
+    """Return callers name from the call stack, the 0 is this function, prev is the one needed"""
+    # result
     return inspect.stack()[1][3]
+
+
+def getExceptionDetails():
+    """Log exception details (can be used only when exception happens)"""
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    tb = traceback.extract_tb(exc_traceback)[-1]
+    # result
+    return "file: %s, function: %s, line: %s, error: %s" % (tb.filename, tb.name, tb.lineno, exc_value)
 
 
 def getNormalizedUserNames(pUID=None, pUser=None):
