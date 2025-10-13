@@ -1,11 +1,21 @@
-timekpr-next (0.5.9-1ubuntu3~ppa1) unstable; urgency=medium
+timekpr-next (0.5.9-1ubuntu4~ppa1) unstable; urgency=medium
 
   * fixed a bug in notifications when time is not limited was shown even the time was limited
       this bug manifested itself only when there were only weekly or monthly time limits enforced on users
   * fixed a bug with dbus notification signals for unknown python version (MR !492908 from alexandre-nunes / Houston4444)
   * added more verbose error logging
+  * added possibility for CLI version to specify time as time string for those who cannot or don't want to convert time to seconds:
+      time can be specified as 1h10m10s as opposed to 4210 seconds previously
+      this affects the following options:
+        --settimelimits
+        --settimelimitweek
+        --settimelimitmonth
+        --settimeleft
+        --setplaytimelimits
+        --setplaytimeleft
+      time is returned in seconds, so math is still required :)
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Wed, 24 Sep 2025 00:04:18 +0300
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Wed, 13 Oct 2025 13:47:27 +0300
 
 timekpr-next (0.5.8-9ubuntu2~ppa1) unstable; urgency=medium
 

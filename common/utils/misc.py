@@ -17,6 +17,7 @@ import inspect
 import stat
 import sys
 import traceback
+import re
 try:
     import psutil
     _PSUTIL = True
@@ -327,3 +328,24 @@ def splitConfigValueNameParam(pStr):
 
     # return
     return value, param
+
+
+def getSecondsFromTimeStr(pTimeStr):
+    # def
+    secs = None
+
+    # regular expression to match time formats (days or hours or minutes or seconds or seconds w/o suffix)
+    pattern = re.compile(r"^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?(?:(\d+))?$")
+    # find matches
+    match = pattern.match(pTimeStr.replace(" ", ""))
+
+    # no match - time format is wrong
+    if match:
+        # extract matched values
+        secs = ((int(match.group(1) or 0) * 86400)         # days
+            + (int(match.group(2) or 0) * 3600)            # hours
+            + (int(match.group(3) or 0) * 60)              # minutes
+            + int(match.group(4) or match.group(5) or 0))  # seconds
+
+    # fin
+    return secs

@@ -17,6 +17,7 @@ from timekpr.common.utils.config import timekprConfig
 from timekpr.common.constants import messages as msg
 from timekpr.common.utils.misc import findHourStartEndMinutes as findHourStartEndMinutes
 from timekpr.common.utils.misc import splitConfigValueNameParam as splitConfigValueNameParam
+from timekpr.common.utils.misc import getSecondsFromTimeStr
 
 
 class timekprAdminClient(object):
@@ -403,7 +404,7 @@ class timekprAdminClient(object):
         # day map
         try:
             # try to parse parameters
-            dayMap = pDayList.split(";")
+            dayMap = str(pDayList).split(";")
         except Exception as ex:
             # fail
             result = -1
@@ -458,12 +459,14 @@ class timekprAdminClient(object):
         dayLimits = []
         result = 0
 
-        # day limists
+        # day limits
         try:
             # allow empty limits too
             if str(pDayLimits) != "":
-                # try to parse parameters
-                dayLimits = list(map(int, pDayLimits.split(";")))
+                # convert limits
+                for rDl in pDayLimits.split(";"):
+                    # add limit
+                    dayLimits += [getSecondsFromTimeStr(rDl)]
         except Exception as ex:
             # fail
             result = -1
@@ -488,7 +491,7 @@ class timekprAdminClient(object):
         # week limit
         try:
             # try to parse parameters
-            weekLimit = int(pTimeLimitWeek)
+            weekLimit = int(getSecondsFromTimeStr(pTimeLimitWeek))
         except Exception as ex:
             # fail
             result = -1
@@ -513,7 +516,7 @@ class timekprAdminClient(object):
         # week limit
         try:
             # try to parse parameters
-            monthLimit = int(pTimeLimitMonth)
+            monthLimit = int(getSecondsFromTimeStr(pTimeLimitMonth))
         except Exception as ex:
             # fail
             result = -1
@@ -582,7 +585,7 @@ class timekprAdminClient(object):
         # defaults
         result = 0
         # parse lockout
-        lockout = pLockoutType.split(";")
+        lockout = str(pLockoutType).split(";")
         lockoutType = lockout[0]
         lockoutWakeFrom = lockout[1] if len(lockout) == 3 else '0'
         lockoutWakeTo = lockout[2] if len(lockout) == 3 else '23'
@@ -612,7 +615,7 @@ class timekprAdminClient(object):
         # limit
         try:
             # try to parse parameters
-            limit = int(pLimit)
+            limit = int(getSecondsFromTimeStr(pLimit))
         except Exception as ex:
             # fail
             result = -1
@@ -711,7 +714,7 @@ class timekprAdminClient(object):
         # day map
         try:
             # try to parse parameters
-            dayMap = pPlayTimeDayList.split(";")
+            dayMap = str(pPlayTimeDayList).split(";")
         except Exception as ex:
             # fail
             result = -1
@@ -736,9 +739,11 @@ class timekprAdminClient(object):
         # day limists
         try:
             # allow empty limits too
-            if pPlayTimeDayLimits != "":
-                # try to parse parameters
-                dayLimits = list(map(int, pPlayTimeDayLimits.split(";")))
+            if str(pPlayTimeDayLimits) != "":
+                # convert limits
+                for rDl in str(pPlayTimeDayLimits).split(";"):
+                    # add limit
+                    dayLimits += [getSecondsFromTimeStr(rDl)]
         except Exception as ex:
             # fail
             result = -1
@@ -763,9 +768,9 @@ class timekprAdminClient(object):
         # day limists
         try:
             # ## try to parse parameters ##
-            if pPlayTimeActivities != "":
+            if str(pPlayTimeActivities) != "":
                 # split activities
-                for rAct in pPlayTimeActivities.split(";"):
+                for rAct in str(pPlayTimeActivities).split(";"):
                     # try parsing the names
                     mask, description = splitConfigValueNameParam(rAct)
                     # raise any error in case we can not get parsing right
@@ -798,7 +803,7 @@ class timekprAdminClient(object):
         # limit
         try:
             # try to parse parameters
-            limit = int(pLimit)
+            limit = int(getSecondsFromTimeStr(pLimit))
         except Exception as ex:
             # fail
             result = -1
