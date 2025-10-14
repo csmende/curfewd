@@ -7,18 +7,18 @@ msgid ""
 msgstr ""
 "Project-Id-Version: timekpr-next\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2025-04-10 12:20+0300\n"
-"PO-Revision-Date: 2025-04-10 12:27+0300\n"
-"Last-Translator: Alexey Svistunov <Unknown>\n"
+"POT-Creation-Date: 2025-10-14 09:17+0300\n"
+"PO-Revision-Date: 2025-10-14 19:17+0300\n"
+"Last-Translator: Eduards Bezverhijs <edzis@inbox.lv>\n"
 "Language-Team: Russian <ru@li.org>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Launchpad-Export-Date: 2024-11-25 11:52+0000\n"
-"X-Generator: Poedit 3.5\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 "
+"&& (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Launchpad-Export-Date: 2025-10-14 06:56+0000\n"
+"X-Generator: Poedit 3.6\n"
 
 #: common/constants/messages.py:31
 msgid "==> print help, example"
@@ -29,8 +29,7 @@ msgid "==> get saved user list from the server, example"
 msgstr "==> получить список пользователей сохраненных на сервере, например"
 
 #: common/constants/messages.py:33
-msgid ""
-"==> get user configuration and time information from the server, example"
+msgid "==> get user configuration and time information from the server, example"
 msgstr ""
 "==> получить с сервера конфигурацию пользователя и информацию о времени, "
 "например"
@@ -52,20 +51,19 @@ msgid ""
 "additionally specify ! in front of hour if it doesn't have to be accounted "
 "(free time for user), example"
 msgstr ""
-"==> установить разрешённые часы для выбранного дня недели или \"ALL\" для "
-"всех, дополнительно можете указать начало и конец в минутах в квадратных "
-"скобках [x-y], дополнительно можете добавить ! (восклицательный знак) перед "
-"часами, если это время не должно учитываться (свободное время пользователя), "
-"например"
+"==> установить разрешённые часы для выбранного дня недели или \"ALL\" для всех, "
+"дополнительно можете указать начало и конец в минутах в квадратных скобках [x-"
+"y], дополнительно можете добавить ! (восклицательный знак) перед часами, если "
+"это время не должно учитываться (свободное время пользователя), например"
 
 #: common/constants/messages.py:38
 msgid ""
-"==> set time limits for all allowed days, the number of values must not "
-"exceed the allowed days for the user, example"
+"==> set time limits for all allowed days, the number of values must not exceed "
+"the allowed days for the user, example"
 msgstr ""
 "==> установить ограничения по времени для всех разрешённых дней недели, "
-"количество значений не должно превышать количество разрешённых для "
-"пользователя дней недели, например"
+"количество значений не должно превышать количество разрешённых для пользователя "
+"дней недели, например"
 
 #: common/constants/messages.py:39
 msgid "==> set time limit per week, example"
@@ -77,8 +75,7 @@ msgstr "==> установить лимит на месяц, например"
 
 #: common/constants/messages.py:41
 msgid "==> set whether to track inactive user sessions, example"
-msgstr ""
-"==> установить отслеживать ли неактивные сессии пользователей, например"
+msgstr "==> установить отслеживать ли неактивные сессии пользователей, например"
 
 #: common/constants/messages.py:42
 msgid "==> set whether to hide tray icon and prevent notifications, example"
@@ -92,20 +89,19 @@ msgid ""
 "terminate sessions, \"kill\" - kill sessions, \"shutdown\" - shutdown the "
 "computer), examples"
 msgstr ""
-"==> установить ограничение / вид блокировки (\"lock\" - заблокировать "
-"сессию, \"suspend\" - перевести компьютер в сон, \"suspendwake\" - перевести "
-"компьютер в сон и вывести из сна, \"terminate\" - прервать сессию, \"kill\" "
-"- прекратить сессию, \"shutdown\" - выключить компьютер), примеры"
+"==> установить ограничение / вид блокировки (\"lock\" - заблокировать сессию, "
+"\"suspend\" - перевести компьютер в сон, \"suspendwake\" - перевести компьютер "
+"в сон и вывести из сна, \"terminate\" - прервать сессию, \"kill\" - прекратить "
+"сессию, \"shutdown\" - выключить компьютер), примеры"
 
 #: common/constants/messages.py:45
 msgid ""
-"==> set time left for the user at the current moment of time: \"+\" (add "
-"time), \"-\" (subtract time), \"=\" (set exact time available), example (add "
-"one hour)"
+"==> set time left for the user at the current moment of time: \"+\" (add time), "
+"\"-\" (subtract time), \"=\" (set exact time available), example (add one hour)"
 msgstr ""
-"==> установить оставшееся время пользователя на текущий момент: \"+\" "
-"(добавить время), \"-\" (уменьшить время), \"=\" (установить точное "
-"значение), например (добавить один час)"
+"==> установить оставшееся время пользователя на текущий момент: \"+\" (добавить "
+"время), \"-\" (уменьшить время), \"=\" (установить точное значение), например "
+"(добавить один час)"
 
 #: common/constants/messages.py:46
 msgid "==> set whether PlayTime is enabled for the user, example"
@@ -113,8 +109,7 @@ msgstr "==> установить, доступно ли для пользова�
 
 #: common/constants/messages.py:47
 msgid ""
-"==> set whether PlayTime must be accounted instead of normal activity, "
-"example"
+"==> set whether PlayTime must be accounted instead of normal activity, example"
 msgstr ""
 "==> установить, должно ли время пользователя учитываться как игровое вместо "
 "обычного времени, например"
@@ -124,8 +119,8 @@ msgid ""
 "==> set whether PlayTime activities are allowed during unaccounted (\"∞\") "
 "intervals, example"
 msgstr ""
-"==> установить, разрешены ли игровые активности во время неучитываемых "
-"(\"∞\") периодов, например"
+"==> установить, разрешены ли игровые активности во время неучитываемых (\"∞\") "
+"периодов, например"
 
 #: common/constants/messages.py:49
 msgid "==> set allowed days for PlayTime activities, example"
@@ -136,16 +131,15 @@ msgid ""
 "==> set PlayTime limits for all allowed days, the number of values must not "
 "exceed the allowed PlayTime allowed days for the user, example"
 msgstr ""
-"==> установить ограничения для игрового времени для всех доступных дней "
-"недели, количество значений не должно превышать количество доступных дней "
-"недели для игровых активностей пользователя, например"
+"==> установить ограничения для игрового времени для всех доступных дней недели, "
+"количество значений не должно превышать количество доступных дней недели для "
+"игровых активностей пользователя, например"
 
 #: common/constants/messages.py:51
 msgid ""
 "==> set PlayTime activity process masks, for which the time is accounted, "
 "example"
-msgstr ""
-"==> установить маски процессов, которые будут учтены как игры, например"
+msgstr "==> установить маски процессов, которые будут учтены как игры, например"
 
 #: common/constants/messages.py:52
 msgid ""
@@ -153,9 +147,9 @@ msgid ""
 "time), \"-\" (subtract time), \"=\" (set exact time available), example (add "
 "one hour)"
 msgstr ""
-"==> установить оставшееся время для игр пользователя на текущий момент: \"+"
-"\" (добавить время), \"-\" (уменьшить время), \"=\" (установить точное "
-"значение), например (добавить один час)"
+"==> установить оставшееся время для игр пользователя на текущий момент: \"+\" "
+"(добавить время), \"-\" (уменьшить время), \"=\" (установить точное значение), "
+"например (добавить один час)"
 
 #: common/constants/messages.py:55
 msgid "Control sessions types are not passed"
@@ -319,11 +313,10 @@ msgstr ""
 #: common/constants/messages.py:90
 #, python-format
 msgid ""
-"PlayTime enhanced activity monitor flag \"%%s\" is not correct and cannot be "
-"set"
+"PlayTime enhanced activity monitor flag \"%%s\" is not correct and cannot be set"
 msgstr ""
-"Флаг расширенного монитора активности игрового времени \"%%s\" неправильный "
-"и не может быть установлен"
+"Флаг расширенного монитора активности игрового времени \"%%s\" неправильный и "
+"не может быть установлен"
 
 #: common/constants/messages.py:93
 #, python-format
@@ -339,8 +332,7 @@ msgstr ""
 #: common/constants/messages.py:95
 #, python-format
 msgid "User's \"%%s\" allowed hours are not correct and cannot be set"
-msgstr ""
-"Разрешенные часы пользователя \"%%s\" неверны и не могут быть установлены"
+msgstr "Разрешенные часы пользователя \"%%s\" неверны и не могут быть установлены"
 
 #: common/constants/messages.py:96
 #, python-format
@@ -355,8 +347,7 @@ msgstr "Список дней пользователя \"%%s\" неправил�
 #: common/constants/messages.py:98
 #, python-format
 msgid "User's \"%%s\" day list is not correct and cannot be set"
-msgstr ""
-"Список дней пользователя \"%%s\" неправильный и не может быть установлен"
+msgstr "Список дней пользователя \"%%s\" неправильный и не может быть установлен"
 
 #: common/constants/messages.py:99
 #, python-format
@@ -379,8 +370,7 @@ msgstr ""
 #, python-format
 msgid "User's \"%%s\" time operation can be one of these: - + ="
 msgstr ""
-"Операция со временем пользователя \"%%s\" может быть одной из следующих: - + "
-"="
+"Операция со временем пользователя \"%%s\" может быть одной из следующих: - + ="
 
 #: common/constants/messages.py:103
 #, python-format
@@ -408,8 +398,7 @@ msgstr "Ежемесячный лимит пользователя \"%%s\" не�
 #, python-format
 msgid "User's \"%%s\" monthly allowance is not correct and cannot be set"
 msgstr ""
-"Ежемесячный лимит пользователя \"%%s\" неправильный и не может быть "
-"установлен"
+"Ежемесячный лимит пользователя \"%%s\" неправильный и не может быть установлен"
 
 #: common/constants/messages.py:108
 #, python-format
@@ -442,8 +431,8 @@ msgstr "Флаг пользователя \"%% s\" скрывать значок
 #, python-format
 msgid "User's \"%%s\" hide tray icon flag is not correct and cannot be set"
 msgstr ""
-"Флаг пользователя \"%% s\" скрывать значок в трее неправильный и не может "
-"быть установлен"
+"Флаг пользователя \"%% s\" скрывать значок в трее неправильный и не может быть "
+"установлен"
 
 #: common/constants/messages.py:114
 #, python-format
@@ -457,8 +446,7 @@ msgstr "Тип ограничения/блокировки пользовате�
 
 #: common/constants/messages.py:116
 #, python-format
-msgid ""
-"User's \"%%s\" restriction / lockout type is not correct and cannot be set"
+msgid "User's \"%%s\" restriction / lockout type is not correct and cannot be set"
 msgstr ""
 "Тип ограничения/блокировки пользователя «%%s» неправильный и не может быть "
 "установлен"
@@ -493,20 +481,18 @@ msgstr "Флаг включения игрового времени пользо
 #, python-format
 msgid "User's \"%%s\" PlayTime enable flag is not correct and cannot be set"
 msgstr ""
-"Флаг включения игрового времени пользователя \"%%s\"  неправильный и не "
-"может быть установлен"
+"Флаг включения игрового времени пользователя \"%%s\"  неправильный и не может "
+"быть установлен"
 
 #: common/constants/messages.py:123
 #, python-format
 msgid "User's \"%%s\" PlayTime override flag is not passed"
-msgstr ""
-"Флаг переопределения игрового времени пользователя \"%%s\" не установлен"
+msgstr "Флаг переопределения игрового времени пользователя \"%%s\" не установлен"
 
 #: common/constants/messages.py:124
 #, python-format
 msgid "User's \"%%s\" PlayTime override flag is not correct"
-msgstr ""
-"Флаг переопределения игрового времени пользователя \"%%s\" неправильный"
+msgstr "Флаг переопределения игрового времени пользователя \"%%s\" неправильный"
 
 #: common/constants/messages.py:125
 #, python-format
@@ -518,8 +504,7 @@ msgstr ""
 #: common/constants/messages.py:126
 #, python-format
 msgid ""
-"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not "
-"passed"
+"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not passed"
 msgstr ""
 "Флаг разрешения игровой активности во время неучтённых интервалов времени "
 "пользователя \"%%s\" не установлен"
@@ -527,8 +512,7 @@ msgstr ""
 #: common/constants/messages.py:127
 #, python-format
 msgid ""
-"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not "
-"correct"
+"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not correct"
 msgstr ""
 "Флаг разрешения игровой активности во время неучтённых интервалов времени "
 "пользователя \"%%s\" неправильный"
@@ -563,8 +547,7 @@ msgstr ""
 #, python-format
 msgid "User's \"%%s\" PlayTime day limits list is not passed"
 msgstr ""
-"Список дневных ограничений игровой активности пользователя \"%%s\" не "
-"установлен"
+"Список дневных ограничений игровой активности пользователя \"%%s\" не установлен"
 
 #: common/constants/messages.py:133 common/constants/messages.py:136
 #, python-format
@@ -574,11 +557,10 @@ msgstr ""
 
 #: common/constants/messages.py:134 common/constants/messages.py:137
 #, python-format
-msgid ""
-"User's \"%%s\" PlayTime day limits list is not correct and cannot be set"
+msgid "User's \"%%s\" PlayTime day limits list is not correct and cannot be set"
 msgstr ""
-"Список дневных ограничений игрового времени пользователя \"%%s\" "
-"неправильный и не может быть установлен"
+"Список дневных ограничений игрового времени пользователя \"%%s\" неправильный и "
+"не может быть установлен"
 
 #: common/constants/messages.py:138
 #, python-format
@@ -595,14 +577,13 @@ msgstr "Ограничение игрового времени пользова�
 #, python-format
 msgid "User's \"%%s\" PlayTime time limit is not correct and cannot be set"
 msgstr ""
-"Лимит игрового времени пользователя \"%%s\" неверный и не может быть "
-"установлен"
+"Лимит игрового времени пользователя \"%%s\" неверный и не может быть установлен"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:144
 msgid ""
-"Unexpected ERROR while loading configuration. Please inspect Timekpr-nExT "
-"log files"
+"Unexpected ERROR while loading configuration. Please inspect Timekpr-nExT log "
+"files"
 msgstr "Неожиданная ОШИБКА загрузки конфигурации. Проверьте логи Timekpr-nExT"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
@@ -618,29 +599,24 @@ msgid ""
 "Unexpected ERROR getting user configuration. Please inspect Timekpr-nExT log "
 "files"
 msgstr ""
-"Неожиданная ОШИБКА получения настроек пользователя. Проверьте логи Timekpr-"
-"nExT"
+"Неожиданная ОШИБКА получения настроек пользователя. Проверьте логи Timekpr-nExT"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:150
-msgid ""
-"Unexpected ERROR getting user list. Please inspect Timekpr-nExT log files"
+msgid "Unexpected ERROR getting user list. Please inspect Timekpr-nExT log files"
 msgstr ""
-"Неожиданная ОШИБКА получения списка пользователей. Проверьте логи Timekpr-"
-"nExT"
+"Неожиданная ОШИБКА получения списка пользователей. Проверьте логи Timekpr-nExT"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:152
 msgid ""
-"Unexpected ERROR updating configuration. Please inspect Timekpr-nExT log "
-"files"
+"Unexpected ERROR updating configuration. Please inspect Timekpr-nExT log files"
 msgstr ""
 "Неожиданная ОШИБКА при обновлении конфигурации. Проверьте логи Timekpr-nExT"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:154
-msgid ""
-"Unexpected ERROR updating control. Please inspect Timekpr-nExT log files"
+msgid "Unexpected ERROR updating control. Please inspect Timekpr-nExT log files"
 msgstr "Неожиданная ОШИБКА управления обновлением. Проверьте логи Timekpr-nExT"
 
 #: common/constants/messages.py:155
@@ -673,8 +649,7 @@ msgstr "Не удалось подключиться"
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:164
 msgid ""
-"Please reopen the application if you are superuser and Timekpr-nExT is "
-"running"
+"Please reopen the application if you are superuser and Timekpr-nExT is running"
 msgstr ""
 "Проверьте что демон Timekpr-nExT запущен есть у вас есть привилегии "
 "суперпользователя. После этого перезапустите приложение"
@@ -813,8 +788,8 @@ msgstr "Timekpr-nExT ещё не готов"
 
 #: common/constants/messages.py:199
 msgid ""
-"WARNING: Timekpr-nExT administration utility was asked to run in GUI mode, "
-"but no displays are available, thus running in CLI..."
+"WARNING: Timekpr-nExT administration utility was asked to run in GUI mode, but "
+"no displays are available, thus running in CLI..."
 msgstr ""
 "ПРЕДУПРЕЖДЕНИЕ: Было предложено запустить утилиту администрирования Timekpr-"
 "nExT в режиме графического интерфейса, но дисплеи недоступны, поэтому она "
@@ -841,8 +816,8 @@ msgid ""
 "weekdays are numbered according to ISO 8601 (i.e. Monday is the first day, "
 "format: 1-7)"
 msgstr ""
-"дни недели пронумерованы в соответствии с ISO 8601 (т.е. понедельник - "
-"первый день, формат: 1-7)."
+"дни недели пронумерованы в соответствии с ISO 8601 (т.е. понедельник - первый "
+"день, формат: 1-7)."
 
 #: common/constants/messages.py:205
 msgid "hours are numbered according to ISO 8601 (i.e. 24h clock, format: 0-23)"
@@ -880,7 +855,7 @@ msgstr "Контроль времени пользования компьюте�
 
 #: common/constants/messages.py:217
 msgid "Day"
-msgstr "дн."
+msgstr "День"
 
 #: common/constants/messages.py:218
 msgid "Enabled"
@@ -980,13 +955,12 @@ msgstr "Сегодня ваше время не ограничено"
 
 #: common/constants/messages.py:247
 msgid "Time allowance has changed, please note new time left!"
-msgstr ""
-"Ограничения времени изменились, обратите внимание, появилось новое время!"
+msgstr "Ограничения времени изменились, обратите внимание, появилось новое время!"
 
 #: common/constants/messages.py:248
 msgid "Time limit configuration has changed, please note new configuration!"
 msgstr ""
-"Конфигурация ограничения по времени изменилась, обратите внимание на новую "
+"Конфигурация ограничения времени изменилась, обратите внимание на новую "
 "конфигурацию!"
 
 #: common/constants/messages.py:249
@@ -1081,8 +1055,7 @@ msgid ""
 msgstr ""
 "Функция \"%% s\", которая используется для определения времени простоя, не "
 "может быть включена!\n"
-"Время простоя/неактивного состояния может не учитываться при блокировке "
-"экрана!"
+"Время простоя/неактивного состояния может не учитываться при блокировке экрана!"
 
 #: common/constants/messages.py:274
 #, python-format
@@ -1119,29 +1092,28 @@ msgstr "Timekpr-nExT"
 #: resource/client/forms/about.glade:19
 msgctxt "timekpr-next"
 msgid ""
-"This program is free software: you can redistribute it and/or modify it "
-"under the terms of the GNU General Public License as published by the Free "
-"Software Foundation, either version 3 of the License, or (at your option) "
-"any later version.\n"
+"This program is free software: you can redistribute it and/or modify it under "
+"the terms of the GNU General Public License as published by the Free Software "
+"Foundation, either version 3 of the License, or (at your option) any later "
+"version.\n"
 "\n"
-"This program is distributed in the hope that it will be useful, but WITHOUT "
-"ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or "
-"FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for "
-"more details.\n"
+"This program is distributed in the hope that it will be useful, but WITHOUT ANY "
+"WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A "
+"PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n"
 "\n"
 "You should have received a copy of the GNU General Public License along with "
-"this program.  If not, see <http://www.gnu.org/licenses/>. In Debian, see "
-"file /usr/share/common-licenses/GPL-3"
+"this program.  If not, see <http://www.gnu.org/licenses/>. In Debian, see file /"
+"usr/share/common-licenses/GPL-3"
 msgstr ""
 "Эта программа является свободным программным обеспечением: вы можете "
-"распространять и/или модифицировать согласно GNU GPLv3 или (на ваше "
-"усмотрение) более поздней версии.\n"
+"распространять и/или модифицировать согласно GNU GPLv3 или (на ваше усмотрение) "
+"более поздней версии.\n"
 "Эта программа распространяется в надежде, что она будет востребована, но БЕЗ "
-"КАКИХ ЛИБО ГАРАНТИЙ; даже без гарантий ПРОДАВАЕМОСТИ или ПРАКТИЧЕСКОЙ "
-"ПОЛЬЗЫ. Детали можно посмотреть в GNU GPL.\n"
+"КАКИХ ЛИБО ГАРАНТИЙ; даже без гарантий ПРОДАВАЕМОСТИ или ПРАКТИЧЕСКОЙ ПОЛЬЗЫ. "
+"Детали можно посмотреть в GNU GPL.\n"
 "Вы должны были получить копию GNU GPL с этой программой. Если нет, смотрите "
 "<http://www.gnu.org/licenses/>. В Debian, смотрите файл /usr/share/common-"
-"licenses/GPL-3."
+"licenses/GPL-3"
 
 #. Please fill in translator credits, each person in new line in format: name.surname@mail.xy, name@mail.xy, nick@mail.xy or so...
 #: resource/client/forms/about.glade:25
@@ -1156,11 +1128,11 @@ msgstr ""
 
 #: resource/client/forms/admin.glade:155
 msgid "Remove excluded session type"
-msgstr "Удалить исключенный тип сеанса"
+msgstr "Удалить исключаемый тип сеансов"
 
 #: resource/client/forms/admin.glade:385
 msgid "Timekpr-nExT administration"
-msgstr "администрирование Timekpr-nExT"
+msgstr "Администрирование Timekpr-nExT"
 
 #: resource/client/forms/admin.glade:403 resource/client/forms/admin.glade:409
 #: resource/client/forms/client.glade:261
@@ -1175,26 +1147,26 @@ msgstr "Примечания, читайте внимательно ;)"
 msgid ""
 "This is the configuration app for Timekpr-nExT. It allows you to set time "
 "limits for your individual users as well as general Timekpr-nExT options.\n"
-"To use this application, you either have to execute it as superuser or have "
-"to be part of the timekpr group.\n"
-"Please note that the \"Timekpr-nExT Configuration\" is available in "
-"superuser (administrator) mode only!\n"
+"To use this application, you either have to execute it as superuser or have to "
+"be part of the timekpr group.\n"
+"Please note that the \"Timekpr-nExT Configuration\" is available in superuser "
+"(administrator) mode only!\n"
 "\n"
 "Please configure carefully: do not lock yourself out!"
 msgstr ""
-"Это приложение для настройки Timekpr-nExT. Оно позволяет вам устанавливать "
+"Это приложение для настройки Timekpr-nExT. Оно позволяет устанавливать "
 "временные ограничения для отдельных пользователей, а также общие параметры "
 "Timekpr-nExT.\n"
 "Чтобы использовать это приложение, вы должны либо запустить его как "
-"суперпользователь, либо быть частью группы timekpr.\n"
-"Пожалуйста, обратите внимание, что \"Настройка Timekpr-nExT\" доступна "
+"суперпользователь, или быть членом группы timekpr.\n"
+"Пожалуйста, обратите внимание, что \"Администрирование Timekpr-nExT\" доступно "
 "только в режиме суперпользователя (администратора)!\n"
 "\n"
-"Пожалуйста, выполняйте настройку внимательно: не заблокируйте себя!"
+"Будьте внимательны, не заблокируйте сами себя!"
 
 #: resource/client/forms/admin.glade:465 resource/client/forms/admin.glade:3047
 msgid "Users related configuration"
-msgstr "Настойки пользователей"
+msgstr "Настройки пользователей"
 
 #: resource/client/forms/admin.glade:476 resource/client/forms/client.glade:298
 msgid "Username:"
@@ -1218,11 +1190,11 @@ msgstr "Информация об оставшемся/потраченном в
 
 #: resource/client/forms/admin.glade:610
 msgid ""
-"Continuous time left. May span more than the current day (realtime, "
-"available when user is logged in)"
+"Continuous time left. May span more than the current day (realtime, available "
+"when user is logged in)"
 msgstr ""
-"Оставшееся время. Может превышать текущий день (отображается в режиме "
-"реального времени, доступно при входе пользователя в систему)."
+"Оставшееся время. Может превышать текущий день (отображается в режиме реального "
+"времени, доступно при входе пользователя в систему)."
 
 #: resource/client/forms/admin.glade:612
 msgid "Time left (actual):"
@@ -1231,23 +1203,18 @@ msgstr "Оставшееся время (фактическое):"
 #: resource/client/forms/admin.glade:626 resource/client/forms/admin.glade:657
 #: resource/client/forms/admin.glade:688 resource/client/forms/admin.glade:732
 #: resource/client/forms/admin.glade:763 resource/client/forms/admin.glade:794
-#: resource/client/forms/client.glade:411
-#: resource/client/forms/client.glade:425
-#: resource/client/forms/client.glade:456
-#: resource/client/forms/client.glade:502
-#: resource/client/forms/client.glade:728
-#: resource/client/forms/client.glade:786
-#: resource/client/forms/client.glade:857
-#: resource/client/forms/client.glade:885
-#: resource/client/forms/client.glade:985
-#: resource/client/forms/client.glade:1011
+#: resource/client/forms/client.glade:411 resource/client/forms/client.glade:425
+#: resource/client/forms/client.glade:456 resource/client/forms/client.glade:502
+#: resource/client/forms/client.glade:728 resource/client/forms/client.glade:786
+#: resource/client/forms/client.glade:857 resource/client/forms/client.glade:885
+#: resource/client/forms/client.glade:985 resource/client/forms/client.glade:1011
 msgid "Format: <days : hours : minutes : seconds>"
 msgstr "Формат: <дни : часы : минуты : секунды>"
 
 #: resource/client/forms/admin.glade:641
 msgid ""
-"How long the user was inactive since last login (realtime, available when "
-"user is logged in)"
+"How long the user was inactive since last login (realtime, available when user "
+"is logged in)"
 msgstr ""
 "Сколько пользователь был неактивен с момента последнего входа в систему "
 "(отображается в режиме реального времени, доступно при входе пользователя в "
@@ -1270,8 +1237,8 @@ msgstr "Оставшееся время (сегодня):"
 #: resource/client/forms/admin.glade:716
 msgid "Time spent today (saved stated, not real-time)"
 msgstr ""
-"Время, потраченное сегодня (сохранено в заявленном виде, не в режиме "
-"реального времени)"
+"Время, потраченное сегодня (сохранено в заявленном виде, не в режиме реального "
+"времени)"
 
 #: resource/client/forms/admin.glade:718
 msgid "Time spent (today):"
@@ -1303,7 +1270,7 @@ msgstr "Корректировки надбавок"
 
 #: resource/client/forms/admin.glade:885
 msgid "today's time"
-msgstr "сегодняшнее время"
+msgstr "Сегодняшнее время"
 
 #: resource/client/forms/admin.glade:889
 msgid "Choose this to adjust user's time allowance for today"
@@ -1318,12 +1285,12 @@ msgstr "Игровое время"
 #: resource/client/forms/admin.glade:905
 msgid "Choose this to adjust user's PlayTime allowance for today"
 msgstr ""
-"Выберите этот параметр, чтобы изменить норму игрового времени пользователя "
-"на сегодня"
+"Выберите этот параметр, чтобы изменить норму игрового времени пользователя на "
+"сегодня"
 
 #: resource/client/forms/admin.glade:934
 msgid "hr"
-msgstr "час."
+msgstr "час"
 
 #: resource/client/forms/admin.glade:945
 msgid "The number of minutes to be adjusted for today's limit"
@@ -1338,7 +1305,7 @@ msgstr ""
 
 #: resource/client/forms/admin.glade:977
 msgid "min"
-msgstr "мин."
+msgstr "мин"
 
 #: resource/client/forms/admin.glade:1004
 msgid "Add specified time (reward)"
@@ -1367,8 +1334,7 @@ msgstr ""
 msgid "PlayTime left (actual):"
 msgstr "Осталось игрового времени (фактически):"
 
-#: resource/client/forms/admin.glade:1150
-#: resource/client/forms/admin.glade:1181
+#: resource/client/forms/admin.glade:1150 resource/client/forms/admin.glade:1181
 #: resource/client/forms/admin.glade:1269
 msgid "Format: <hours : minutes : seconds>"
 msgstr "Формат: <часы : минуты : секунды>"
@@ -1383,13 +1349,12 @@ msgstr ""
 msgid "PlayTime left (today):"
 msgstr "Осталось игрового времени (сегодня):"
 
-#: resource/client/forms/admin.glade:1196
-#: resource/client/forms/admin.glade:1212
+#: resource/client/forms/admin.glade:1196 resource/client/forms/admin.glade:1212
 msgid ""
 "Active PlayTime activity count (realtime, available when user is logged in)"
 msgstr ""
-"Количество активных игровых действий (в режиме реального времени, доступно "
-"при входе пользователя в систему)"
+"Количество активных игровых действий (в режиме реального времени, доступно при "
+"входе пользователя в систему)"
 
 #: resource/client/forms/admin.glade:1198
 msgid "Running activities (actual):"
@@ -1426,26 +1391,22 @@ msgid "Week day limits"
 msgstr "Ограничения по дням недели"
 
 #. This is meant for very short (e.g. one letter) abbreviation of hours
-#: resource/client/forms/admin.glade:1370
-#: resource/client/forms/admin.glade:1869
+#: resource/client/forms/admin.glade:1370 resource/client/forms/admin.glade:1869
 #: resource/client/forms/admin.glade:2271
 msgid "h"
 msgstr "ч"
 
-#: resource/client/forms/admin.glade:1374
-#: resource/client/forms/admin.glade:2275
+#: resource/client/forms/admin.glade:1374 resource/client/forms/admin.glade:2275
 msgid "Choose hours to be adjusted for selected days."
 msgstr "Выберите часы, которые будут скорректированы для выбранных дней."
 
 #. This is meant for very short (e.g. one letter) abbreviation of minutes
-#: resource/client/forms/admin.glade:1386
-#: resource/client/forms/admin.glade:1885
+#: resource/client/forms/admin.glade:1386 resource/client/forms/admin.glade:1885
 #: resource/client/forms/admin.glade:2287
 msgid "m"
 msgstr "м"
 
-#: resource/client/forms/admin.glade:1390
-#: resource/client/forms/admin.glade:2291
+#: resource/client/forms/admin.glade:1390 resource/client/forms/admin.glade:2291
 msgid "Choose minutes to be adjusted for selected days."
 msgstr "Выберите минуты, которые будут скорректированы для выбранных дней."
 
@@ -1456,8 +1417,8 @@ msgid ""
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
-"Увеличьте суточную норму времени на выбранную единицу времени (часы или "
-"минуты) для выбранных дней.\n"
+"Увеличьте суточную норму времени на выбранную единицу времени (часы или минуты) "
+"для выбранных дней.\n"
 "\n"
 "Пожалуйста, обратите внимание, что вы можете выбрать более одного дня для "
 "корректировки!"
@@ -1469,8 +1430,8 @@ msgid ""
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
-"Уменьшите дневную норму времени на выбранную единицу времени (часы или "
-"минуты) для выбранных дней.\n"
+"Уменьшите дневную норму времени на выбранную единицу времени (часы или минуты) "
+"для выбранных дней.\n"
 "\n"
 "Пожалуйста, обратите внимание, что вы можете выбрать более одного дня для "
 "корректировки!"
@@ -1494,8 +1455,7 @@ msgid ""
 "Please note that if the day's limit ends at 24:00 and the next day's limit "
 "starts at 00:00, then the user can work continuously past midnight.\n"
 "\n"
-"Please note that multiple intervals cannot be configured within the same "
-"hour.\n"
+"Please note that multiple intervals cannot be configured within the same hour.\n"
 "An interval can start or end or contain a specific hour, but not more than "
 "once. This is by design, not a bug.\n"
 "\n"
@@ -1505,14 +1465,14 @@ msgstr ""
 "будет учитываться в дневном лимите, вместо этого оно будет учитываться как "
 "время простоя.\n"
 "\n"
-"Пожалуйста, обратите внимание, что если дневной лимит заканчивается в 24:00, "
-"а лимит следующего дня начинается в 00:00, то пользователь может работать "
+"Пожалуйста, обратите внимание, что если дневной лимит заканчивается в 24:00, а "
+"лимит следующего дня начинается в 00:00, то пользователь может работать "
 "непрерывно после полуночи.\n"
 "\n"
 "Обратите внимание, что в течение одного часа нельзя настроить несколько "
 "интервалов.\n"
-"Интервал может начинаться или заканчиваться или содержать определенный час, "
-"но не более одного раза. Это сделано специально, не ошибка.\n"
+"Интервал может начинаться или заканчиваться или содержать определенный час, но "
+"не более одного раза. Это сделано специально, не ошибка.\n"
 "\n"
 
 #: resource/client/forms/admin.glade:1585
@@ -1550,8 +1510,8 @@ msgid ""
 "\n"
 "Intervals which have problems will be highlighted."
 msgstr ""
-"Проверьте настроенные временные интервалы. Это обязательный шаг для "
-"обеспечения правильности интервалов.\n"
+"Проверьте настроенные временные интервалы. Это обязательный шаг для обеспечения "
+"правильности интервалов.\n"
 "\n"
 "Будут выделены интервалы, в которых есть проблемы."
 
@@ -1578,26 +1538,25 @@ msgstr "Выберите минуты, которые будут скоррек�
 
 #: resource/client/forms/admin.glade:1917
 msgid ""
-"Increase weekly or monthly time allowance by selected time unit (days or "
-"hours or minutes) for the selected period."
+"Increase weekly or monthly time allowance by selected time unit (days or hours "
+"or minutes) for the selected period."
 msgstr ""
-"Увеличьте недельную или месячную норму на выбранную единицу времени (дни, "
-"часы или минуты) за выбранный период."
+"Увеличьте недельную или месячную норму на выбранную единицу времени (дни, часы "
+"или минуты) за выбранный период."
 
 #: resource/client/forms/admin.glade:1931
 msgid ""
-"Decrease weekly or monthly time allowance by selected time unit (days or "
-"hours or minutes) for the selected period."
+"Decrease weekly or monthly time allowance by selected time unit (days or hours "
+"or minutes) for the selected period."
 msgstr ""
-"Уменьшите недельную или месячную норму на выбранную единицу времени (дни, "
-"часы или минуты) за выбранный период."
+"Уменьшите недельную или месячную норму на выбранную единицу времени (дни, часы "
+"или минуты) за выбранный период."
 
 #: resource/client/forms/admin.glade:1980
 msgid ""
 "Weekly and monthly limits for the user.\n"
 "\n"
-"These limits are applied to user together with the rest of limit "
-"configuration."
+"These limits are applied to user together with the rest of limit configuration."
 msgstr ""
 "Недельные и месячные лимиты для пользователя.\n"
 "\n"
@@ -1628,17 +1587,15 @@ msgstr "Установки действий для игрового времен
 msgid "PlayTime options"
 msgstr "Параметры игрового времени"
 
-#: resource/client/forms/admin.glade:2114
-#: resource/client/forms/admin.glade:2153
+#: resource/client/forms/admin.glade:2114 resource/client/forms/admin.glade:2153
 msgid "Enable PlayTime for selected user"
 msgstr "Включить игровое время для выбранного пользователя"
 
 #: resource/client/forms/admin.glade:2116
 msgid "Enable PlayTime:"
-msgstr "Включить игровое время"
+msgstr "Включить игровое время:"
 
-#: resource/client/forms/admin.glade:2130
-#: resource/client/forms/admin.glade:2167
+#: resource/client/forms/admin.glade:2130 resource/client/forms/admin.glade:2167
 msgid ""
 "Enable PlayTime override for selected user.\n"
 "\n"
@@ -1653,41 +1610,39 @@ msgid ""
 msgstr ""
 "Включить переопределение игрового времени для выбранного пользователя.\n"
 "\n"
-"Этот параметр переопределяет учет времени таким образом, что время "
-"учитывается только тогда, когда запущено хотя бы одно из приложений в списке "
-"действий в игровое время!\n"
+"Этот параметр переопределяет учет времени таким образом, что время учитывается "
+"только тогда, когда запущено хотя бы одно из приложений в списке действий в "
+"игровое время!\n"
 "\n"
 "Это влияет только на учет времени, интервалы по-прежнему соблюдаются "
 "полностью!\n"
 "\n"
-"Если процессы не запущены, время учитывается как время простоя, таким "
-"образом, фактически это свободное время для пользователя!"
+"Если процессы не запущены, время учитывается как время простоя, таким образом, "
+"фактически это свободное время для пользователя!"
 
 #: resource/client/forms/admin.glade:2138
 msgid "Enable PlayTime override:"
 msgstr "Включить переопределение игрового времени:"
 
-#: resource/client/forms/admin.glade:2186
-#: resource/client/forms/admin.glade:2207
+#: resource/client/forms/admin.glade:2186 resource/client/forms/admin.glade:2207
 msgid ""
 "Allow PlayTime activities during unaccounted (\"∞\") time intervals for "
 "selected user.\n"
 "\n"
 "This setting allows the user to use applications configured in his PlayTime "
-"activity list during time intervals which are marked as unaccounted "
-"(\"∞\").\n"
+"activity list during time intervals which are marked as unaccounted (\"∞\").\n"
 "\n"
-"If this setting is enabled, the use of activities will not be accounted "
-"towards PlayTime limits, otherwise applications in PlayTime activity list "
-"will be terminated as soon as they are started during unaccounted (\"∞\") "
-"time intervals."
+"If this setting is enabled, the use of activities will not be accounted towards "
+"PlayTime limits, otherwise applications in PlayTime activity list will be "
+"terminated as soon as they are started during unaccounted (\"∞\") time "
+"intervals."
 msgstr ""
-"Разрешить игровые ативности в течение неучтенных (\"∞\") интервалов времени "
-"для выбранного пользователя.\n"
+"Разрешить игровые ативности в течение неучтенных (\"∞\") интервалов времени для "
+"выбранного пользователя.\n"
 "\n"
-"Этот параметр позволяет пользователю использовать приложения, настроенные в "
-"его списке игровых действий, в течение интервалов времени, которые отмечены "
-"как неучтенные (\"∞\").\n"
+"Этот параметр позволяет пользователю использовать приложения, настроенные в его "
+"списке игровых действий, в течение интервалов времени, которые отмечены как "
+"неучтенные (\"∞\").\n"
 "\n"
 "Если этот параметр включен, игровые активности не будет учитываться в рамках "
 "ограничений игрового времени, в противном случае приложения из списка игр во "
@@ -1700,35 +1655,34 @@ msgstr "Допускается в течение интервалов \"∞\":"
 
 #: resource/client/forms/admin.glade:2251
 msgid "This lets you configure PlayTime limits."
-msgstr "Это позволяет вам настроить ограничения игрового времени"
+msgstr "Это позволяет вам настроить ограничения игрового времени."
 
-#: resource/client/forms/admin.glade:2253
-#: resource/client/forms/client.glade:1253
+#: resource/client/forms/admin.glade:2253 resource/client/forms/client.glade:1253
 msgid "PlayTime limits"
 msgstr "Лимиты игрового времени"
 
 #: resource/client/forms/admin.glade:2311
 msgid ""
-"Increase daily PlayTime allowance by selected time unit (hours or minutes) "
-"for selected days.\n"
+"Increase daily PlayTime allowance by selected time unit (hours or minutes) for "
+"selected days.\n"
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
-"Увеличьте ежедневную норму игрового времени на выбранную единицу (часы или "
-"минуты) для выбранных дней.\n"
+"Увеличьте дневную норму игрового времени на выбранную единицу (часы или минуты) "
+"для выбранных дней.\n"
 "\n"
 "Пожалуйста, обратите внимание, что вы можете выбрать более одного дня для "
 "корректировки!"
 
 #: resource/client/forms/admin.glade:2328
 msgid ""
-"Decrease daily PlayTime allowance by selected time unit (hours or minutes) "
-"for selected days.\n"
+"Decrease daily PlayTime allowance by selected time unit (hours or minutes) for "
+"selected days.\n"
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
-"Уменьшите ежедневную норму игрового времени на выбранную единицу (часы или "
-"минуты) для выбранных дней.\n"
+"Уменьшите дневную норму игрового времени на выбранную единицу (часы или минуты) "
+"для выбранных дней.\n"
 "\n"
 "Пожалуйста, обратите внимание, что вы можете выбрать более одного дня для "
 "корректировки!"
@@ -1738,14 +1692,14 @@ msgid ""
 "Lists day of the week and additional information about the day's PlayTime "
 "limit.\n"
 "\n"
-"Please enable / disable days for the user and set time allowance for "
-"PlayTime activities."
+"Please enable / disable days for the user and set time allowance for PlayTime "
+"activities."
 msgstr ""
 "Отображает день недели и дополнительную информацию об ограничении игрового "
 "времени на день.\n"
 "\n"
-"Пожалуйста, включите/отключите дни для пользователя и установите норму "
-"времени для игровых занятий."
+"Пожалуйста, включите/отключите дни для пользователя и установите норму времени "
+"для игровых занятий."
 
 #: resource/client/forms/admin.glade:2431
 msgid "PlayTime activities"
@@ -1755,8 +1709,8 @@ msgstr "Игровые действия"
 msgid ""
 "Add new PlayTime activity.\n"
 "\n"
-"Please specify activity mask and user friendly description in the activity "
-"list directly."
+"Please specify activity mask and user friendly description in the activity list "
+"directly."
 msgstr ""
 "Добавьте новое игровое действие.\n"
 "\n"
@@ -1765,12 +1719,12 @@ msgstr ""
 
 #: resource/client/forms/admin.glade:2470
 msgid "Remove selected entry from PlayTime activities."
-msgstr "Удалите выбранную запись из списка игровых активностей"
+msgstr "Удалите выбранную запись из списка игровых активностей."
 
 #: resource/client/forms/admin.glade:2514
 msgid ""
-"Please specify a list of full process (executable) names without path as "
-"case sensitive strings to be monitored in the system.\n"
+"Please specify a list of full process (executable) names without path as case "
+"sensitive strings to be monitored in the system.\n"
 "\n"
 "It's possible to specify RegExp masks for processes too, but please be very "
 "careful about them as misusing this setting may lead to killing unwanted "
@@ -1779,13 +1733,13 @@ msgid ""
 "NOTE: RegExp is an expert setting!"
 msgstr ""
 "Пожалуйста, укажите список полных имен процессов (исполняемых файлов) без "
-"указания пути в качестве строк с учетом регистра, которые будут "
-"отслеживаться в системе.\n"
+"указания пути в качестве строк с учетом регистра, которые будут отслеживаться в "
+"системе.\n"
 "\n"
-"Можно также указать маски регулярных выражений для процессов, но, "
-"пожалуйста, будьте очень осторожны с ними, поскольку неправильное "
-"использование этого параметра может привести к уничтожению нежелательных "
-"процессов для пользователя!\n"
+"Можно также указать маски регулярных выражений для процессов, но, пожалуйста, "
+"будьте очень осторожны с ними, поскольку неправильное использование этого "
+"параметра может привести к уничтожению нежелательных процессов для "
+"пользователя!\n"
 "\n"
 "ПРИМЕЧАНИЕ: регулярные выражения - это экспертная настройка!"
 
@@ -1796,8 +1750,7 @@ msgstr "Применить конфигурацию игрового време�
 #: resource/client/forms/admin.glade:2560
 msgid "Apply PlayTime limits and configuration changes on this page"
 msgstr ""
-"Применить ограничения игрового времени и изменения конфигурации на этой "
-"странице"
+"Применить ограничения игрового времени и изменения конфигурации на этой странице"
 
 #: resource/client/forms/admin.glade:2579
 msgid "PlayTime configuration"
@@ -1807,39 +1760,37 @@ msgstr "Настройка игрового времени"
 msgid "Additional configuration options"
 msgstr "Дополнительные параметры конфигурации"
 
-#: resource/client/forms/admin.glade:2639
-#: resource/client/forms/admin.glade:2662
+#: resource/client/forms/admin.glade:2639 resource/client/forms/admin.glade:2662
 msgid ""
 "Select whether inactive session time is counted.\n"
 "\n"
 "If this is unchecked, time spent in console (not terminal emulator) login "
-"sessions and while the screen is locked is NOT taken into account. This "
-"varies among desktop environments."
+"sessions and while the screen is locked is NOT taken into account. This varies "
+"among desktop environments."
 msgstr ""
 "Выберите, засчитывается ли время неактивного сеанса.\n"
 "\n"
 "Если этот флажок снят, время, проведенное в сеансах входа в консоль (не в "
-"эмулятор терминала) и при заблокированном экране, НЕ учитывается. Это "
-"зависит от среды рабочего стола."
+"эмулятор терминала) и при заблокированном экране, НЕ учитывается. Это зависит "
+"от среды рабочего стола."
 
 #: resource/client/forms/admin.glade:2643
 msgid "Track inactive sessions:"
 msgstr "Отслеживание неактивных сеансов:"
 
-#: resource/client/forms/admin.glade:2679
-#: resource/client/forms/admin.glade:2702
+#: resource/client/forms/admin.glade:2679 resource/client/forms/admin.glade:2702
 msgid ""
 "Select whether to show Timekpr-next's padlock icon and notifications to the "
 "user.\n"
 "\n"
-"Please note that unchecking this will disable showing all information and "
+"Please note that checking this will disable showing all information and "
 "notifications to the user!"
 msgstr ""
-"Выберите, показывать ли пользователю значок замка Timekpr-nExT и "
-"уведомления.\n"
+"Выберите, отображать ли значок замка Timekpr-next и уведомления для "
+"пользователя.\n"
 "\n"
-"Пожалуйста, обратите внимание, что при снятии этого флажка отображение всей "
-"информации и уведомлений пользователю будет отключено!"
+"Обратите внимание: если установить этот флажок, вся информация и уведомления "
+"для пользователя будут отключены!"
 
 #: resource/client/forms/admin.glade:2683
 msgid "Hide icon and notifications:"
@@ -1854,9 +1805,8 @@ msgid ""
 msgstr ""
 "Выберите тип ограничения/блокировки для пользователя.\n"
 "\n"
-"ПРИМЕЧАНИЕ: пожалуйста, будьте очень осторожны, подумайте заранее и "
-"прочитайте описание всех опций при изменении этого параметра со значения по "
-"умолчанию!"
+"ПРИМЕЧАНИЕ: пожалуйста, будьте очень осторожны, подумайте заранее и прочитайте "
+"описание всех опций при изменении этого параметра со значения по умолчанию!"
 
 #: resource/client/forms/admin.glade:2758
 msgid "Restriction / lockout type:"
@@ -1924,14 +1874,12 @@ msgstr "приостановить работу компьютера"
 msgid ""
 "When time ends, computer will be suspended (put to sleep).\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes.\n"
+"This option is not a restriction and is more suited for self control purposes.\n"
 "\n"
-"When woken up when there is still no time left, computer screen will be "
-"locked and put to sleep again after some time."
+"When woken up when there is still no time left, computer screen will be locked "
+"and put to sleep again after some time."
 msgstr ""
-"По истечении времени компьютер будет приостановлен (переведен в спящий "
-"режим).\n"
+"По истечении времени компьютер будет приостановлен (переведен в спящий режим).\n"
 "\n"
 "Этот параметр не является ограничением и больше подходит для целей "
 "самоконтроля.\n"
@@ -1945,18 +1893,17 @@ msgstr "приостановка/пробуждение компьютера"
 
 #: resource/client/forms/admin.glade:2871
 msgid ""
-"When time ends, computer will be suspended (put to sleep) and will be woken "
-"up at start of next available time interval for the user.\n"
+"When time ends, computer will be suspended (put to sleep) and will be woken up "
+"at start of next available time interval for the user.\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes.\n"
+"This option is not a restriction and is more suited for self control purposes.\n"
 "\n"
-"When woken up when there is still no time left, computer screen will be "
-"locked and put to sleep again after some time."
+"When woken up when there is still no time left, computer screen will be locked "
+"and put to sleep again after some time."
 msgstr ""
-"По истечении времени компьютер будет приостановлен (переведен в спящий "
-"режим) и будет разбужен в начале следующего доступного для пользователя "
-"интервала времени.\n"
+"По истечении времени компьютер будет приостановлен (переведен в спящий режим) и "
+"будет разбужен в начале следующего доступного для пользователя интервала "
+"времени.\n"
 "\n"
 "Этот параметр не является ограничением и больше подходит для целей "
 "самоконтроля.\n"
@@ -1972,20 +1919,18 @@ msgstr "заблокировать экран"
 msgid ""
 "When time ends, computer screen will be locked.\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes."
+"This option is not a restriction and is more suited for self control purposes."
 msgstr ""
 "По истечении времени экран компьютера будет заблокирован.\n"
 "\n"
-"Этот параметр не является ограничением и больше подходит для целей "
-"самоконтроля."
+"Этот параметр не является ограничением и больше подходит для целей самоконтроля."
 
 #: resource/client/forms/admin.glade:2924
 msgid ""
 "Select a time interval when computer can be woken up automatically.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Выберите интервал времени, в течение которого компьютер может быть "
 "автоматически включен.\n"
@@ -2002,27 +1947,27 @@ msgstr "Часовой интервал пробуждения:"
 msgid ""
 "Enter start hour for the automatic wakeup function.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Введите время начала автоматического пробуждения.\n"
 "\n"
 "Пожалуйста, обратите внимание, что эта опция эффективна только в том случае, "
-"если функция пробуждения по часам реального времени поддерживается и "
-"включена в BIOS/UEFI!"
+"если функция пробуждения по часам реального времени поддерживается и включена в "
+"BIOS/UEFI!"
 
 #: resource/client/forms/admin.glade:2959
 msgid ""
 "Enter end hour for the automatic wakeup function.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Введите время окончания автоматического пробуждения.\n"
 "\n"
 "Пожалуйста, обратите внимание, что эта опция эффективна только в том случае, "
-"если функция пробуждения по часам реального времени поддерживается и "
-"включена в BIOS/UEFI!"
+"если функция пробуждения по часам реального времени поддерживается и включена в "
+"BIOS/UEFI!"
 
 #: resource/client/forms/admin.glade:2997
 msgid "Apply configuration"
@@ -2036,10 +1981,9 @@ msgstr "Примените дополнительные изменения ко�
 msgid "Additional configuration"
 msgstr "Дополнительная конфигурация"
 
-#: resource/client/forms/admin.glade:3021
-#: resource/client/forms/admin.glade:3695
+#: resource/client/forms/admin.glade:3021 resource/client/forms/admin.glade:3695
 msgid "Additional options"
-msgstr "Дополнительные опции"
+msgstr "Дополнительные функции"
 
 #: resource/client/forms/admin.glade:3048
 msgid "User Configuration"
@@ -2053,8 +1997,7 @@ msgstr "Настройки Timekpr-nExT"
 msgid "Control Timekpr-nExT Settings"
 msgstr "Управление настройками Timekpr-nExT"
 
-#: resource/client/forms/admin.glade:3112
-#: resource/client/forms/admin.glade:3264
+#: resource/client/forms/admin.glade:3112 resource/client/forms/admin.glade:3264
 msgid ""
 "Timekpr-nExT log level.\n"
 "\n"
@@ -2070,8 +2013,7 @@ msgstr ""
 "\n"
 "Значения: 1 - стандартный, 2 - отладочный, 3 - дополнительный отладочный"
 
-#: resource/client/forms/admin.glade:3132
-#: resource/client/forms/admin.glade:3180
+#: resource/client/forms/admin.glade:3132 resource/client/forms/admin.glade:3180
 msgid ""
 "Session polling time granularity which specifies how often user sessions and "
 "activity are checked and accounted.\n"
@@ -2087,47 +2029,44 @@ msgstr ""
 msgid "Poll interval"
 msgstr "Интервал опроса"
 
-#: resource/client/forms/admin.glade:3148
-#: resource/client/forms/admin.glade:3251
+#: resource/client/forms/admin.glade:3148 resource/client/forms/admin.glade:3251
 msgid ""
 "Specify the time in seconds when Timekpr-nExT starts continuous real-time "
 "countdown before enforcing a restriction / lockout to user's sessions."
 msgstr ""
-"Укажите время в секундах, когда Timekpr-nExT начнет непрерывный обратный "
-"отсчет в реальном времени, прежде чем вводить ограничение/блокировку сеансов "
+"Укажите время в секундах, когда Timekpr-nExT начнет непрерывный обратный отсчет "
+"в реальном времени, прежде чем вводить ограничение/блокировку сеансов "
 "пользователя."
 
-#: resource/client/forms/admin.glade:3164
-#: resource/client/forms/admin.glade:3214
+#: resource/client/forms/admin.glade:3164 resource/client/forms/admin.glade:3214
 msgid ""
 "This specifies the rate in seconds at which actual user state is saved to "
 "disk.\n"
 "\n"
 "To improve performance and still have great accuracy, Timekpr-nExT accounts "
-"time in memory at \"Poll interval\" frequency, this setting defines a "
-"frequency at which user state is saved to disk for permanent storage."
+"time in memory at \"Poll interval\" frequency, this setting defines a frequency "
+"at which user state is saved to disk for permanent storage."
 msgstr ""
 "Это определяет скорость в секундах, с которой фактическое состояние "
 "пользователя сохраняется на диск.\n"
 "\n"
 "Для повышения производительности и сохранения высокой точности Timekpr-nExT "
 "учитывает время в памяти с частотой \"Интервал опроса\", этот параметр "
-"определяет частоту, с которой состояние пользователя сохраняется на диске "
-"для постоянного хранения."
+"определяет частоту, с которой состояние пользователя сохраняется на диске для "
+"постоянного хранения."
 
 #: resource/client/forms/admin.glade:3168
 msgid "Save time"
 msgstr "Интревал сохранения"
 
-#: resource/client/forms/admin.glade:3198
-#: resource/client/forms/admin.glade:3233
+#: resource/client/forms/admin.glade:3198 resource/client/forms/admin.glade:3233
 msgid ""
 "Number of seconds left for user before enforcing a configured restriction / "
 "lockout to his sessions.\n"
 "\n"
 "After this is reached and user is still active, the user's sessions will be "
-"handled according to specified restriction / lockout, and almost nothing can "
-"be done to prevent it."
+"handled according to specified restriction / lockout, and almost nothing can be "
+"done to prevent it."
 msgstr ""
 "Количество секунд, оставшихся у пользователя до применения настроенного "
 "ограничения / блокировки к его сеансам.\n"
@@ -2149,20 +2088,19 @@ msgstr "Время обратного отсчета"
 msgid "Log level"
 msgstr "Уровень журналирования"
 
-#: resource/client/forms/admin.glade:3281
-#: resource/client/forms/admin.glade:3297
+#: resource/client/forms/admin.glade:3281 resource/client/forms/admin.glade:3297
 msgid ""
 "Number of seconds left for user's available time before sending a final "
 "critical notification that time is about to run out.\n"
 "\n"
-"NOTE: the rest of the notification times are configurable per user by user "
-"in client application!"
+"NOTE: the rest of the notification times are configurable per user by user in "
+"client application!"
 msgstr ""
 "Количество секунд, оставшихся от доступного времени пользователя до отправки "
 "окончательного критического уведомления о том, что время подходит к концу.\n"
 "\n"
-"ПРИМЕЧАНИЕ: остальное время уведомления настраивается для каждого "
-"пользователя индивидуально в клиентском приложении!"
+"ПРИМЕЧАНИЕ: остальное время уведомления настраивается для каждого пользователя "
+"индивидуально в клиентском приложении!"
 
 #: resource/client/forms/admin.glade:3285
 msgid "Final notification"
@@ -2174,7 +2112,7 @@ msgstr "Управление элементами отслеживания Timek
 
 #: resource/client/forms/admin.glade:3372
 msgid "Tracked Sessions"
-msgstr "Отслеживаемые Сеансы"
+msgstr "Отслеживаемые сеансы"
 
 #: resource/client/forms/admin.glade:3395
 msgid "Add tracked session type to the list"
@@ -2193,12 +2131,12 @@ msgid ""
 msgstr ""
 "Список типов сеансов, которые необходимо отслеживать.\n"
 "\n"
-"Пожалуйста, не меняйте и не экспериментируйте с этим, если вы на самом деле "
-"(а не выдаете желаемое за действительное) не знаете, что делаете."
+"Пожалуйста, не меняйте и не экспериментируйте с этим, если вы на самом деле (а "
+"не выдаете желаемое за действительное) не знаете, что делаете."
 
 #: resource/client/forms/admin.glade:3474
 msgid "Excluded Sessions"
-msgstr "Исключенные Сеансы"
+msgstr "Исключенные сеансы"
 
 #: resource/client/forms/admin.glade:3497
 msgid "Add an excluded session type to the list"
@@ -2217,8 +2155,8 @@ msgid ""
 msgstr ""
 "Список сеансов, которые будут исключены из отслеживания.\n"
 "\n"
-"Пожалуйста, не меняйте и не экспериментируйте с этим, если вы на самом деле "
-"(а не выдаете желаемое за действительное) не знаете, что делаете."
+"Пожалуйста, не меняйте и не экспериментируйте с этим, если вы на самом деле (а "
+"не выдаете желаемое за действительное) не знаете, что делаете."
 
 #: resource/client/forms/admin.glade:3576
 msgid "Excluded Users"
@@ -2236,16 +2174,15 @@ msgstr "Удалить пользователя из списка исключе
 msgid ""
 "List of users excluded from tracking.\n"
 "\n"
-"Please specify actual usernames, not real names here. For example, "
-"\"jsmith\", not \"John Smith\"."
+"Please specify actual usernames, not real names here. For example, \"jsmith\", "
+"not \"John Smith\"."
 msgstr ""
 "Список пользователей, исключенных из отслеживания.\n"
 "\n"
-"Пожалуйста, укажите здесь реальные имена пользователей, а не настоящие "
-"имена. Например, \"ipetrov\", а не \"Иван Петров\"."
+"Пожалуйста, укажите здесь реальные имена пользователей, а не настоящие имена. "
+"Например, \"ipetrov\", а не \"Иван Петров\"."
 
-#: resource/client/forms/admin.glade:3722
-#: resource/client/forms/admin.glade:3741
+#: resource/client/forms/admin.glade:3722 resource/client/forms/admin.glade:3741
 #: resource/client/forms/admin.glade:3777
 msgid ""
 "This setting controls whether PlayTime functionality is enabled.\n"
@@ -2260,7 +2197,7 @@ msgstr ""
 
 #: resource/client/forms/admin.glade:3726
 msgid "PlayTime enabled:"
-msgstr "Контроля игрового времени включён"
+msgstr "Контроль игрового времени включён:"
 
 #: resource/client/forms/admin.glade:3756
 msgid ""
@@ -2306,8 +2243,7 @@ msgstr "Настройки администрирования Timekpr-nExT"
 msgid "Timekpr-nExT Configuration"
 msgstr "Конфигурация Timekpr-nExT"
 
-#: resource/client/forms/admin.glade:3866
-#: resource/client/forms/admin.glade:3883
+#: resource/client/forms/admin.glade:3866 resource/client/forms/admin.glade:3883
 msgid "Status of Timekpr-nExT admin client"
 msgstr "Статус клиента администрирования Timekpr-nExT"
 
@@ -2347,8 +2283,7 @@ msgstr "Сохранить все изменения"
 msgid "Close the window"
 msgstr "Закрыть окно"
 
-#: resource/client/forms/client.glade:297
-#: resource/client/forms/client.glade:314
+#: resource/client/forms/client.glade:297 resource/client/forms/client.glade:314
 msgid "Current effective username"
 msgstr "Текущее эффективное имя пользователя"
 
@@ -2385,8 +2320,7 @@ msgstr "Осталось непрерывного времени:"
 msgid "Total time available left today in a row, up to the end of the day"
 msgstr "Общее время, оставшееся сегодня подряд, до конца дня"
 
-#: resource/client/forms/client.glade:489
-#: resource/client/forms/client.glade:974
+#: resource/client/forms/client.glade:489 resource/client/forms/client.glade:974
 msgid "Time left today:"
 msgstr "Осталось времени сегодня:"
 
@@ -2394,8 +2328,7 @@ msgstr "Осталось времени сегодня:"
 msgid "These are the days and limits that are available to you"
 msgstr "Это дни и лимиты, которые вам доступны"
 
-#: resource/client/forms/client.glade:573
-#: resource/client/forms/client.glade:1171
+#: resource/client/forms/client.glade:573 resource/client/forms/client.glade:1171
 msgid "Days & Limits"
 msgstr "Дни и лимиты"
 
@@ -2408,9 +2341,8 @@ msgid ""
 msgstr ""
 "Здесь показаны временные интервалы, доступные для использования.\n"
 "\n"
-"Опция «∞» указывает, что время, проведенное в течение этого интервала, не "
-"будет учитываться в дневном лимите, а вместо этого будет учитываться как "
-"простое."
+"Опция «∞» указывает, что время, проведенное в течение этого интервала, не будет "
+"учитываться в дневном лимите, а вместо этого будет учитываться как простое."
 
 #: resource/client/forms/client.glade:634
 msgid "Intervals"
@@ -2443,27 +2375,25 @@ msgstr ""
 "Выберите, будет ли учитываться время неактивного сеанса.\n"
 "\n"
 "Если этот флажок снят, время, проведенное в сеансах входа в консоль (не в "
-"эмуляторе терминала) и в то время, когда экран заблокирован, НЕ "
-"учитывается.\n"
+"эмуляторе терминала) и в то время, когда экран заблокирован, НЕ учитывается.\n"
 "Это зависит от среды рабочего стола."
 
 #: resource/client/forms/client.glade:760
 msgid "Track inactive:"
-msgstr "Отслеживание неактивно:"
+msgstr "Учитывать время неактивного сеанса:"
 
 #: resource/client/forms/client.glade:773
 msgid ""
 "Select whether inactive session time is counted. If this is unchecked, time "
-"spent in console (not terminal emulator) login sessions and while the screen "
-"is locked is NOT taken into account. This varies among desktop environments."
+"spent in console (not terminal emulator) login sessions and while the screen is "
+"locked is NOT taken into account. This varies among desktop environments."
 msgstr ""
-"Выберите, будет ли учитываться время неактивного сеанса. Если этот флажок "
-"снят, время, проведенное в сеансах входа в консоль (не в эмуляторе "
-"терминала) и в то время, когда экран заблокирован, НЕ учитывается. Это "
-"зависит от среды рабочего стола."
+"Выберите, будет ли учитываться время неактивного сеанса. Если этот флажок снят, "
+"время, проведенное в сеансах входа в консоль (не в эмуляторе терминала) и в то "
+"время, когда экран заблокирован, НЕ учитывается. Это зависит от среды рабочего "
+"стола."
 
-#: resource/client/forms/client.glade:820
-#: resource/client/forms/client.glade:918
+#: resource/client/forms/client.glade:820 resource/client/forms/client.glade:918
 msgid "Additional limits"
 msgstr "Дополнительные лимиты"
 
@@ -2499,8 +2429,7 @@ msgstr "Общее количество игрового времени, пот�
 msgid "Time spent today:"
 msgstr "Время потраченное сегодня:"
 
-#: resource/client/forms/client.glade:1027
-#: resource/client/forms/client.glade:1042
+#: resource/client/forms/client.glade:1027 resource/client/forms/client.glade:1042
 msgid ""
 "This option overrides the default time accounting.\n"
 "\n"
@@ -2516,17 +2445,15 @@ msgstr ""
 msgid "Time limit override:"
 msgstr "Переопределение ограничения по времени:"
 
-#: resource/client/forms/client.glade:1060
-#: resource/client/forms/client.glade:1073
+#: resource/client/forms/client.glade:1060 resource/client/forms/client.glade:1073
 msgid "Number of currently active PlayTime activities"
 msgstr "Количество активных в данный момент игровых действий"
 
 #: resource/client/forms/client.glade:1062
 msgid "Running activities:"
-msgstr "Запущеные игровые процессы"
+msgstr "Запущенные игровые процессы:"
 
-#: resource/client/forms/client.glade:1086
-#: resource/client/forms/client.glade:1106
+#: resource/client/forms/client.glade:1086 resource/client/forms/client.glade:1106
 msgid ""
 "Allow activities during unaccounted (\"∞\") time intervals.\n"
 "\n"
@@ -2549,14 +2476,13 @@ msgid ""
 "These are days and limits that available to you as part of PlayTime activity "
 "restrictions"
 msgstr ""
-"Это дни и ограничения, доступные вам в рамках ограничений игровой активности."
+"Это дни и ограничения, доступные вам в рамках ограничений игровой активности"
 
 #: resource/client/forms/client.glade:1205
 msgid ""
 "This shows activities / applications which are part of PlayTime restrictions"
 msgstr ""
-"Здесь показаны действия/приложения, которые являются частью игровых "
-"ограничений."
+"Здесь показаны действия/приложения, которые являются частью игровых ограничений"
 
 #: resource/client/forms/client.glade:1228
 msgid "Activity / application list"
@@ -2579,28 +2505,27 @@ msgid ""
 "Warning - a yellow icon and an informational notification will be shown\n"
 "Severe - a red icon and important notification will be shown\n"
 "Critical - a red icon and critical notification will be shown, this "
-"notification usually is shown over all open applications and stays open "
-"until dismissed, however this behaviour highly depends on Desktop "
-"Environment in use"
+"notification usually is shown over all open applications and stays open until "
+"dismissed, however this behaviour highly depends on Desktop Environment in use"
 msgstr ""
 "Конфигурация персонализированных уведомлений о доступном времени.\n"
 "\n"
-"Пожалуйста, настройте уведомления по своему усмотрению. Однако имейте в "
-"виду, что будет два типа уведомлений, которые нельзя персонализировать: "
-"последнее предупреждение незадолго до окончания времени и уведомления об "
-"обратном отсчете, когда время подходит к концу.\n"
+"Пожалуйста, настройте уведомления по своему усмотрению. Однако имейте в виду, "
+"что будет два типа уведомлений, которые нельзя персонализировать: последнее "
+"предупреждение незадолго до окончания времени и уведомления об обратном "
+"отсчете, когда время подходит к концу.\n"
 "\n"
 "Значение конфигурации «Время» указывает значение времени, оставшееся до "
-"отображения уведомления, опция «Важность» управляет цветом значка и "
-"свойствами уведомления следующим образом.\n"
+"отображения уведомления, опция «Важность» управляет цветом значка и свойствами "
+"уведомления следующим образом.\n"
 "\n"
 "Информация – будет показана зеленая иконка и информационное уведомление.\n"
 "Предупреждение – будет показан желтый значок и информационное уведомление.\n"
 "Серьезное – будет показан красный значок и важное уведомление.\n"
 "Критическое — будет отображаться красный значок и критическое уведомление. "
-"Обычно это уведомление отображается поверх всех открытых приложений и "
-"остается открытым до тех пор, пока оно не будет закрыто, однако такое "
-"поведение во многом зависит от используемой среды рабочего стола."
+"Обычно это уведомление отображается поверх всех открытых приложений и остается "
+"открытым до тех пор, пока оно не будет закрыто, однако такое поведение во "
+"многом зависит от используемой среды рабочего стола"
 
 #: resource/client/forms/client.glade:1325
 msgid "Notification configuration"
@@ -2628,25 +2553,24 @@ msgid ""
 "Warning - a yellow icon and an informational notification will be shown\n"
 "Severe - a red icon and important notification will be shown\n"
 "Critical - a red icon and critical notification will be shown, this "
-"notification usually is shown over all open applications and stays open "
-"until dismissed, however this behaviour highly depends on Desktop "
-"Environment in use"
+"notification usually is shown over all open applications and stays open until "
+"dismissed, however this behaviour highly depends on Desktop Environment in use"
 msgstr ""
 "Конфигурация персонализированных уведомлений о доступном игровом времени.\n"
 "\n"
 "Пожалуйста, настройте уведомления по своему усмотрению.\n"
 "\n"
-"Значение конфигурации «Время» указывает количество игрового времени, "
-"оставшееся до отображения уведомления, опция «Важность» управляет цветом "
-"значка и свойствами уведомления следующим образом.\n"
+"Значение конфигурации «Время» указывает количество игрового времени, оставшееся "
+"до отображения уведомления, опция «Важность» управляет цветом значка и "
+"свойствами уведомления следующим образом.\n"
 "\n"
 "Информация – будет показана зеленая иконка и информационное уведомление.\n"
 "Предупреждение – будет показан желтый значок и информационное уведомление.\n"
 "Серьезное – будет показан красный значок и важное уведомление.\n"
 "Критическое — будет отображаться красный значок и критическое уведомление. "
-"Обычно это уведомление отображается поверх всех открытых приложений и "
-"остается открытым до тех пор, пока оно не будет закрыто, однако такое "
-"поведение во многом зависит от используемой среды рабочего стола."
+"Обычно это уведомление отображается поверх всех открытых приложений и остается "
+"открытым до тех пор, пока оно не будет закрыто, однако такое поведение во "
+"многом зависит от используемой среды рабочего стола"
 
 #: resource/client/forms/client.glade:1444
 msgid "PlayTime notification configuration"
@@ -2680,8 +2604,7 @@ msgstr ""
 msgid "Use speech notifications"
 msgstr "Использовать речевые уведомления"
 
-#: resource/client/forms/client.glade:1593
-#: resource/client/forms/client.glade:1615
+#: resource/client/forms/client.glade:1593 resource/client/forms/client.glade:1615
 msgid ""
 "This sets the logging level.\n"
 "\n"
@@ -2697,11 +2620,11 @@ msgstr "Уровень журналирования"
 
 #: resource/client/forms/client.glade:1641
 msgid ""
-"Specify whether to show a notification when limit configurations or "
-"allowance changes"
+"Specify whether to show a notification when limit configurations or allowance "
+"changes"
 msgstr ""
 "Укажите, следует ли отображать уведомление при изменении конфигурации "
-"ограничений или разрешений."
+"ограничений или разрешений"
 
 #: resource/client/forms/client.glade:1649
 msgid "Show limit changes"
@@ -2725,8 +2648,8 @@ msgstr "Показать все уведомления"
 msgid ""
 "Specify whether to show seconds in notification area.\n"
 "\n"
-"Some desktop environments, like KDE5, do not support text besides "
-"notification icons."
+"Some desktop environments, like KDE5, do not support text besides notification "
+"icons."
 msgstr ""
 "Укажите, следует ли отображать секунды в области уведомлений.\n"
 "\n"
@@ -2737,21 +2660,20 @@ msgstr ""
 msgid "Show seconds in notification area"
 msgstr "Показывать секунды в области уведомлений"
 
-#: resource/client/forms/client.glade:1720
-#: resource/client/forms/client.glade:1744
+#: resource/client/forms/client.glade:1720 resource/client/forms/client.glade:1744
 msgid ""
-"This sets how long a notification is shown for regular notifications about "
-"time left and configuration changes.\n"
+"This sets how long a notification is shown for regular notifications about time "
+"left and configuration changes.\n"
 "\n"
 "The value is specified in seconds.\n"
 "A value of 0 means show until dismissed (not recommended for regular "
 "notifications).\n"
 "\n"
-"Please note that the desktop environment you use may override this timeout, "
-"in which case this setting will not have any effect on notification."
+"Please note that the desktop environment you use may override this timeout, in "
+"which case this setting will not have any effect on notification."
 msgstr ""
-"Этот параметр определяет, как долго будет отображаться уведомление для "
-"обычных уведомлений об оставшемся времени и изменениях конфигурации.\n"
+"Этот параметр определяет, как долго будет отображаться уведомление для обычных "
+"уведомлений об оставшемся времени и изменениях конфигурации.\n"
 "\n"
 "Значение указывается в секундах.\n"
 "Значение 0 означает отображение до закрытия (не рекомендуется для обычных "
@@ -2765,17 +2687,16 @@ msgstr ""
 msgid "Notification timeout (sec)"
 msgstr "Таймаут уведомления (сек)"
 
-#: resource/client/forms/client.glade:1776
-#: resource/client/forms/client.glade:1801
+#: resource/client/forms/client.glade:1776 resource/client/forms/client.glade:1801
 msgid ""
-"This sets how long a notification is shown for \"Critical\" notifications "
-"about time left (when the icon turns red).\n"
+"This sets how long a notification is shown for \"Critical\" notifications about "
+"time left (when the icon turns red).\n"
 "\n"
 "The value is specified in seconds.\n"
 "A value of 0 means show until dismissed.\n"
 "\n"
-"Please note that the desktop environment you use may override this timeout, "
-"in which case this setting will not have any effect on notification."
+"Please note that the desktop environment you use may override this timeout, in "
+"which case this setting will not have any effect on notification."
 msgstr ""
 "Этот параметр определяет, как долго будет отображаться уведомление для "
 "«Критических» уведомлений об оставшемся времени (когда значок становится "
@@ -2794,8 +2715,8 @@ msgstr "Таймаут критического уведомления (сек)"
 
 #: resource/client/forms/client.glade:1830
 msgid ""
-"Select whether to use sound \"bell\" (short notification sound) to announce "
-"a new notification from Timekpr-nExT.\n"
+"Select whether to use sound \"bell\" (short notification sound) to announce a "
+"new notification from Timekpr-nExT.\n"
 "\n"
 "This works only for enabled notifications.\n"
 "\n"
@@ -2807,7 +2728,7 @@ msgstr ""
 "\n"
 "Это работает только для включенных уведомлений.\n"
 "\n"
-"Если этот параметр недоступен для редактирования, ваша среда не рекламирует "
+"Если этот параметр недоступен для редактирования, ваша среда не декларирует "
 "поддержку звуковых уведомлений."
 
 #: resource/client/forms/client.glade:1842
@@ -2817,3 +2738,37 @@ msgstr "Использовать звук «колокольчик» для ув
 #: resource/client/forms/client.glade:1862
 msgid "Configuration"
 msgstr "Настройки"
+
+#~ msgid ""
+#~ "Select whether to show Timekpr-next's padlock icon and notifications to the "
+#~ "user.\n"
+#~ "\n"
+#~ "Please note that unchecking this will disable showing all information and "
+#~ "notifications to the user!"
+#~ msgstr ""
+#~ "Выберите, показывать ли пользователю значок замка Timekpr-nExT и "
+#~ "уведомления.\n"
+#~ "\n"
+#~ "Пожалуйста, обратите внимание, что при снятии этого флажка отображение всей "
+#~ "информации и уведомлений пользователю будет отключено!"
+
+#~ msgid ""
+#~ "Select whether to use speech notifications, if available.\n"
+#~ "\n"
+#~ "You may be able to make speech notifications available by installing package "
+#~ "\"python3-espeak\"."
+#~ msgstr ""
+#~ "Выберите, использовать ли речевые уведомления, если они доступны.\n"
+#~ "\n"
+#~ "Вы можете сделать речевые уведомления доступными, установив пакет «python3-"
+#~ "espeak»."
+
+#~ msgid ""
+#~ "==> set restriction / lockout type (\"lock\" - lock session, \"suspend\" - "
+#~ "suspend the computer, \"suspendwake\" - suspend and wake up, \"terminate\" - "
+#~ "terminate sessions, \"shutdown\" - shutdown the computer), examples"
+#~ msgstr ""
+#~ "==> установить ограничение / вид блокировки (\"lock\" - заблокировать "
+#~ "сессию, \"suspend\" - перевести компьютер в сон, \"suspendwake\" - перевести "
+#~ "компьютер в сон и вывести из сна, \"terminate\" - прервать сессию, "
+#~ "\"shutdown\" - выключить компьютер), примеры"

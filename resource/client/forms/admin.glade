@@ -2678,7 +2678,7 @@ If this is unchecked, time spent in console (not terminal emulator) login sessio
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-text" translatable="yes">Select whether to show Timekpr-next's padlock icon and notifications to the user.
 
-Please note that unchecking this will disable showing all information and notifications to the user!</property>
+Please note that checking this will disable showing all information and notifications to the user!</property>
                                     <property name="halign">end</property>
                                     <property name="label" translatable="yes">Hide icon and notifications:</property>
                                     <property name="justify">right</property>
@@ -2701,7 +2701,7 @@ Please note that unchecking this will disable showing all information and notifi
                                     <property name="receives-default">False</property>
                                     <property name="tooltip-text" translatable="yes">Select whether to show Timekpr-next's padlock icon and notifications to the user.
 
-Please note that unchecking this will disable showing all information and notifications to the user!</property>
+Please note that checking this will disable showing all information and notifications to the user!</property>
                                     <property name="halign">start</property>
                                     <property name="xalign">0</property>
                                     <property name="draw-indicator">True</property>

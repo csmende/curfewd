@@ -7,17 +7,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: timekpr-next\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2025-04-10 12:20+0300\n"
-"PO-Revision-Date: 2025-04-10 12:35+0300\n"
-"Last-Translator: mark <Unknown>\n"
+"POT-Creation-Date: 2025-10-14 09:17+0300\n"
+"PO-Revision-Date: 2025-10-14 19:18+0300\n"
+"Last-Translator: Eduards Bezverhijs <edzis@inbox.lv>\n"
 "Language-Team: Dutch <nl@li.org>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Launchpad-Export-Date: 2024-11-25 11:52+0000\n"
-"X-Generator: Poedit 3.5\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Launchpad-Export-Date: 2025-10-14 06:56+0000\n"
+"X-Generator: Poedit 3.6\n"
 
 #: common/constants/messages.py:31
 msgid "==> print help, example"
@@ -28,8 +28,7 @@ msgid "==> get saved user list from the server, example"
 msgstr "==> haal gebruikerslijst op van de server, voorbeeld:"
 
 #: common/constants/messages.py:33
-msgid ""
-"==> get user configuration and time information from the server, example"
+msgid "==> get user configuration and time information from the server, example"
 msgstr ""
 "==> haal instellingen voor gebruikers en tijd op van de server, voorbeeld:"
 
@@ -49,14 +48,14 @@ msgid ""
 "additionally specify ! in front of hour if it doesn't have to be accounted "
 "(free time for user), example"
 msgstr ""
-"==> stel toegestane uren in voor de specifieke dag, of \" ALL\" voor elke "
-"dag. Optioneel: stel begin en eind-minuten in met haakjes [x-y], of zet ! "
-"voor het uur als het vrij is, bijvoorbeeld:"
+"==> stel toegestane uren in voor de specifieke dag, of \" ALL\" voor elke dag. "
+"Optioneel: stel begin en eind-minuten in met haakjes [x-y], of zet ! voor het "
+"uur als het vrij is, bijvoorbeeld:"
 
 #: common/constants/messages.py:38
 msgid ""
-"==> set time limits for all allowed days, the number of values must not "
-"exceed the allowed days for the user, example"
+"==> set time limits for all allowed days, the number of values must not exceed "
+"the allowed days for the user, example"
 msgstr ""
 "==> stel tijdslimiet in voor alle toegestane dagen (de waarden moeten het "
 "aantal toegestane dagen niet overschrijden). Bijvoorbeeld"
@@ -88,19 +87,18 @@ msgid ""
 "terminate sessions, \"kill\" - kill sessions, \"shutdown\" - shutdown the "
 "computer), examples"
 msgstr ""
-"==> type slot of beperking (\"lock\" - vergrendelen, \"suspend\" - computer "
-"in slaapstand, \"suspendwake\" - slaapstand en waken, \"terminate\" - alle "
-"sessies afsluiten, \"kill\" - sessies beëindigen, \"shutdown\" - computer "
+"==> type slot of beperking (\"lock\" - vergrendelen, \"suspend\" - computer in "
+"slaapstand, \"suspendwake\" - slaapstand en waken, \"terminate\" - alle sessies "
+"afsluiten, \"kill\" - sessies beëindigen, \"shutdown\" - computer "
 "uitschakelen), voorbeelden"
 
 #: common/constants/messages.py:45
 msgid ""
-"==> set time left for the user at the current moment of time: \"+\" (add "
-"time), \"-\" (subtract time), \"=\" (set exact time available), example (add "
-"one hour)"
+"==> set time left for the user at the current moment of time: \"+\" (add time), "
+"\"-\" (subtract time), \"=\" (set exact time available), example (add one hour)"
 msgstr ""
-"==> beschikbare tijd van de huidige user veranderen: \"+\" (tijd toevoegen), "
-"\"-\" (tijd aftrekken), \"=\" (precies deze hoeveelheid), voorbeeld (1 uur "
+"==> beschikbare tijd van de huidige user veranderen: \"+\" (tijd toevoegen), \"-"
+"\" (tijd aftrekken), \"=\" (precies deze hoeveelheid), voorbeeld (1 uur "
 "toevoegen)"
 
 #: common/constants/messages.py:46
@@ -109,8 +107,7 @@ msgstr "==> instellen of SpeelTijd aanstaat voor de gebruiker, voorbeeld"
 
 #: common/constants/messages.py:47
 msgid ""
-"==> set whether PlayTime must be accounted instead of normal activity, "
-"example"
+"==> set whether PlayTime must be accounted instead of normal activity, example"
 msgstr ""
 "==> instellen of SpeelTijd voorrang krijgt boven het bijhouden van andere "
 "activiteiten, voorbeeld"
@@ -148,8 +145,8 @@ msgid ""
 "one hour)"
 msgstr ""
 "==> aanpassen hoeveel SpeelTijd de huidige gebruiker nog heeft: \"+\" "
-"(toevoegen) \"-\" (aftrekken), \"=\" (precieze hoeveelheid opgeven), "
-"voorbeeld (1 uur toevoegen)"
+"(toevoegen) \"-\" (aftrekken), \"=\" (precieze hoeveelheid opgeven), voorbeeld "
+"(1 uur toevoegen)"
 
 #: common/constants/messages.py:55
 msgid "Control sessions types are not passed"
@@ -175,8 +172,7 @@ msgstr "Lijst van uitgezonderde sessietypes is niet correct"
 #: common/constants/messages.py:60
 msgid "Excluded session types list is not correct and cannot be set"
 msgstr ""
-"Lijst van uitgezonderde sessietypes is niet correct en kan niet ingesteld "
-"worden"
+"Lijst van uitgezonderde sessietypes is niet correct en kan niet ingesteld worden"
 
 #: common/constants/messages.py:61
 msgid "Excluded user list is not passed"
@@ -236,8 +232,7 @@ msgstr "Tijd voor afsluiten \"%%s\" is niet correct"
 #: common/constants/messages.py:72
 #, python-format
 msgid "Termination time \"%%s\" is not correct and cannot be set"
-msgstr ""
-"Tijd voor afsluiten \"%%s\" is niet correct en kon niet opgeslagen worden"
+msgstr "Tijd voor afsluiten \"%%s\" is niet correct en kon niet opgeslagen worden"
 
 #: common/constants/messages.py:73
 msgid "Track inactive is not passed"
@@ -253,8 +248,8 @@ msgstr ""
 #, python-format
 msgid "Track inactive \"%%s\" is not correct and cannot be set"
 msgstr ""
-"De instellen voor het bijhouden van inactieve sessies \"%%s\" is niet "
-"correct en kan niet opgeslagen worden"
+"De instellen voor het bijhouden van inactieve sessies \"%%s\" is niet correct "
+"en kan niet opgeslagen worden"
 
 #: common/constants/messages.py:76
 msgid "Log level is not passed"
@@ -310,8 +305,7 @@ msgstr "Speeltijdinstelling \"%%s\" is niet correct"
 #: common/constants/messages.py:87
 #, python-format
 msgid "PlayTime flag \"%%s\" is not correct and cannot be set"
-msgstr ""
-"Speeltijdinstelling \"%%s\" is niet correct en kan niet opgeslagen worden"
+msgstr "Speeltijdinstelling \"%%s\" is niet correct en kan niet opgeslagen worden"
 
 #: common/constants/messages.py:88
 msgid "PlayTime enhanced activity monitor flag is not passed"
@@ -325,8 +319,7 @@ msgstr "Geavanceerd  bijhouden van SpeelTijd \"%%s\" is niet correct"
 #: common/constants/messages.py:90
 #, python-format
 msgid ""
-"PlayTime enhanced activity monitor flag \"%%s\" is not correct and cannot be "
-"set"
+"PlayTime enhanced activity monitor flag \"%%s\" is not correct and cannot be set"
 msgstr ""
 "Geavanceerd  bijhouden van SpeelTijd \"%%s\" is niet correct en kan niet "
 "opgeslagen worden"
@@ -362,8 +355,8 @@ msgstr "De dagenlijst \"%%s\" van de gebruiker is niet correct"
 #, python-format
 msgid "User's \"%%s\" day list is not correct and cannot be set"
 msgstr ""
-"De dagenlijst \"%%s\" van de gebruiker is niet correct en kan niet "
-"opgeslagen worden"
+"De dagenlijst \"%%s\" van de gebruiker is niet correct en kan niet opgeslagen "
+"worden"
 
 #: common/constants/messages.py:99
 #, python-format
@@ -396,15 +389,13 @@ msgstr "Tijdslimiet van gebruiker \"%%s\" is niet correct"
 #, python-format
 msgid "User's \"%%s\" time limit is not correct and cannot be set"
 msgstr ""
-"Tijdslimiet van gebruiker \"%%s\" is niet correct en kan niet opgeslagen "
-"worden"
+"Tijdslimiet van gebruiker \"%%s\" is niet correct en kan niet opgeslagen worden"
 
 #: common/constants/messages.py:105
 #, python-format
 msgid "User's \"%%s\" monthly allowance is not passed"
 msgstr ""
-"Er is een probleem met de maandelijks beschikbare tijd van de gebruiker "
-"\"%%s\""
+"Er is een probleem met de maandelijks beschikbare tijd van de gebruiker \"%%s\""
 
 #: common/constants/messages.py:106
 #, python-format
@@ -415,15 +406,14 @@ msgstr "Maandlimiet van gebruiker \"%%s\" is niet correct"
 #, python-format
 msgid "User's \"%%s\" monthly allowance is not correct and cannot be set"
 msgstr ""
-"Maandlimiet van gebruiker \"%%s\" is niet correct en kan niet opgeslagen "
-"worden"
+"Maandlimiet van gebruiker \"%%s\" is niet correct en kan niet opgeslagen worden"
 
 #: common/constants/messages.py:108
 #, python-format
 msgid "User's \"%%s\" track inactive flag is not passed"
 msgstr ""
-"Er is een probleem met de instelling 'inactiviteit bijhouden' van de "
-"gebruiker \"%%s\""
+"Er is een probleem met de instelling 'inactiviteit bijhouden' van de gebruiker "
+"\"%%s\""
 
 #: common/constants/messages.py:109
 #, python-format
@@ -441,8 +431,8 @@ msgstr ""
 #, python-format
 msgid "User's \"%%s\" hide tray icon flag is not passed"
 msgstr ""
-"Er is een probleem met de instelling voor het verbergen van het "
-"systeemvakicoon van de gebruiker \"%%s\""
+"Er is een probleem met de instelling voor het verbergen van het systeemvakicoon "
+"van de gebruiker \"%%s\""
 
 #: common/constants/messages.py:112
 #, python-format
@@ -453,15 +443,15 @@ msgstr "De instelling systeemvakicoon verbergen is niet correct"
 #, python-format
 msgid "User's \"%%s\" hide tray icon flag is not correct and cannot be set"
 msgstr ""
-"De instelling systeemvakicoon van gebruiker \"%%s\" is niet correct en kan "
-"niet opgeslagen worden"
+"De instelling systeemvakicoon van gebruiker \"%%s\" is niet correct en kan niet "
+"opgeslagen worden"
 
 #: common/constants/messages.py:114
 #, python-format
 msgid "User's \"%%s\" restriction / lockout type is not passed"
 msgstr ""
-"Er is een probleem met het instellen van het type beperking voor de "
-"gebruiker \"%%s\""
+"Er is een probleem met het instellen van het type beperking voor de gebruiker "
+"\"%%s\""
 
 #: common/constants/messages.py:115
 #, python-format
@@ -470,8 +460,7 @@ msgstr "Type beperking is niet correct ingesteld voor gebruiker \"%%s\""
 
 #: common/constants/messages.py:116
 #, python-format
-msgid ""
-"User's \"%%s\" restriction / lockout type is not correct and cannot be set"
+msgid "User's \"%%s\" restriction / lockout type is not correct and cannot be set"
 msgstr ""
 "Type beperking is niet correct ingesteld voor gebruiker \"%%s\" en kan niet "
 "opgeslagen worden"
@@ -513,8 +502,7 @@ msgstr ""
 #, python-format
 msgid "User's \"%%s\" PlayTime override flag is not passed"
 msgstr ""
-"Er is een probleem met de instelling 'SpeelTijd voorrang' van gebruiker "
-"\"%%s\""
+"Er is een probleem met de instelling 'SpeelTijd voorrang' van gebruiker \"%%s\""
 
 #: common/constants/messages.py:124
 #, python-format
@@ -531,8 +519,7 @@ msgstr ""
 #: common/constants/messages.py:126
 #, python-format
 msgid ""
-"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not "
-"passed"
+"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not passed"
 msgstr ""
 "Er is een probleem met de instelling voor SpeelTijd tijdens intervals voor "
 "gebruiker \"%%s\""
@@ -540,8 +527,7 @@ msgstr ""
 #: common/constants/messages.py:127
 #, python-format
 msgid ""
-"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not "
-"correct"
+"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not correct"
 msgstr ""
 "Het SpeelTijd-quotum tijdens intervals van gebruiker \"%%s\" is niet correct"
 
@@ -551,8 +537,8 @@ msgid ""
 "User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not "
 "correct and cannot be set"
 msgstr ""
-"Het SpeelTijd-quotum tijdens intervals van gebruiker \"%%s\" is niet correct "
-"en daarom niet ingesteld"
+"Het SpeelTijd-quotum tijdens intervals van gebruiker \"%%s\" is niet correct en "
+"daarom niet ingesteld"
 
 #: common/constants/messages.py:129
 #, python-format
@@ -575,23 +561,21 @@ msgstr ""
 #, python-format
 msgid "User's \"%%s\" PlayTime day limits list is not passed"
 msgstr ""
-"Er is een probleem met de dagenlijst voor Speeltijd-beperkingen voor "
-"gebruiker \"%%s\""
+"Er is een probleem met de dagenlijst voor Speeltijd-beperkingen voor gebruiker "
+"\"%%s\""
 
 #: common/constants/messages.py:133 common/constants/messages.py:136
 #, python-format
 msgid "User's \"%%s\" PlayTime day limits list is not correct"
 msgstr ""
-"De dagenlijst voor Speeltijd-beperkingen van gebruiker \"%%s\" is niet "
-"correct"
+"De dagenlijst voor Speeltijd-beperkingen van gebruiker \"%%s\" is niet correct"
 
 #: common/constants/messages.py:134 common/constants/messages.py:137
 #, python-format
-msgid ""
-"User's \"%%s\" PlayTime day limits list is not correct and cannot be set"
+msgid "User's \"%%s\" PlayTime day limits list is not correct and cannot be set"
 msgstr ""
-"De dagenlijst voor Speeltijd-beperkingen van gebruiker \"%%s\" is niet "
-"correct en daarom niet ingesteld"
+"De dagenlijst voor Speeltijd-beperkingen van gebruiker \"%%s\" is niet correct "
+"en daarom niet ingesteld"
 
 #: common/constants/messages.py:138
 #, python-format
@@ -613,8 +597,8 @@ msgstr ""
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:144
 msgid ""
-"Unexpected ERROR while loading configuration. Please inspect Timekpr-nExT "
-"log files"
+"Unexpected ERROR while loading configuration. Please inspect Timekpr-nExT log "
+"files"
 msgstr ""
 "Onverwachte fout bij het laden van de configuratie. Zie de Timekpr-nExT logs"
 
@@ -623,8 +607,7 @@ msgstr ""
 msgid ""
 "Unexpected ERROR getting configuration. Please inspect Timekpr-nExT log files"
 msgstr ""
-"Onverwachte fout bij het ophalen van de configuratie. Zie de Timekpr-nExT "
-"logs"
+"Onverwachte fout bij het ophalen van de configuratie. Zie de Timekpr-nExT logs"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:148
@@ -637,8 +620,7 @@ msgstr ""
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:150
-msgid ""
-"Unexpected ERROR getting user list. Please inspect Timekpr-nExT log files"
+msgid "Unexpected ERROR getting user list. Please inspect Timekpr-nExT log files"
 msgstr ""
 "Onverwachte fout bij het ophalen van de lijst van gebruikers. Zie de Timekpr-"
 "nExT logs"
@@ -646,19 +628,15 @@ msgstr ""
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:152
 msgid ""
-"Unexpected ERROR updating configuration. Please inspect Timekpr-nExT log "
-"files"
+"Unexpected ERROR updating configuration. Please inspect Timekpr-nExT log files"
 msgstr ""
-"Onverwachte fout bij het bijwerken van de configuratie. Zie de Timekpr-nExT "
-"logs"
+"Onverwachte fout bij het bijwerken van de configuratie. Zie de Timekpr-nExT logs"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:154
-msgid ""
-"Unexpected ERROR updating control. Please inspect Timekpr-nExT log files"
+msgid "Unexpected ERROR updating control. Please inspect Timekpr-nExT log files"
 msgstr ""
-"Onverwachte fout bij het bijwerken van de instellingen. Zie de Timekpr-nExT "
-"logs"
+"Onverwachte fout bij het bijwerken van de instellingen. Zie de Timekpr-nExT logs"
 
 #: common/constants/messages.py:155
 #, python-format
@@ -690,8 +668,7 @@ msgstr "Verbinden mislukt"
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:164
 msgid ""
-"Please reopen the application if you are superuser and Timekpr-nExT is "
-"running"
+"Please reopen the application if you are superuser and Timekpr-nExT is running"
 msgstr ""
 "Open de applicatie opnieuw als je superuser bent en Timekpr-nExt is gestart"
 
@@ -827,8 +804,8 @@ msgstr "Timekpr-nExT interface is nog niet beschikbaar"
 
 #: common/constants/messages.py:199
 msgid ""
-"WARNING: Timekpr-nExT administration utility was asked to run in GUI mode, "
-"but no displays are available, thus running in CLI..."
+"WARNING: Timekpr-nExT administration utility was asked to run in GUI mode, but "
+"no displays are available, thus running in CLI..."
 msgstr ""
 "WAARSCHUWING: Timekpr-nExt instellingen werd gevraagd om in GUI-modus te "
 "starten, maar er zijn geen beeldschermen beschikbaar, dus het wordt de "
@@ -855,8 +832,7 @@ msgid ""
 "weekdays are numbered according to ISO 8601 (i.e. Monday is the first day, "
 "format: 1-7)"
 msgstr ""
-"Weekdagen genummer volgens ISO 8601 ( maandag is de eerste dag, format is "
-"1-7)"
+"Weekdagen genummer volgens ISO 8601 ( maandag is de eerste dag, format is 1-7)"
 
 #: common/constants/messages.py:205
 msgid "hours are numbered according to ISO 8601 (i.e. 24h clock, format: 0-23)"
@@ -1120,29 +1096,28 @@ msgstr "Timekpr-nExT"
 #: resource/client/forms/about.glade:19
 msgctxt "timekpr-next"
 msgid ""
-"This program is free software: you can redistribute it and/or modify it "
-"under the terms of the GNU General Public License as published by the Free "
-"Software Foundation, either version 3 of the License, or (at your option) "
-"any later version.\n"
+"This program is free software: you can redistribute it and/or modify it under "
+"the terms of the GNU General Public License as published by the Free Software "
+"Foundation, either version 3 of the License, or (at your option) any later "
+"version.\n"
 "\n"
-"This program is distributed in the hope that it will be useful, but WITHOUT "
-"ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or "
-"FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for "
-"more details.\n"
+"This program is distributed in the hope that it will be useful, but WITHOUT ANY "
+"WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A "
+"PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n"
 "\n"
 "You should have received a copy of the GNU General Public License along with "
-"this program.  If not, see <http://www.gnu.org/licenses/>. In Debian, see "
-"file /usr/share/common-licenses/GPL-3"
+"this program.  If not, see <http://www.gnu.org/licenses/>. In Debian, see file /"
+"usr/share/common-licenses/GPL-3"
 msgstr ""
 "Dit programma is vrije software: je mag het herdistribueren en/of wijzigen "
-"onder de voorwaarden van de GNU Algemene Publieke Licentie zoals "
-"gepubliceerd door de Free Software Foundation, onder versie 3 van de "
-"Licentie of (naar jouw keuze) elke latere versie.\n"
+"onder de voorwaarden van de GNU Algemene Publieke Licentie zoals gepubliceerd "
+"door de Free Software Foundation, onder versie 3 van de Licentie of (naar jouw "
+"keuze) elke latere versie.\n"
 "\n"
-"Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar "
-"ZONDER ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK "
-"ZIJN IN DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL. Zie de GNU "
-"Algemene Publieke Licentie voor meer details. \n"
+"Dit programma is gedistribueerd in de hoop dat het nuttig zal zijn maar ZONDER "
+"ENIGE GARANTIE; zelfs zonder de impliciete garanties die GEBRUIKELIJK ZIJN IN "
+"DE HANDEL of voor BRUIKBAARHEID VOOR EEN SPECIFIEK DOEL. Zie de GNU Algemene "
+"Publieke Licentie voor meer details. \n"
 "\n"
 "Je hoort een kopie van de GNU Algemene Publieke Licentie te hebben ontvangen "
 "samen met dit programma. Als dat niet het geval is, zie <http://www.gnu.org/"
@@ -1180,10 +1155,10 @@ msgstr "Notities, goed lezen ;)"
 msgid ""
 "This is the configuration app for Timekpr-nExT. It allows you to set time "
 "limits for your individual users as well as general Timekpr-nExT options.\n"
-"To use this application, you either have to execute it as superuser or have "
-"to be part of the timekpr group.\n"
-"Please note that the \"Timekpr-nExT Configuration\" is available in "
-"superuser (administrator) mode only!\n"
+"To use this application, you either have to execute it as superuser or have to "
+"be part of the timekpr group.\n"
+"Please note that the \"Timekpr-nExT Configuration\" is available in superuser "
+"(administrator) mode only!\n"
 "\n"
 "Please configure carefully: do not lock yourself out!"
 msgstr ""
@@ -1192,8 +1167,8 @@ msgstr ""
 "instellingen wijzigen. \n"
 "Om deze app te gebruiken moet je superuser zijn of onderdeel van de timekpr "
 "groep.\n"
-"De Timekpr-nExT Configuratie is alleen beschikbaar in superuser "
-"(administrator) modus!\n"
+"De Timekpr-nExT Configuratie is alleen beschikbaar in superuser (administrator) "
+"modus!\n"
 "\n"
 "Wees voorzichtig bij het instellen: sluit jezelf niet per ongeluk buiten!"
 
@@ -1223,8 +1198,8 @@ msgstr "Informatie over tijd die nog rest"
 
 #: resource/client/forms/admin.glade:610
 msgid ""
-"Continuous time left. May span more than the current day (realtime, "
-"available when user is logged in)"
+"Continuous time left. May span more than the current day (realtime, available "
+"when user is logged in)"
 msgstr ""
 "Hoeveel tijd er nog over is. Kan langer zijn dan de huidige dag (beschikbaar "
 "wanneer de gebruiker ingelogd is)"
@@ -1236,26 +1211,21 @@ msgstr "Tijd over:"
 #: resource/client/forms/admin.glade:626 resource/client/forms/admin.glade:657
 #: resource/client/forms/admin.glade:688 resource/client/forms/admin.glade:732
 #: resource/client/forms/admin.glade:763 resource/client/forms/admin.glade:794
-#: resource/client/forms/client.glade:411
-#: resource/client/forms/client.glade:425
-#: resource/client/forms/client.glade:456
-#: resource/client/forms/client.glade:502
-#: resource/client/forms/client.glade:728
-#: resource/client/forms/client.glade:786
-#: resource/client/forms/client.glade:857
-#: resource/client/forms/client.glade:885
-#: resource/client/forms/client.glade:985
-#: resource/client/forms/client.glade:1011
+#: resource/client/forms/client.glade:411 resource/client/forms/client.glade:425
+#: resource/client/forms/client.glade:456 resource/client/forms/client.glade:502
+#: resource/client/forms/client.glade:728 resource/client/forms/client.glade:786
+#: resource/client/forms/client.glade:857 resource/client/forms/client.glade:885
+#: resource/client/forms/client.glade:985 resource/client/forms/client.glade:1011
 msgid "Format: <days : hours : minutes : seconds>"
 msgstr "Format: <dagen : uren : minuten : seconden>"
 
 #: resource/client/forms/admin.glade:641
 msgid ""
-"How long the user was inactive since last login (realtime, available when "
-"user is logged in)"
+"How long the user was inactive since last login (realtime, available when user "
+"is logged in)"
 msgstr ""
-"Hoe lang de gebruiker inactief is geweest sinds de laatste login "
-"(beschikbaar wanneer de gebruiker ingelogd is)"
+"Hoe lang de gebruiker inactief is geweest sinds de laatste login (beschikbaar "
+"wanneer de gebruiker ingelogd is)"
 
 #: resource/client/forms/admin.glade:643
 msgid "Time inactive (actual):"
@@ -1351,15 +1321,13 @@ msgstr "Informatie over SpeelTijd"
 #: resource/client/forms/admin.glade:1134
 msgid ""
 "Actual PlayTime available today (realtime, available when user is logged in)"
-msgstr ""
-"SpeelTijd beschikbaar vandaag (beschikbaar als de gebruiker ingelogd is)"
+msgstr "SpeelTijd beschikbaar vandaag (beschikbaar als de gebruiker ingelogd is)"
 
 #: resource/client/forms/admin.glade:1136
 msgid "PlayTime left (actual):"
 msgstr "SpeelTijd over:"
 
-#: resource/client/forms/admin.glade:1150
-#: resource/client/forms/admin.glade:1181
+#: resource/client/forms/admin.glade:1150 resource/client/forms/admin.glade:1181
 #: resource/client/forms/admin.glade:1269
 msgid "Format: <hours : minutes : seconds>"
 msgstr "Format: <uren : minuten : seconden>"
@@ -1372,13 +1340,11 @@ msgstr "SpeelTijd die nog beschikbaar is vandaag"
 msgid "PlayTime left (today):"
 msgstr "SpeelTijd over (vandaag)"
 
-#: resource/client/forms/admin.glade:1196
-#: resource/client/forms/admin.glade:1212
+#: resource/client/forms/admin.glade:1196 resource/client/forms/admin.glade:1212
 msgid ""
 "Active PlayTime activity count (realtime, available when user is logged in)"
 msgstr ""
-"SpeelTijd-activiteiten op dit moment (beschikbaar wanneer gebruiker is "
-"ingelogd)"
+"SpeelTijd-activiteiten op dit moment (beschikbaar wanneer gebruiker is ingelogd)"
 
 #: resource/client/forms/admin.glade:1198
 msgid "Running activities (actual):"
@@ -1411,26 +1377,22 @@ msgid "Week day limits"
 msgstr "Weekdagbeperkingen"
 
 #. This is meant for very short (e.g. one letter) abbreviation of hours
-#: resource/client/forms/admin.glade:1370
-#: resource/client/forms/admin.glade:1869
+#: resource/client/forms/admin.glade:1370 resource/client/forms/admin.glade:1869
 #: resource/client/forms/admin.glade:2271
 msgid "h"
 msgstr "u"
 
-#: resource/client/forms/admin.glade:1374
-#: resource/client/forms/admin.glade:2275
+#: resource/client/forms/admin.glade:1374 resource/client/forms/admin.glade:2275
 msgid "Choose hours to be adjusted for selected days."
 msgstr "Kies uren om te wijzigen voor de geselecteerde dagen"
 
 #. This is meant for very short (e.g. one letter) abbreviation of minutes
-#: resource/client/forms/admin.glade:1386
-#: resource/client/forms/admin.glade:1885
+#: resource/client/forms/admin.glade:1386 resource/client/forms/admin.glade:1885
 #: resource/client/forms/admin.glade:2287
 msgid "m"
 msgstr "m"
 
-#: resource/client/forms/admin.glade:1390
-#: resource/client/forms/admin.glade:2291
+#: resource/client/forms/admin.glade:1390 resource/client/forms/admin.glade:2291
 msgid "Choose minutes to be adjusted for selected days."
 msgstr "Kies minuten om te wijzigen voor de geselecteerde dagen"
 
@@ -1475,22 +1437,21 @@ msgid ""
 "Please note that if the day's limit ends at 24:00 and the next day's limit "
 "starts at 00:00, then the user can work continuously past midnight.\n"
 "\n"
-"Please note that multiple intervals cannot be configured within the same "
-"hour.\n"
+"Please note that multiple intervals cannot be configured within the same hour.\n"
 "An interval can start or end or contain a specific hour, but not more than "
 "once. This is by design, not a bug.\n"
 "\n"
 msgstr ""
 "Beschikbare uren op deze dag.\n"
-"De optie \"∞\" betekent dat tijd gedurende deze periode telt niet mee voor "
-"de dagelijkse limiet.\n"
+"De optie \"∞\" betekent dat tijd gedurende deze periode telt niet mee voor de "
+"dagelijkse limiet.\n"
 "\n"
 "N.B. als de dagelijkse limiet eindigt om 24:00 en die van de volgende dag "
 "begint om 00:00 dan kan er rond middernacht doorgewerkt worden.\n"
 "\n"
 "N.B. je kunt niet meerdere periodes instellen met hetzelfde uur. Een periode "
-"kan beginnen of eindigen op een specifiek uur, maar niet meer dan één keer. "
-"Dat is hoe Timekpr-next ontworpen is.\n"
+"kan beginnen of eindigen op een specifiek uur, maar niet meer dan één keer. Dat "
+"is hoe Timekpr-next ontworpen is.\n"
 "\n"
 
 #: resource/client/forms/admin.glade:1585
@@ -1506,8 +1467,8 @@ msgid ""
 msgstr ""
 "Maak een nieuw interval beschikbaar voor de gebruiker.\n"
 "\n"
-"Na het aanmaken van het interval kun je begin- en eindtijden direct in de "
-"lijst bewerken."
+"Na het aanmaken van het interval kun je begin- en eindtijden direct in de lijst "
+"bewerken."
 
 #: resource/client/forms/admin.glade:1624
 msgid "Delete the selected time interval from the available list of intervals."
@@ -1528,8 +1489,8 @@ msgid ""
 "\n"
 "Intervals which have problems will be highlighted."
 msgstr ""
-"Ingestelde periodes verifiëren. Dit is een verplichte stap om ervoor te "
-"zorgen dat alle periodes correct zijn.\n"
+"Ingestelde periodes verifiëren. Dit is een verplichte stap om ervoor te zorgen "
+"dat alle periodes correct zijn.\n"
 "\n"
 "Intervals met problemen worden uitgelicht."
 
@@ -1556,26 +1517,25 @@ msgstr "Minuten om aan te passen in deze periode"
 
 #: resource/client/forms/admin.glade:1917
 msgid ""
-"Increase weekly or monthly time allowance by selected time unit (days or "
-"hours or minutes) for the selected period."
+"Increase weekly or monthly time allowance by selected time unit (days or hours "
+"or minutes) for the selected period."
 msgstr ""
 "Verruim de wekelijkse of maandelijkse tijdslimiet met deze hoeveelheid tijd "
 "(dagen, uren, minuten) voor de geselecteerde periode."
 
 #: resource/client/forms/admin.glade:1931
 msgid ""
-"Decrease weekly or monthly time allowance by selected time unit (days or "
-"hours or minutes) for the selected period."
+"Decrease weekly or monthly time allowance by selected time unit (days or hours "
+"or minutes) for the selected period."
 msgstr ""
-"Verminder de wekelijkse of maandelijkse tijdslimiet met deze hoeveelheid "
-"tijd (dagen, uren, minuten) voor de geselecteerde periode."
+"Verminder de wekelijkse of maandelijkse tijdslimiet met deze hoeveelheid tijd "
+"(dagen, uren, minuten) voor de geselecteerde periode."
 
 #: resource/client/forms/admin.glade:1980
 msgid ""
 "Weekly and monthly limits for the user.\n"
 "\n"
-"These limits are applied to user together with the rest of limit "
-"configuration."
+"These limits are applied to user together with the rest of limit configuration."
 msgstr ""
 "Wekelijkse en maandelijkse limieten voor de gebruiker.\n"
 "\n"
@@ -1605,8 +1565,7 @@ msgstr "Instellingen voor SpeelTijd"
 msgid "PlayTime options"
 msgstr "SpeelTijd-opties"
 
-#: resource/client/forms/admin.glade:2114
-#: resource/client/forms/admin.glade:2153
+#: resource/client/forms/admin.glade:2114 resource/client/forms/admin.glade:2153
 msgid "Enable PlayTime for selected user"
 msgstr "SpeelTijd inschakelen voor deze gebruiker"
 
@@ -1614,8 +1573,7 @@ msgstr "SpeelTijd inschakelen voor deze gebruiker"
 msgid "Enable PlayTime:"
 msgstr "SpeelTijd inschakelen:"
 
-#: resource/client/forms/admin.glade:2130
-#: resource/client/forms/admin.glade:2167
+#: resource/client/forms/admin.glade:2130 resource/client/forms/admin.glade:2167
 msgid ""
 "Enable PlayTime override for selected user.\n"
 "\n"
@@ -1630,11 +1588,11 @@ msgid ""
 msgstr ""
 "Schakel SpeelTijd-voorrang in voor deze gebruiker.\n"
 "\n"
-"Deze instellingen geef SpeelTijd voorrang in het berekenen van limieten: "
-"tijd wordt alleen meegeteld als tenminste 1 SpeelTijd-proces actief is!\n"
+"Deze instellingen geef SpeelTijd voorrang in het berekenen van limieten: tijd "
+"wordt alleen meegeteld als tenminste 1 SpeelTijd-proces actief is!\n"
 "\n"
-"Dit slaat alleen op het bijhouden van de tijdslimiet en staat los van "
-"periodes, die blijven gelden.\n"
+"Dit slaat alleen op het bijhouden van de tijdslimiet en staat los van periodes, "
+"die blijven gelden.\n"
 "\n"
 "Als er geen SpeelTijd-processen actief zijn wordt de sessie als 'inactief' "
 "geteld. Dan krijgt de gebruiker effectief 'gratis' tijd!"
@@ -1643,20 +1601,18 @@ msgstr ""
 msgid "Enable PlayTime override:"
 msgstr "Schakel SpeelTijd-voorrang in:"
 
-#: resource/client/forms/admin.glade:2186
-#: resource/client/forms/admin.glade:2207
+#: resource/client/forms/admin.glade:2186 resource/client/forms/admin.glade:2207
 msgid ""
 "Allow PlayTime activities during unaccounted (\"∞\") time intervals for "
 "selected user.\n"
 "\n"
 "This setting allows the user to use applications configured in his PlayTime "
-"activity list during time intervals which are marked as unaccounted "
-"(\"∞\").\n"
+"activity list during time intervals which are marked as unaccounted (\"∞\").\n"
 "\n"
-"If this setting is enabled, the use of activities will not be accounted "
-"towards PlayTime limits, otherwise applications in PlayTime activity list "
-"will be terminated as soon as they are started during unaccounted (\"∞\") "
-"time intervals."
+"If this setting is enabled, the use of activities will not be accounted towards "
+"PlayTime limits, otherwise applications in PlayTime activity list will be "
+"terminated as soon as they are started during unaccounted (\"∞\") time "
+"intervals."
 msgstr ""
 "Sta SpeelTijd-processen toe tijdens periodes die niet meetellen (\"∞\") voor "
 "deze gebruiker.\n"
@@ -1676,15 +1632,14 @@ msgstr "Toegestaan tijdens \"∞\" periodes"
 msgid "This lets you configure PlayTime limits."
 msgstr "Hier stel je SpeelTijd-limieten in"
 
-#: resource/client/forms/admin.glade:2253
-#: resource/client/forms/client.glade:1253
+#: resource/client/forms/admin.glade:2253 resource/client/forms/client.glade:1253
 msgid "PlayTime limits"
 msgstr "SpeelTijd-limieten"
 
 #: resource/client/forms/admin.glade:2311
 msgid ""
-"Increase daily PlayTime allowance by selected time unit (hours or minutes) "
-"for selected days.\n"
+"Increase daily PlayTime allowance by selected time unit (hours or minutes) for "
+"selected days.\n"
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
@@ -1695,8 +1650,8 @@ msgstr ""
 
 #: resource/client/forms/admin.glade:2328
 msgid ""
-"Decrease daily PlayTime allowance by selected time unit (hours or minutes) "
-"for selected days.\n"
+"Decrease daily PlayTime allowance by selected time unit (hours or minutes) for "
+"selected days.\n"
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
@@ -1710,8 +1665,8 @@ msgid ""
 "Lists day of the week and additional information about the day's PlayTime "
 "limit.\n"
 "\n"
-"Please enable / disable days for the user and set time allowance for "
-"PlayTime activities."
+"Please enable / disable days for the user and set time allowance for PlayTime "
+"activities."
 msgstr ""
 "Lijst van weekdagen en verdere informatie over de SpeelTijd-limiet van "
 "vandaag.\n"
@@ -1726,8 +1681,8 @@ msgstr "SpeelTijd-processen"
 msgid ""
 "Add new PlayTime activity.\n"
 "\n"
-"Please specify activity mask and user friendly description in the activity "
-"list directly."
+"Please specify activity mask and user friendly description in the activity list "
+"directly."
 msgstr ""
 "Voeg nieuw SpeelTijd-proces toe.\n"
 "\n"
@@ -1740,8 +1695,8 @@ msgstr "Verwijder dit proces uit de Speeltijd-lijst"
 
 #: resource/client/forms/admin.glade:2514
 msgid ""
-"Please specify a list of full process (executable) names without path as "
-"case sensitive strings to be monitored in the system.\n"
+"Please specify a list of full process (executable) names without path as case "
+"sensitive strings to be monitored in the system.\n"
 "\n"
 "It's possible to specify RegExp masks for processes too, but please be very "
 "careful about them as misusing this setting may lead to killing unwanted "
@@ -1749,12 +1704,12 @@ msgid ""
 "\n"
 "NOTE: RegExp is an expert setting!"
 msgstr ""
-"Geef een lijst van volledige procesnamen (uitvoerbare bestanden) zonder pad "
-"als hoofdlettergevoelige strings.\n"
+"Geef een lijst van volledige procesnamen (uitvoerbare bestanden) zonder pad als "
+"hoofdlettergevoelige strings.\n"
 "\n"
-"Het is ook mogelijk om een RegEx voor processen op te geven, maar wees hier "
-"erg voorzichtig mee omdat verkeerd gebruik van deze instelling kan leiden "
-"tot het onverwacht beeindigen van processen!\n"
+"Het is ook mogelijk om een RegEx voor processen op te geven, maar wees hier erg "
+"voorzichtig mee omdat verkeerd gebruik van deze instelling kan leiden tot het "
+"onverwacht beeindigen van processen!\n"
 "\n"
 "OPMERKING: RegEx is voor gevorderden"
 
@@ -1774,14 +1729,13 @@ msgstr "SpeelTijd-instellingen"
 msgid "Additional configuration options"
 msgstr "Verdere instellingen"
 
-#: resource/client/forms/admin.glade:2639
-#: resource/client/forms/admin.glade:2662
+#: resource/client/forms/admin.glade:2639 resource/client/forms/admin.glade:2662
 msgid ""
 "Select whether inactive session time is counted.\n"
 "\n"
 "If this is unchecked, time spent in console (not terminal emulator) login "
-"sessions and while the screen is locked is NOT taken into account. This "
-"varies among desktop environments."
+"sessions and while the screen is locked is NOT taken into account. This varies "
+"among desktop environments."
 msgstr ""
 "Hiermee kies je of tijd in inactieve sessies ook bijgehouden moet worden.\n"
 "\n"
@@ -1793,17 +1747,19 @@ msgstr ""
 msgid "Track inactive sessions:"
 msgstr "Houd inactieve sessies bij:"
 
-#: resource/client/forms/admin.glade:2679
-#: resource/client/forms/admin.glade:2702
+#: resource/client/forms/admin.glade:2679 resource/client/forms/admin.glade:2702
 msgid ""
 "Select whether to show Timekpr-next's padlock icon and notifications to the "
 "user.\n"
 "\n"
-"Please note that unchecking this will disable showing all information and "
+"Please note that checking this will disable showing all information and "
 "notifications to the user!"
 msgstr ""
-"Hiermee kies je of meldingen en het slot-icoontje van Timekpr-next getoond "
-"moeten worden"
+"Kies of het sloticoontje van Timekpr-next en meldingen aan de gebruiker getoond "
+"moeten worden.\n"
+"\n"
+"Let op: als je dit aanvinkt, worden alle informatie en meldingen voor de "
+"gebruiker uitgeschakeld!"
 
 #: resource/client/forms/admin.glade:2683
 msgid "Hide icon and notifications:"
@@ -1887,16 +1843,15 @@ msgstr "computer in slaapstand"
 msgid ""
 "When time ends, computer will be suspended (put to sleep).\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes.\n"
+"This option is not a restriction and is more suited for self control purposes.\n"
 "\n"
-"When woken up when there is still no time left, computer screen will be "
-"locked and put to sleep again after some time."
+"When woken up when there is still no time left, computer screen will be locked "
+"and put to sleep again after some time."
 msgstr ""
 "Als de tijd op is gaat de computer in slaapstand (suspend).\n"
 "\n"
-"Deze optie is niet echt een beperking en is meer geschikt voor het oefenen "
-"van zelfbeheersing.\n"
+"Deze optie is niet echt een beperking en is meer geschikt voor het oefenen van "
+"zelfbeheersing.\n"
 "\n"
 "Als de computer weer aangaat en er is nog steeds geen tijd, dan wordt het "
 "scherm vergrendeld en gaat de computer weer in de slaapstand."
@@ -1907,14 +1862,13 @@ msgstr "computer in slaapstand met automatisch ontwaken"
 
 #: resource/client/forms/admin.glade:2871
 msgid ""
-"When time ends, computer will be suspended (put to sleep) and will be woken "
-"up at start of next available time interval for the user.\n"
+"When time ends, computer will be suspended (put to sleep) and will be woken up "
+"at start of next available time interval for the user.\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes.\n"
+"This option is not a restriction and is more suited for self control purposes.\n"
 "\n"
-"When woken up when there is still no time left, computer screen will be "
-"locked and put to sleep again after some time."
+"When woken up when there is still no time left, computer screen will be locked "
+"and put to sleep again after some time."
 msgstr ""
 "Als de tijd op is gaat de computer in slaapstand; als er weer een nieuwe "
 "periode aanbreekt met beschikbare tijd gaat de computer vanzelf weer aan.\n"
@@ -1933,8 +1887,7 @@ msgstr "vergrendel scherm"
 msgid ""
 "When time ends, computer screen will be locked.\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes."
+"This option is not a restriction and is more suited for self control purposes."
 msgstr ""
 "Het scherm wordt vergrendeld als de limiet bereikt wordt.\n"
 "\n"
@@ -1944,8 +1897,8 @@ msgstr ""
 msgid ""
 "Select a time interval when computer can be woken up automatically.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Selecteer een periode waarin de computer automatisch kan ontwaken.\n"
 "\n"
@@ -1960,25 +1913,25 @@ msgstr "Uur van ontwaken:"
 msgid ""
 "Enter start hour for the automatic wakeup function.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Voor het beginuur in van de automatische wekfunctie\n"
 "\n"
-"Houd er rekening mee dat deze optie alleen werkt als de functie RealTime "
-"Clock wordt ondersteund en ingeschakeld is in BIOS / UEFI!"
+"Houd er rekening mee dat deze optie alleen werkt als de functie RealTime Clock "
+"wordt ondersteund en ingeschakeld is in BIOS / UEFI!"
 
 #: resource/client/forms/admin.glade:2959
 msgid ""
 "Enter end hour for the automatic wakeup function.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Voor het einduur in van de automatische wekfunctie\n"
 "\n"
-"Houd er rekening mee dat deze optie alleen werkt als de functie RealTime "
-"Clock wordt ondersteund en ingeschakeld is in BIOS / UEFI!"
+"Houd er rekening mee dat deze optie alleen werkt als de functie RealTime Clock "
+"wordt ondersteund en ingeschakeld is in BIOS / UEFI!"
 
 #: resource/client/forms/admin.glade:2997
 msgid "Apply configuration"
@@ -1992,8 +1945,7 @@ msgstr "Pas de gewijzigde instellingen toe"
 msgid "Additional configuration"
 msgstr "Extra instellingen"
 
-#: resource/client/forms/admin.glade:3021
-#: resource/client/forms/admin.glade:3695
+#: resource/client/forms/admin.glade:3021 resource/client/forms/admin.glade:3695
 msgid "Additional options"
 msgstr "Extra opties"
 
@@ -2009,8 +1961,7 @@ msgstr "Timekpr-nExT configuratie"
 msgid "Control Timekpr-nExT Settings"
 msgstr "Beheer instellingen van Timekpr-nExT"
 
-#: resource/client/forms/admin.glade:3112
-#: resource/client/forms/admin.glade:3264
+#: resource/client/forms/admin.glade:3112 resource/client/forms/admin.glade:3264
 msgid ""
 "Timekpr-nExT log level.\n"
 "\n"
@@ -2021,13 +1972,12 @@ msgid ""
 msgstr ""
 "Timekpr-nExT log-niveau.\n"
 "\n"
-"Verander dit alleen als het echt nodig is. Je vindt waarschijnlijk niet al "
-"te veel in de logbestanden.\n"
+"Verander dit alleen als het echt nodig is. Je vindt waarschijnlijk niet al te "
+"veel in de logbestanden.\n"
 "\n"
 "Mogelijke waarden: 1 - standaard, 2 - debuggen, 3 - extra debuggen"
 
-#: resource/client/forms/admin.glade:3132
-#: resource/client/forms/admin.glade:3180
+#: resource/client/forms/admin.glade:3132 resource/client/forms/admin.glade:3180
 msgid ""
 "Session polling time granularity which specifies how often user sessions and "
 "activity are checked and accounted.\n"
@@ -2042,8 +1992,7 @@ msgstr ""
 msgid "Poll interval"
 msgstr "Frequentie"
 
-#: resource/client/forms/admin.glade:3148
-#: resource/client/forms/admin.glade:3251
+#: resource/client/forms/admin.glade:3148 resource/client/forms/admin.glade:3251
 msgid ""
 "Specify the time in seconds when Timekpr-nExT starts continuous real-time "
 "countdown before enforcing a restriction / lockout to user's sessions."
@@ -2051,41 +2000,38 @@ msgstr ""
 "Geef de tijd (in seconden) waarop de countdown tevoorschijn moet komen die "
 "aangeeft dat een limiet bereikt is."
 
-#: resource/client/forms/admin.glade:3164
-#: resource/client/forms/admin.glade:3214
+#: resource/client/forms/admin.glade:3164 resource/client/forms/admin.glade:3214
 msgid ""
 "This specifies the rate in seconds at which actual user state is saved to "
 "disk.\n"
 "\n"
 "To improve performance and still have great accuracy, Timekpr-nExT accounts "
-"time in memory at \"Poll interval\" frequency, this setting defines a "
-"frequency at which user state is saved to disk for permanent storage."
+"time in memory at \"Poll interval\" frequency, this setting defines a frequency "
+"at which user state is saved to disk for permanent storage."
 msgstr ""
 "Dit is om de hoeveel seconden de status van de gebruiker wordt opgeslagen.\n"
 "\n"
-"Timekpor-nExT houdt sowieso alles bij in het geheugen; dit gaat om hoe vaak "
-"de gegevens tussendoor opgeslagen worden."
+"Timekpor-nExT houdt sowieso alles bij in het geheugen; dit gaat om hoe vaak de "
+"gegevens tussendoor opgeslagen worden."
 
 #: resource/client/forms/admin.glade:3168
 msgid "Save time"
 msgstr "Opslaan (s)"
 
-#: resource/client/forms/admin.glade:3198
-#: resource/client/forms/admin.glade:3233
+#: resource/client/forms/admin.glade:3198 resource/client/forms/admin.glade:3233
 msgid ""
 "Number of seconds left for user before enforcing a configured restriction / "
 "lockout to his sessions.\n"
 "\n"
 "After this is reached and user is still active, the user's sessions will be "
-"handled according to specified restriction / lockout, and almost nothing can "
-"be done to prevent it."
+"handled according to specified restriction / lockout, and almost nothing can be "
+"done to prevent it."
 msgstr ""
-"Hoeveel seconden er over zijn voor de gebruiker tot de sessie beeindigt "
-"wordt.\n"
+"Hoeveel seconden er over zijn voor de gebruiker tot de sessie beeindigt wordt.\n"
 "\n"
-"Als deze tijd ook op is en de gebruiker is nog steeds actief voert Timekpr-"
-"nExT de instellingen uit (uitloggen, sessie beeindigen, scherm vergrendelen) "
-"en kan de gebruiker er haast niets tegen doen."
+"Als deze tijd ook op is en de gebruiker is nog steeds actief voert Timekpr-nExT "
+"de instellingen uit (uitloggen, sessie beeindigen, scherm vergrendelen) en kan "
+"de gebruiker er haast niets tegen doen."
 
 #: resource/client/forms/admin.glade:3202
 msgid "Termination time"
@@ -2099,14 +2045,13 @@ msgstr "Countdown tijd"
 msgid "Log level"
 msgstr "Log-niveau"
 
-#: resource/client/forms/admin.glade:3281
-#: resource/client/forms/admin.glade:3297
+#: resource/client/forms/admin.glade:3281 resource/client/forms/admin.glade:3297
 msgid ""
 "Number of seconds left for user's available time before sending a final "
 "critical notification that time is about to run out.\n"
 "\n"
-"NOTE: the rest of the notification times are configurable per user by user "
-"in client application!"
+"NOTE: the rest of the notification times are configurable per user by user in "
+"client application!"
 msgstr ""
 "Hoeveel seconden er nog over moeten zijn wanneer de laatste kritieke melding "
 "verschijnt.\n"
@@ -2143,8 +2088,8 @@ msgid ""
 msgstr ""
 "Sessietypes die mee moeten tellen.\n"
 "\n"
-"Wees voorzichtig met het maken van veranderingen hier tenzij je echt weet "
-"wat je doet."
+"Wees voorzichtig met het maken van veranderingen hier tenzij je echt weet wat "
+"je doet."
 
 #: resource/client/forms/admin.glade:3474
 msgid "Excluded Sessions"
@@ -2182,16 +2127,15 @@ msgstr "Verwijder deze gebruiker"
 msgid ""
 "List of users excluded from tracking.\n"
 "\n"
-"Please specify actual usernames, not real names here. For example, "
-"\"jsmith\", not \"John Smith\"."
+"Please specify actual usernames, not real names here. For example, \"jsmith\", "
+"not \"John Smith\"."
 msgstr ""
 "Lijst van gebruikers die genegeerd worden.\n"
 "\n"
 "Gebruikersnamen, geen echte namen. Bijvoorbeeld \"jvrieze\", niet \"Jip "
 "Vrieze\"."
 
-#: resource/client/forms/admin.glade:3722
-#: resource/client/forms/admin.glade:3741
+#: resource/client/forms/admin.glade:3722 resource/client/forms/admin.glade:3741
 #: resource/client/forms/admin.glade:3777
 msgid ""
 "This setting controls whether PlayTime functionality is enabled.\n"
@@ -2222,14 +2166,14 @@ msgid ""
 "user's PlayTime activity masks!"
 msgstr ""
 "Dit bepaalt of SpeelTijd ook commandline-processen, inclusief argumenten, "
-"meeneemt in het zoeken naar activiteiten die onder SpeelTijd vallen "
-"(standaard wordt alleen naar procesnaam gekeken).\n"
+"meeneemt in het zoeken naar activiteiten die onder SpeelTijd vallen (standaard "
+"wordt alleen naar procesnaam gekeken).\n"
 "\n"
-"Als dit aanstaat zal Timekpr-nExT zoeken naar de volledige command line tot "
-"512 karakters, wat gedetailleerde monitoring mogelijk maakt.\n"
+"Als dit aanstaat zal Timekpr-nExT zoeken naar de volledige command line tot 512 "
+"karakters, wat gedetailleerde monitoring mogelijk maakt.\n"
 "\n"
-"Wees hier voorzichtig mee en controleer je regular expressions in de "
-"SpeelTijd-instellingen voor elke individuele gebruiker!"
+"Wees hier voorzichtig mee en controleer je regular expressions in de SpeelTijd-"
+"instellingen voor elke individuele gebruiker!"
 
 #: resource/client/forms/admin.glade:3762
 msgid "Enhanced activity monitor:"
@@ -2251,8 +2195,7 @@ msgstr "Timekpr-nExT admin instellingen"
 msgid "Timekpr-nExT Configuration"
 msgstr "Timekpr-nExT configuratie"
 
-#: resource/client/forms/admin.glade:3866
-#: resource/client/forms/admin.glade:3883
+#: resource/client/forms/admin.glade:3866 resource/client/forms/admin.glade:3883
 msgid "Status of Timekpr-nExT admin client"
 msgstr "Status van Timekpr-nExT admin client"
 
@@ -2292,8 +2235,7 @@ msgstr "Wijzigingen opslaan"
 msgid "Close the window"
 msgstr "Venster sluiten"
 
-#: resource/client/forms/client.glade:297
-#: resource/client/forms/client.glade:314
+#: resource/client/forms/client.glade:297 resource/client/forms/client.glade:314
 msgid "Current effective username"
 msgstr "Huidige gebruikersnaam"
 
@@ -2329,8 +2271,7 @@ msgstr "Aaneengesloten tijd over:"
 msgid "Total time available left today in a row, up to the end of the day"
 msgstr "Totale tijd die vandaag nog over is, tot aan het einde van de dag."
 
-#: resource/client/forms/client.glade:489
-#: resource/client/forms/client.glade:974
+#: resource/client/forms/client.glade:489 resource/client/forms/client.glade:974
 msgid "Time left today:"
 msgstr "Tijd over vandaag:"
 
@@ -2338,8 +2279,7 @@ msgstr "Tijd over vandaag:"
 msgid "These are the days and limits that are available to you"
 msgstr "Deze dagen en limieten gelden voor jou"
 
-#: resource/client/forms/client.glade:573
-#: resource/client/forms/client.glade:1171
+#: resource/client/forms/client.glade:573 resource/client/forms/client.glade:1171
 msgid "Days & Limits"
 msgstr "Dagen & limieten"
 
@@ -2396,15 +2336,14 @@ msgstr "Tel inactiviteit mee:"
 #: resource/client/forms/client.glade:773
 msgid ""
 "Select whether inactive session time is counted. If this is unchecked, time "
-"spent in console (not terminal emulator) login sessions and while the screen "
-"is locked is NOT taken into account. This varies among desktop environments."
+"spent in console (not terminal emulator) login sessions and while the screen is "
+"locked is NOT taken into account. This varies among desktop environments."
 msgstr ""
 "Kies of inactieve tijd ook meetelt. Als dit niet aangevinkt is wordt tijd "
 "tijdens login en terwijl het scherm vergrendeld is NIET meegenomen. Hoe dit "
 "uitwerkt kan per desktopomgeving verschillen."
 
-#: resource/client/forms/client.glade:820
-#: resource/client/forms/client.glade:918
+#: resource/client/forms/client.glade:820 resource/client/forms/client.glade:918
 msgid "Additional limits"
 msgstr "Bijkomende limieten"
 
@@ -2440,8 +2379,7 @@ msgstr "SpeelTijd besteed vandaag"
 msgid "Time spent today:"
 msgstr "Tijd besteed vandaag"
 
-#: resource/client/forms/client.glade:1027
-#: resource/client/forms/client.glade:1042
+#: resource/client/forms/client.glade:1027 resource/client/forms/client.glade:1042
 msgid ""
 "This option overrides the default time accounting.\n"
 "\n"
@@ -2450,15 +2388,14 @@ msgid ""
 msgstr ""
 "Met deze optie geef je SpeelTijd voorrang\n"
 "\n"
-"Als dit aangevinkt is telt tijd alleen mee als activiteiten in de lijst "
-"bezig zijn; andere tijd geldt als inactief."
+"Als dit aangevinkt is telt tijd alleen mee als activiteiten in de lijst bezig "
+"zijn; andere tijd geldt als inactief."
 
 #: resource/client/forms/client.glade:1046
 msgid "Time limit override:"
 msgstr "Tijdslimiet voorrang:"
 
-#: resource/client/forms/client.glade:1060
-#: resource/client/forms/client.glade:1073
+#: resource/client/forms/client.glade:1060 resource/client/forms/client.glade:1073
 msgid "Number of currently active PlayTime activities"
 msgstr "Aantal lopende SpeelTijd-activiteiten"
 
@@ -2466,8 +2403,7 @@ msgstr "Aantal lopende SpeelTijd-activiteiten"
 msgid "Running activities:"
 msgstr "Lopende activiteiten:"
 
-#: resource/client/forms/client.glade:1086
-#: resource/client/forms/client.glade:1106
+#: resource/client/forms/client.glade:1086 resource/client/forms/client.glade:1106
 msgid ""
 "Allow activities during unaccounted (\"∞\") time intervals.\n"
 "\n"
@@ -2477,10 +2413,10 @@ msgid ""
 msgstr ""
 "Sta activiteiten toe tijdens periodes die niet meetellen (\"∞\").\n"
 "\n"
-"Deze instelling maakt het mogelijk om toepassingen in de activiteitenlijst "
-"te gebruiken tijdens periodes die buiten de beperkingen vallen (\"∞\"). Als "
-"dit niet aangevinkt is kan geen van de toepassingen in zulke periodes "
-"gebruikt worden!"
+"Deze instelling maakt het mogelijk om toepassingen in de activiteitenlijst te "
+"gebruiken tijdens periodes die buiten de beperkingen vallen (\"∞\"). Als dit "
+"niet aangevinkt is kan geen van de toepassingen in zulke periodes gebruikt "
+"worden!"
 
 #: resource/client/forms/client.glade:1090
 msgid "Allowed during \"∞\":"
@@ -2518,19 +2454,18 @@ msgid ""
 "Warning - a yellow icon and an informational notification will be shown\n"
 "Severe - a red icon and important notification will be shown\n"
 "Critical - a red icon and critical notification will be shown, this "
-"notification usually is shown over all open applications and stays open "
-"until dismissed, however this behaviour highly depends on Desktop "
-"Environment in use"
+"notification usually is shown over all open applications and stays open until "
+"dismissed, however this behaviour highly depends on Desktop Environment in use"
 msgstr ""
 "Instellingen voor gepersonaliseerde meldingen.\n"
 "\n"
-"Je kunt  meldingen instellen zoals je wilt. Er zijn twee soorten meldingen "
-"die niet gepersonaliseerd kunnen worden: de laatste waarschuwing even "
-"voordat de tijd op is, en het aftellen wanneer het einde aanbreekt.\n"
+"Je kunt  meldingen instellen zoals je wilt. Er zijn twee soorten meldingen die "
+"niet gepersonaliseerd kunnen worden: de laatste waarschuwing even voordat de "
+"tijd op is, en het aftellen wanneer het einde aanbreekt.\n"
 "\n"
 "\"Tijd\" gaat over de hoeveelheid tijd die nog over is op het moment dat de "
-"melding moet verschijnen. \"Aard\" gaat over de kleur en soort melding die "
-"je krijgt, als volgt:\n"
+"melding moet verschijnen. \"Aard\" gaat over de kleur en soort melding die je "
+"krijgt, als volgt:\n"
 "\n"
 "Informatie - groen icoon en een informatiemelding\n"
 "Waarschuwing - geel icon en een informatiemelding\n"
@@ -2565,17 +2500,16 @@ msgid ""
 "Warning - a yellow icon and an informational notification will be shown\n"
 "Severe - a red icon and important notification will be shown\n"
 "Critical - a red icon and critical notification will be shown, this "
-"notification usually is shown over all open applications and stays open "
-"until dismissed, however this behaviour highly depends on Desktop "
-"Environment in use"
+"notification usually is shown over all open applications and stays open until "
+"dismissed, however this behaviour highly depends on Desktop Environment in use"
 msgstr ""
 "Instellingen voor gepersonaliseerde meldingen over SpeelTijd.\n"
 "\n"
 "Je kunt meldingen instellen zoals je wilt. \n"
 "\n"
 "\"Tijd\" gaat over de hoeveelheid tijd die nog over is op het moment dat de "
-"melding moet verschijnen. \"Aard\" gaat over de kleur en soort melding die "
-"je krijgt, als volgt:\n"
+"melding moet verschijnen. \"Aard\" gaat over de kleur en soort melding die je "
+"krijgt, als volgt:\n"
 "\n"
 "Informatie - groen icoon en een informatiemelding\n"
 "Waarschuwing - geel icon en een informatiemelding\n"
@@ -2616,8 +2550,7 @@ msgstr ""
 msgid "Use speech notifications"
 msgstr "Gebruik gesproken meldingen"
 
-#: resource/client/forms/client.glade:1593
-#: resource/client/forms/client.glade:1615
+#: resource/client/forms/client.glade:1593 resource/client/forms/client.glade:1615
 msgid ""
 "This sets the logging level.\n"
 "\n"
@@ -2633,8 +2566,8 @@ msgstr "Logniveau"
 
 #: resource/client/forms/client.glade:1641
 msgid ""
-"Specify whether to show a notification when limit configurations or "
-"allowance changes"
+"Specify whether to show a notification when limit configurations or allowance "
+"changes"
 msgstr ""
 "Stel in of er een melding weergegeven moet worden als de beschikbare tijd "
 "verandert."
@@ -2661,8 +2594,8 @@ msgstr "Toon alle meldingen"
 msgid ""
 "Specify whether to show seconds in notification area.\n"
 "\n"
-"Some desktop environments, like KDE5, do not support text besides "
-"notification icons."
+"Some desktop environments, like KDE5, do not support text besides notification "
+"icons."
 msgstr ""
 "Stel in of seconden weergegeven moeten worden in het systeemvak.\n"
 "\n"
@@ -2673,18 +2606,17 @@ msgstr ""
 msgid "Show seconds in notification area"
 msgstr "Laat seconden zien in het systeemvak"
 
-#: resource/client/forms/client.glade:1720
-#: resource/client/forms/client.glade:1744
+#: resource/client/forms/client.glade:1720 resource/client/forms/client.glade:1744
 msgid ""
-"This sets how long a notification is shown for regular notifications about "
-"time left and configuration changes.\n"
+"This sets how long a notification is shown for regular notifications about time "
+"left and configuration changes.\n"
 "\n"
 "The value is specified in seconds.\n"
 "A value of 0 means show until dismissed (not recommended for regular "
 "notifications).\n"
 "\n"
-"Please note that the desktop environment you use may override this timeout, "
-"in which case this setting will not have any effect on notification."
+"Please note that the desktop environment you use may override this timeout, in "
+"which case this setting will not have any effect on notification."
 msgstr ""
 "Hiermee stel je in hoe lang een melding zichtbaar blijft.\n"
 "\n"
@@ -2696,24 +2628,23 @@ msgstr ""
 msgid "Notification timeout (sec)"
 msgstr "Melding timeout (sec)"
 
-#: resource/client/forms/client.glade:1776
-#: resource/client/forms/client.glade:1801
+#: resource/client/forms/client.glade:1776 resource/client/forms/client.glade:1801
 msgid ""
-"This sets how long a notification is shown for \"Critical\" notifications "
-"about time left (when the icon turns red).\n"
+"This sets how long a notification is shown for \"Critical\" notifications about "
+"time left (when the icon turns red).\n"
 "\n"
 "The value is specified in seconds.\n"
 "A value of 0 means show until dismissed.\n"
 "\n"
-"Please note that the desktop environment you use may override this timeout, "
-"in which case this setting will not have any effect on notification."
+"Please note that the desktop environment you use may override this timeout, in "
+"which case this setting will not have any effect on notification."
 msgstr ""
-"Dit stelt in hoe lang een melding zichtbaar blijft voor \"Kritieke\" "
-"meldingen over resterende tijd (als het icoon rood is).\n"
+"Dit stelt in hoe lang een melding zichtbaar blijft voor \"Kritieke\" meldingen "
+"over resterende tijd (als het icoon rood is).\n"
 "\n"
 "De waarde is in seconden.\n"
-"Een waarde van 0 betekent dat de melding zichtbaar blijft tot deze "
-"weggeklikt wordt.\n"
+"Een waarde van 0 betekent dat de melding zichtbaar blijft tot deze weggeklikt "
+"wordt.\n"
 "\n"
 "N.B.: het kan zijn dat je desktopomgeving zich niets van deze instelling "
 "aantrekt."
@@ -2724,21 +2655,21 @@ msgstr "Time out voor kritieke melding"
 
 #: resource/client/forms/client.glade:1830
 msgid ""
-"Select whether to use sound \"bell\" (short notification sound) to announce "
-"a new notification from Timekpr-nExT.\n"
+"Select whether to use sound \"bell\" (short notification sound) to announce a "
+"new notification from Timekpr-nExT.\n"
 "\n"
 "This works only for enabled notifications.\n"
 "\n"
 "If this setting is not editable, your environment does not advertise sound "
 "notification support."
 msgstr ""
-"Geef aan of er een geluid van een belletje moet klinken voor nieuwe "
-"meldingen van Timekpr-nExT.\n"
+"Geef aan of er een geluid van een belletje moet klinken voor nieuwe meldingen "
+"van Timekpr-nExT.\n"
 "\n"
 "Dit werkt alleen als meldingen aan staan.\n"
 "\n"
-"Als deze instelling niet beschikbaar is ondersteunt je Linuxomgeving "
-"misschien geen geluidsmeldingen."
+"Als deze instelling niet beschikbaar is ondersteunt je Linuxomgeving misschien "
+"geen geluidsmeldingen."
 
 #: resource/client/forms/client.glade:1842
 msgid "Use sound \"bell\" for notifications"
@@ -2747,3 +2678,32 @@ msgstr "Laat een belletje horen bij meldingen"
 #: resource/client/forms/client.glade:1862
 msgid "Configuration"
 msgstr "Instellingen"
+
+#~ msgid ""
+#~ "Select whether to use speech notifications, if available.\n"
+#~ "\n"
+#~ "You may be able to make speech notifications available by installing package "
+#~ "\"python3-espeak\"."
+#~ msgstr ""
+#~ "Stel in of gesproken meldingen gebruikt moeten worden (indien beschikbaar).\n"
+#~ "\n"
+#~ "Je kunt spraakmeldingen wellicht mogelijk maken met \"python3-espeak\" ."
+
+#~ msgid ""
+#~ "Select whether to show Timekpr-next's padlock icon and notifications to the "
+#~ "user.\n"
+#~ "\n"
+#~ "Please note that unchecking this will disable showing all information and "
+#~ "notifications to the user!"
+#~ msgstr ""
+#~ "Hiermee kies je of meldingen en het slot-icoontje van Timekpr-next getoond "
+#~ "moeten worden"
+
+#~ msgid ""
+#~ "==> set restriction / lockout type (\"lock\" - lock session, \"suspend\" - "
+#~ "suspend the computer, \"suspendwake\" - suspend and wake up, \"terminate\" - "
+#~ "terminate sessions, \"shutdown\" - shutdown the computer), examples"
+#~ msgstr ""
+#~ "==> type slot of beperking (\"lock\" - vergrendelen, \"suspend\" - computer "
+#~ "in slaapstand, \"suspendwake\" - slaapstand en waken, \"terminate\" - alle "
+#~ "sessies afsluiten, \"shutdown\" - computer uitschakelen), voorbeelden"
