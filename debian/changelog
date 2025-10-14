@@ -1,4 +1,4 @@
-timekpr-next-beta (0.5.9-1ubuntu4~ppa1) unstable; urgency=medium
+timekpr-next-beta (0.5.9-1ubuntu5~ppa1) unstable; urgency=medium
 
   * fixed a bug in notifications when time is not limited was shown even the time was limited
       this bug manifested itself only when there were only weekly or monthly time limits enforced on users
@@ -14,8 +14,10 @@ timekpr-next-beta (0.5.9-1ubuntu4~ppa1) unstable; urgency=medium
         --setplaytimelimits
         --setplaytimeleft
       time is returned in seconds, so math is still required :)
+  * fixed a hint / description for "Hide icon and notifications" checkbox
+  * added fr_CA and en_GB translations from LP
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Wed, 13 Oct 2025 13:47:27 +0300
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Tue, 14 Oct 2025 19:28:14 +0300
 
 timekpr-next-beta (0.5.8-9ubuntu2~ppa1) unstable; urgency=medium
 
