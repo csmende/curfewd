@@ -1349,10 +1349,10 @@ class timekprDaemon(dbus.service.Object):
             mainConfigurationProcessor = timekprConfigurationProcessor()
 
             # check and set config
-            result, message = mainConfigurationProcessor.checkAndSetTimekprPlayTimeEnabled(pPlayTimeEnabled)
+            result, message = mainConfigurationProcessor.checkAndSetTimekprPlayTimeEnabled(True if bool(pPlayTimeEnabled) else False)
 
             # set in memory as well
-            self._timekprConfig.setTimekprPlayTimeEnabled(pPlayTimeEnabled)
+            self._timekprConfig.setTimekprPlayTimeEnabled(True if bool(pPlayTimeEnabled) else False)
         except Exception as unexpectedException:
             # logging
             log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
@@ -1372,10 +1372,10 @@ class timekprDaemon(dbus.service.Object):
             mainConfigurationProcessor = timekprConfigurationProcessor()
 
             # check and set config
-            result, message = mainConfigurationProcessor.checkAndSetTimekprPlayTimeEnhancedActivityMonitorEnabled(pPlayTimeAdvancedSearchEnabled)
+            result, message = mainConfigurationProcessor.checkAndSetTimekprPlayTimeEnhancedActivityMonitorEnabled(True if bool(pPlayTimeAdvancedSearchEnabled) else False)
 
             # set in memory as well
-            self._timekprConfig.setTimekprPlayTimeEnhancedActivityMonitorEnabled(pPlayTimeAdvancedSearchEnabled)
+            self._timekprConfig.setTimekprPlayTimeEnhancedActivityMonitorEnabled(True if bool(pPlayTimeAdvancedSearchEnabled) else False)
         except Exception as unexpectedException:
             # logging
             log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))

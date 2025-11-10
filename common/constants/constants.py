@@ -63,7 +63,7 @@ TK_CL_INF_RT = "R"
 TK_USERS_FILE = "/etc/passwd"
 TK_USER_LIMITS_FILE = [ "/etc/login.defs", "/usr/etc/login.defs" ]
 # backup extension
-TK_BACK_EXT = ".prev"
+TK_BAK_EXT = ".prev"
 # log files
 TK_LOG_USER = "<USER>"
 TK_LOG_FILE = "timekpr.log"
