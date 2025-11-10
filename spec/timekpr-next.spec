@@ -19,6 +19,7 @@ BuildRequires:    ( libappstream-glib or appstream-glib )
 BuildRequires:    ( systemd )
 BuildRequires:    ( sed )
 BuildRequires:    ( grep )
+BuildRequires:    ( python3-devel)
 
 Requires:         ( gtk3 >= 3.4 )
 Requires:         ( polkit or pkexec )
@@ -128,7 +129,7 @@ update-desktop-database &> /dev/null || :
 %{_sysconfdir}/xdg/autostart/*
 
 %changelog
-* Mon Sep 22 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-0.1
+* Mon Nov 10 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-0.1
 - Updated spec file for version 0.5.9, release 0.1 (BETA)
 * Tue Apr 29 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.8-0.3
 - Updated spec file for version 0.5.8, release 0.3 (BETA)
