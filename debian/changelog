@@ -1,4 +1,4 @@
-timekpr-next-beta (0.5.9-3ubuntu5~ppa1) unstable; urgency=medium
+timekpr-next-beta (0.5.9-3ubuntu6~ppa1) unstable; urgency=medium
 
   * fixed a bug in notifications when time is not limited was shown even the time was limited
       this bug manifested itself only when there were only weekly or monthly time limits enforced on users
