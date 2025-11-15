@@ -173,11 +173,11 @@ class timekprUserManager(object):
                         if self._sessionLockedStateAvailable is None:
                             # state used
                             self._sessionLockedStateAvailable = True
-                            log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is available and will be used for idle state detection (if it works)")
+                            log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is available for user \"%s\" and will be used for idle state detection (if it works)" % (self._userName))
                     except:
                         # locked state not used
                         self._sessionLockedStateAvailable = False
-                        log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is NOT available, will rely on client screensaver state (if it works)")
+                        log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is NOT available for user \"%s\", will rely on client screensaver state (if it works)" % (self._userName))
                 # measurement logging
                 misc.measureDBUSTimeElapsed(pStop=True, pDbusIFName=rSessionId)
 

@@ -221,7 +221,7 @@ class timekprPlayTimeConfig(object):
                 # check if we have it
                 if userId not in self._cachedPids[self._USRS]:
                     # verify
-                    if userhelper.isUserValid(int(userId)):
+                    if userhelper.isUserValid(int(userId), pValidateUIDOnly=True):
                         # initialize set
                         self._initUserData(userId)
                     else:

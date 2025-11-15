@@ -52,12 +52,24 @@ for rFile in cons.TK_USER_LIMITS_FILE:
             break
 
 
-def isUserValid(pUserId, pUserName=None, pUserShell=None):
+def isUserValid(pUserId, pValidateUIDOnly=False, pUserName=None, pUserShell=None):
     """Validate user ID, name and shell"""
     # vars
     global _limitsConfig
     global _userNameRegexp
     isUIDOK = False
+
+    # now, find info on users, if that is needed
+    if not pValidateUIDOnly and (pUserName is None or pUserShell is None):
+        try:
+            # get
+            userTmp = pwd.getpwuid(int(pUserId))
+            # replace
+            pUserName = userTmp.pw_name
+            pUserShell = userTmp.pw_shell
+        except:
+            # can not get user info
+            pass
 
     # check user id
     if pUserId is not None and pUserId != "":
@@ -123,7 +135,7 @@ class timekprUserStore(object):
         # iterate through all usernames
         for rUser in pwd.getpwall():
             # save our user, if it mactches
-            if isUserValid(rUser.pw_uid, rUser.pw_name, rUser.pw_shell):
+            if isUserValid(rUser.pw_uid, pUserName=rUser.pw_name, pUserShell=rUser.pw_shell):
                 # get processed usernames
                 userFName = getNormalizedUserNames(pUser=rUser)[1]
                 # save ()

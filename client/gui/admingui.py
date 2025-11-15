@@ -2442,7 +2442,6 @@ class timekprAdminGUI(object):
 
     def verifyAndSetWeeklyLimits(self, path, text):
         """Verify and set weekly values"""
-        pass
         # store
         limitsSt = self._timekprAdminFormBuilder.get_object("TimekprUserConfWkMonLimitsLS")
         # value before
@@ -2463,7 +2462,6 @@ class timekprAdminGUI(object):
 
     def verifyAndSetDayLimits(self, path, text, pIsPlayTime=False):
         """Verify and set daily values"""
-        pass
         # store
         limitsSt = self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeLimitsLS" if pIsPlayTime else "TimekprWeekDaysLS")
         controlFnc = self.calculateUserPlayTimeConfigControlAvailability if pIsPlayTime else self.calculateUserConfigControlAvailability

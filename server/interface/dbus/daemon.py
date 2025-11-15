@@ -64,9 +64,13 @@ class timekprDaemon(dbus.service.Object):
         self._timekprLoginManager = None
         # this will define main timekpr configuration loader
         self._timekprConfig = None
-        # this will hold all timekpr users (collection of user class)
+        # this will hold all timekpr users (collection of user class, index by username)
         self._timekprUserList = {}
-        # this will hold collection of users to be terminated
+        # this will hold all timekpr user info which are permanently ignored (sys users, index by UID)
+        self._timekprIgnoredUserList = {}
+        # this will hold all timekpr user info which are ignored and a warning has been written to log at lease once (index by UID)
+        self._timekprWarnedUserList = {}
+         # this will hold collection of users to be terminated
         self._timekprUserTerminationList = {}
         # this will hold collection of users who have restrictions to use computer
         self._timekprUserRestrictionList = {}
@@ -199,32 +203,50 @@ class timekprDaemon(dbus.service.Object):
 
         # add new users to track
         for rUserName, userDict in userList.items():
-            # login manager is system user, we do these checks only for system users
-            if not userhelper.isUserValid(userDict[cons.TK_CTRL_UID], userDict[cons.TK_CTRL_UNAME]):
-                # sys user
-                log.log(cons.TK_LOG_LEVEL_INFO, "NOTE: system or mismatched user \"%s\" explicitly excluded" % (rUserName))
-                # try to get login manager VT (if not already found)
-                self._timekprLoginManager.determineLoginManagerVT(rUserName, userDict[cons.TK_CTRL_UPATH])
+            # totally skip ignored users
+            if userDict[cons.TK_CTRL_UID] in self._timekprIgnoredUserList:
+                # skip
+                continue
             # if username is in exclusion list, additionally verify that username is not a sysuser / login manager (this is somewhat obsolete now)
-            elif rUserName in self._timekprConfig.getTimekprUsersExcl() and rUserName not in userhelper.getTimekprLoginManagers():
-                log.log(cons.TK_LOG_LEVEL_INFO, "NOTE: user \"%s\" explicitly excluded" % (rUserName))
-            # if not in, we add it
+            elif userDict[cons.TK_CTRL_UID] not in self._timekprWarnedUserList and rUserName in self._timekprConfig.getTimekprUsersExcl() and rUserName not in userhelper.getTimekprLoginManagers():
+                log.log(cons.TK_LOG_LEVEL_INFO, "NOTE: user \"%s\" with UID %s explicitly excluded (note issued once per user)" % (rUserName, userDict[cons.TK_CTRL_UID]))
+                # add to ignored list
+                self._timekprWarnedUserList[userDict[cons.TK_CTRL_UID]] = {
+                    cons.TK_CTRL_UID: userDict[cons.TK_CTRL_UID],
+                    cons.TK_CTRL_UNAME: userDict[cons.TK_CTRL_UNAME]
+                }
+            # whether we have a new user
             elif rUserName not in self._timekprUserList:
-                log.log(cons.TK_LOG_LEVEL_INFO, "NOTE: we have a new user \"%s\"" % (rUserName))
-                # add user
-                self._timekprUserList[rUserName] = timekprUser(
-                    self._timekprBusName,
-                    userDict[cons.TK_CTRL_UID],
-                    userDict[cons.TK_CTRL_UNAME],
-                    userDict[cons.TK_CTRL_UPATH],
-                    self._timekprConfig,
-                    self._timekprPlayTimeConfig
-                )
+                # login manager is system user, we do these checks only for system users
+                if not userhelper.isUserValid(userDict[cons.TK_CTRL_UID], pUserName=userDict[cons.TK_CTRL_UNAME]):
+                    # sys user
+                    log.log(cons.TK_LOG_LEVEL_INFO, "NOTE: a system or mismatched user \"%s\" with UID %s explicitly excluded (note issued once per user)" % (rUserName, userDict[cons.TK_CTRL_UID]))
+                    # try to get login manager VT (if not already found)
+                    self._timekprLoginManager.determineLoginManagerVT(rUserName, userDict[cons.TK_CTRL_UPATH])
+                    # add to ignored list
+                    self._timekprIgnoredUserList[userDict[cons.TK_CTRL_UID]] = {
+                        cons.TK_CTRL_UID: userDict[cons.TK_CTRL_UID],
+                        cons.TK_CTRL_UNAME: userDict[cons.TK_CTRL_UNAME]
+                    }
+                else:
+                    # we have found a new friend
+                    log.log(cons.TK_LOG_LEVEL_INFO, "NOTE: we have a new user \"%s\" with UID %s" % (rUserName, userDict[cons.TK_CTRL_UID]))
+                    # add user
+                    self._timekprUserList[rUserName] = timekprUser(
+                        self._timekprBusName,
+                        userDict[cons.TK_CTRL_UID],
+                        userDict[cons.TK_CTRL_UNAME],
+                        userDict[cons.TK_CTRL_UPATH],
+                        self._timekprConfig,
+                        self._timekprPlayTimeConfig
+                    )
 
-                # adjust config
-                self._timekprUserList[rUserName].adjustLimitsFromConfig()
-                # adjust time spent
-                self._timekprUserList[rUserName].adjustTimeSpentFromControl()
+                    # adjust config
+                    self._timekprUserList[rUserName].adjustLimitsFromConfig()
+                    # adjust time spent
+                    self._timekprUserList[rUserName].adjustTimeSpentFromControl()
+
+                    log.log(cons.TK_LOG_LEVEL_INFO, "NOTE: user \"%s\" set up for tracking" % (rUserName))
 
         # session list to remove
         removableUsers = [rUserName for rUserName in self._timekprUserList if rUserName not in userList]
