@@ -19,9 +19,9 @@ from timekpr.common.utils.misc import splitConfigValueNameParam as splitConfigVa
 
 # ## GLOBAL ##
 # key pattern search
-RE_SECTIONFINDER = re.compile("^\\[([a-zA-Z0-9_\\.@-]+)\\]$")
-RE_KEYVALUEFINDER = re.compile("^ *([A-Z]+[A-Z_]+[0-9]*) *= *(.*)$")
-RE_ARRAYKEYFINDER = re.compile("^##([A-Z]+[A-Z_]+)##.*$")
+RE_SECTIONFINDER = re.compile(r"^\[([a-zA-Z0-9_\.@-]+)\]$")
+RE_KEYVALUEFINDER = re.compile(r"^ *([A-Z]+[A-Z_]+[0-9]*) *= *(.*)$")
+RE_ARRAYKEYFINDER = re.compile(r"^##([A-Z]+[A-Z_]+)##.*$")
 
 
 def _saveConfigFile(pConfigFile, pKeyValuePairs):

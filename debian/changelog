@@ -1,4 +1,4 @@
-timekpr-next-beta (0.5.9-3ubuntu6~ppa1) unstable; urgency=medium
+timekpr-next-beta (0.5.9-4ubuntu6~ppa1) unstable; urgency=medium
 
   * fixed a bug in notifications when time is not limited was shown even the time was limited
       this bug manifested itself only when there were only weekly or monthly time limits enforced on users
@@ -19,8 +19,9 @@ timekpr-next-beta (0.5.9-3ubuntu6~ppa1) unstable; urgency=medium
   * fixed a hint / description for "Hide icon and notifications" checkbox
   * added fr_CA and en_GB translations from LP
   * fix the shebangs, feng-shui style
+  * added support for dynamic users which are not specified in passwd (for example, gdm-greeter)
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Fri, 14 Nov 2025 01:16:26 +0200
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Sat, 15 Nov 2025 22:50:42 +0200
 
 timekpr-next-beta (0.5.8-9ubuntu2~ppa1) unstable; urgency=medium
 

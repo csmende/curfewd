@@ -24,10 +24,10 @@ from timekpr.common.constants import messages as msg
 _NO_TIME_LABEL_SHORT = "--:--"
 _NO_TIME_LABEL = "--:--:--"
 _NO_TIME_LIMIT_LABEL = "--:--:--:--"
-_HOUR_REGEXP = re.compile("^([0-9]{1,2}).*$")
-_HOUR_MIN_REGEXP = re.compile("^([0-9]{1,2}):([0-9]{1,2}).*$")
-_DAY_HOUR_MIN_REGEXP = re.compile("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}).*$")
-_DAY_HOUR_MIN_SEC_REGEXP = re.compile("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}).*$")
+_HOUR_REGEXP = re.compile(r"^([0-9]{1,2}).*$")
+_HOUR_MIN_REGEXP = re.compile(r"^([0-9]{1,2}):([0-9]{1,2}).*$")
+_DAY_HOUR_MIN_REGEXP = re.compile(r"^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}).*$")
+_DAY_HOUR_MIN_SEC_REGEXP = re.compile(r"^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}).*$")
 
 class timekprAdminGUI(object):
     """Main class for supporting timekpr forms"""
@@ -2442,7 +2442,6 @@ class timekprAdminGUI(object):
 
     def verifyAndSetWeeklyLimits(self, path, text):
         """Verify and set weekly values"""
-        pass
         # store
         limitsSt = self._timekprAdminFormBuilder.get_object("TimekprUserConfWkMonLimitsLS")
         # value before
@@ -2463,7 +2462,6 @@ class timekprAdminGUI(object):
 
     def verifyAndSetDayLimits(self, path, text, pIsPlayTime=False):
         """Verify and set daily values"""
-        pass
         # store
         limitsSt = self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeLimitsLS" if pIsPlayTime else "TimekprWeekDaysLS")
         controlFnc = self.calculateUserPlayTimeConfigControlAvailability if pIsPlayTime else self.calculateUserConfigControlAvailability

@@ -221,7 +221,7 @@ class timekprPlayTimeConfig(object):
                 # check if we have it
                 if userId not in self._cachedPids[self._USRS]:
                     # verify
-                    if userhelper.isUserValid(int(userId)):
+                    if userhelper.isUserValid(int(userId), pValidateUIDOnly=True):
                         # initialize set
                         self._initUserData(userId)
                     else:
@@ -422,9 +422,9 @@ class timekprPlayTimeConfig(object):
                 # remove brackets "[]" because we use them as description
                 flt = flt.replace("[", "").replace("]", "")
                 # add precompiled filters
-                self._cachedPids[self._USRS][pUid][self._FLTS][rFlt].append(re.compile("^%s$" % (flt)))
-                self._cachedPids[self._USRS][pUid][self._FLTS][rFlt].append(re.compile("[/\\\\]%s$" % (flt)))
-                self._cachedPids[self._USRS][pUid][self._FLTS][rFlt].append(re.compile("[/\\\\]%s " % (flt)))
+                self._cachedPids[self._USRS][pUid][self._FLTS][rFlt].append(re.compile(r"^%s$" % (flt)))
+                self._cachedPids[self._USRS][pUid][self._FLTS][rFlt].append(re.compile(r"[/\\]%s$" % (flt)))
+                self._cachedPids[self._USRS][pUid][self._FLTS][rFlt].append(re.compile(r"[/\\]%s " % (flt)))
                 # add matched pids to to matched pid list
                 self._cachedPids[self._USRS][pUid][self._MPIDS].update(self._getMatchedProcessesByFilter(pUid, self._cachedPids[self._USRS][pUid][self._FLTS][rFlt], self._cachedPids[self._USRS][pUid][self._PIDS]))
 
