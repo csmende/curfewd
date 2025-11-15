@@ -31,7 +31,7 @@ _limitsConfig["UID_MAX"] = 60000
 #   all users, max 101 chars
 #   linux users, extended with uppercase characters and first numeric or "." character
 #   domain users, extended with uppercase characters and first numeric or ".", and "@" symbol
-_userNameRegexp = re.compile("^[a-zA-Z0-9_\.]([a-zA-Z0-9_\.@-]{0,101}|[a-zA-Z0-9_\.@-]{0,100}\$)$")
+_userNameRegexp = re.compile(r"^[a-zA-Z0-9_\.]([a-zA-Z0-9_\.@-]{0,101}|[a-zA-Z0-9_\.@-]{0,100}\$)$")
 
 
 # some distros are "different", login.defs may be in different dir, config reflects multiple dirs to check for the file
@@ -43,7 +43,7 @@ for rFile in cons.TK_USER_LIMITS_FILE:
             # read line and do manipulations
             for rLine in rLimitsFile:
                 # get min/max uids
-                if re.match("^UID_M(IN|AX)[ \t]+[0-9]+$", rLine):
+                if re.match(r"^UID_M(IN|AX)[ \t]+[0-9]+$", rLine):
                     # find our config
                     x = re.findall(r"^([A-Z_]+)[ \t]+([0-9]+).*$", rLine)
                     # save min/max uuids
