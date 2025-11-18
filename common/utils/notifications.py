@@ -177,6 +177,7 @@ class timekprNotificationManager(dbus.service.Object):
                     # add intervals
                     timeLimits[rKey][cons.TK_CTRL_INT].append(dbus.Array([rLimit[0], rLimit[1], rLimit[2]], signature="i"))
 
+        # extra
         if log.isDebugEnabled(cons.TK_LOG_LEVEL_EXTRA_DEBUG):
             log.log(cons.TK_LOG_LEVEL_EXTRA_DEBUG, "TLDB: %s" % (str(timeLimits)))
 

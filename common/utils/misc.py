@@ -104,7 +104,7 @@ def measureDBUSTimeElapsed(pStart=False, pStop=False, pPrintToConsole=False, pDb
             log.consoleOut("WARNING: PERFORMANCE (DBUS) - acquiring \"%s\" took too long (%is)" % (pDbusIFName, result))
         else:
             # measurement logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "WARNING: PERFORMANCE (DBUS) - acquiring \"%s\" took too long (%is)" % (pDbusIFName, result))
+            log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: PERFORMANCE (DBUS) - acquiring \"%s\" took too long (%is)" % (pDbusIFName, result))
 
     # return
     return result
@@ -219,12 +219,12 @@ def killLeftoverUserProcesses(pUserName, pTimekprConfig):
                         userPrc = psutil.Process(procInfo["pid"])
                         # killing time
                         if cons.TK_DEV_ACTIVE:
-                            log.log(cons.TK_LOG_LEVEL_INFO, "DEVELOPMENT ACTIVE, not killing my own processes, sorry...")
+                            log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not killing my own processes, sorry...")
                         else:
                             # asking process to terminate
                             userPrc.terminate()
                     except psutil.Error as psErr:
-                        log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: killing %s failed (%s)" % (procInfo["pid"], str(psErr)))
+                        log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: killing %s failed (%s)" % (procInfo["pid"], str(psErr)))
                         pass
                     else:
                         # count killed processes

@@ -15,10 +15,25 @@ from timekpr.common.constants import constants as cons
 _LOG_LEVEL = cons.TK_LOG_LEVEL_INFO
 # logging to file
 _LOG_FILE = None
+_LOG_NAME = "default"
+_LOGGER = None
+_LOG_FACILITY = cons.TK_LOG_FACILITY_EFF
 # logging buffer (before we know where to put log file)
 _LOG_PEND_EVT_CNT = 0
-_LOG_PEND_FLUSH_CNT = 0
+_LOG_PEND_FLUSH_TIM = datetime.now()
 _LOG_BUFFER = []
+
+# conditional imports
+if _LOG_FACILITY > cons.TK_LOG_FACILITY_TKL:
+    try:
+        # std logging
+        import logging
+        # journald
+        if _LOG_FACILITY > cons.TK_LOG_FACILITY_PYL:
+            from systemd.journal import JournalHandler
+    except:
+        _LOG_FACILITY = cons.TK_LOG_FACILITY_TKL
+
 
 # log names
 def _getLogFileName(pWho, pUserName):
@@ -29,107 +44,151 @@ def _getLogFileName(pWho, pUserName):
     return(logFile.replace(cons.TK_LOG_USER, pUserName, 1))
 
 
-def _output(pText):
-    """Print to console and/or file"""
-    global _LOG_FILE, _LOG_PEND_EVT_CNT, _LOG_BUFFER
-
-    # format text
-    logText = "%s: %s" % (datetime.now().strftime(cons.TK_LOG_DATETIME_FORMAT), pText)
-    # prepare a line for file
-    _LOG_BUFFER.append("%s\n" % (logText))
-
-    # in development mode, we spit out in console as well
-    if cons.TK_DEV_ACTIVE:
-        print(logText)
-    # log only if enough calls are passed to log
-    if _LOG_PEND_EVT_CNT >= cons.TK_LOG_AUTO_FLUSH_EVT_CNT:
-        # write buffers to log file
-        flushLogFile()
-
-
 def setLogging(pLogLevel, pLogDir, pWho, pUserName):
-    """Set up logging (this function expects 4 tuples: log level, log directory, log owner and username"""
-    global _LOG_FILE
-    # set up level
-    setLogLevel(pLogLevel)
+    """Set up logging (this function expects 4 params: log level, log directory, log owner and username"""
+    global _LOG_FACILITY, _LOG_FILE, _LOG_NAME, _LOGGER, _IS_JOURNALD_AVAILABLE
     # set up file
     _LOG_FILE = os.path.join(pLogDir, _getLogFileName(pWho, pUserName))
+    # set up logging name
+    _LOG_NAME = ("timekprc.py" if pWho == cons.TK_LOG_OWNER_CLIENT else ("timekpra.py" if pWho == cons.TK_LOG_OWNER_ADMIN else ("timekpra.py" if pWho == cons.TK_LOG_OWNER_ADMIN_SU else "timekprd.py")))
+
+    # logger used
+    if _LOG_FACILITY > cons.TK_LOG_FACILITY_TKL:
+        # add python logger
+        _LOGGER = logging.getLogger(_LOG_NAME)
+        _LOGGER.setLevel(pLogLevel)
+        # journald
+        if _LOG_FACILITY > cons.TK_LOG_FACILITY_PYL:
+            # add journald handler
+            _LOGGER.addHandler(JournalHandler())
+        else:
+            # set up
+            fHandler = logging.FileHandler(_LOG_FILE)
+            fHandler.setLevel(cons.TK_LOG_LEVEL_DEBUG)
+            mFmt = logging.Formatter("%(message)s")
+            fHandler.setFormatter(mFmt)
+            _LOGGER.addHandler(fHandler)
+    # set up level
+    setLogLevel(pLogLevel)
 
 
-def isLoggingActive():
-    """Is debug enabled"""
-    global _LOG_FILE
-    # check whether debug is enabled
-    return _LOG_FILE is not None
+def setLogLevel(pUsrLvl):
+    """Set up log level"""
+    global _LOG_LEVEL, _LOGGER
+
+    # none = def
+    if pUsrLvl == cons.TK_USR_LOG_LEVEL_NONE:
+        # set
+        _LOG_LEVEL = cons.TK_LOG_LEVEL_INFO
+    elif pUsrLvl == cons.TK_USR_LOG_LEVEL_INFO:
+        # set
+        _LOG_LEVEL = cons.TK_LOG_LEVEL_INFO
+    elif pUsrLvl == cons.TK_USR_LOG_LEVEL_DEBUG:
+        # set
+        _LOG_LEVEL = cons.TK_LOG_LEVEL_DEBUG
+    elif pUsrLvl == cons.TK_USR_LOG_LEVEL_EXTRA_DEBUG:
+        # set
+        _LOG_LEVEL = cons.TK_LOG_LEVEL_EXTRA_DEBUG
+
+    # logging facility is not default
+    if _LOG_FACILITY > cons.TK_LOG_FACILITY_TKL:
+        # for logger
+        _LOGGER.setLevel(_LOG_LEVEL)
 
 
 def isDebugEnabled(pDebugLevel=cons.TK_LOG_LEVEL_DEBUG):
     """Is debug enabled"""
     global _LOG_LEVEL
     # check whether debug is enabled
-    if pDebugLevel <= _LOG_LEVEL:
-        return True
+    return pDebugLevel >= _LOG_LEVEL
 
 
-def getLogLevel():
-    """Return log level"""
-    global _LOG_LEVEL
-    # return
-    return _LOG_LEVEL
-
-
-def setLogLevel(pLvl):
-    """Set up log level"""
-    global _LOG_LEVEL
-    # set
-    _LOG_LEVEL = pLvl
-
-
-def log(pLvl, pText):
+def log(pLvl, pText, pForceFlush=False):
     """Print to console"""
-    global _LOG_LEVEL, _LOG_PEND_EVT_CNT
+    global _LOG_LEVEL, _LOGGER, _LOG_FACILITY, _LOG_PEND_EVT_CNT
     # check debug level and output
-    if pLvl <= _LOG_LEVEL:
-        # add to pending event cnt
-        _LOG_PEND_EVT_CNT += 1
-        # redirect to output
-        _output(pText)
+    if pLvl >= _LOG_LEVEL:
+        # log while logging itself is not intitialized
+        if _LOG_FACILITY < cons.TK_LOG_FACILITY_SDL or (_LOG_FACILITY == cons.TK_LOG_FACILITY_SDL and _LOGGER is None):
+            # format text
+            logText = "%s: %s" % (datetime.now().strftime(cons.TK_LOG_DATETIME_FORMAT), pText)
+            # add to pending event cnt
+            _LOG_PEND_EVT_CNT += 1
+            # prepare a line for file
+            _LOG_BUFFER.append({"l": pLvl, "m": ("%s\n" if _LOG_FACILITY < cons.TK_LOG_FACILITY_PYL else "%s") % (logText)})
+            # log only if enough calls are passed to log
+            autoFlushLogFile(pForceFlush)
+        else:
+            # flush if there was somethig pending
+            if _LOG_PEND_EVT_CNT > 0:
+                # flush log file
+                _flushLogFile()
+            # format text
+            logText = "%s: %s" % (datetime.now().strftime(cons.TK_LOG_DATETIME_FORMAT), pText)
+            # non-custom logging
+            if pLvl <= cons.TK_LOG_LEVEL_DEBUG:
+                # debug
+                _LOGGER.debug(logText)
+            else:
+                # debug
+                _LOGGER.log(pLvl, logText)
 
-
-def autoFlushLogFile():
-    """This will flush the log file to file"""
-    # iport globals
-    global _LOG_PEND_FLUSH_CNT
-    # reset flush
-    _LOG_PEND_FLUSH_CNT += 1
-
-    # when the time has come, just flush the log file
-    if _LOG_PEND_FLUSH_CNT >= cons.TK_POLLTIME:
-        # flush the log
-        flushLogFile()
-
-
-def flushLogFile():
-    """This will flush the log file to file"""
-    # iport globals
-    global _LOG_FILE, _LOG_BUFFER, _LOG_PEND_EVT_CNT, _LOG_PEND_FLUSH_CNT
-    # we can only flush if there is a file
-    if _LOG_FILE is not None and len(_LOG_BUFFER) > 0:
-        try:
-            # open log file
-            with open(_LOG_FILE, "a") as logFile:
-                # write whole buffer to log file
-                logFile.writelines(_LOG_BUFFER)
-                # reset
-                _LOG_PEND_EVT_CNT = 0
-                _LOG_PEND_FLUSH_CNT = 0
-                _LOG_BUFFER.clear()
-        except Exception as ex:
-            # spit out to console
-            consoleOut("ERROR, CAN NOT WRITE TO LOG DUE TO:\n%s" % (ex))
-
+        # in development mode, we spit out in console as well
+        if cons.TK_DEV_ACTIVE:
+            # print to console
+            consoleOut(logText)
 
 def consoleOut(*args):
     """Print everything passed to console"""
     # currently just output the stuff
     print(*args)
+
+
+def autoFlushLogFile(pForceFlush=False):
+    """This will flush the log file to file"""
+    # iport globals
+    global _LOG_PEND_FLUSH_TIM, _LOG_PEND_EVT_CNT
+
+    # when the time has come, just flush the log file
+    if (datetime.now() - _LOG_PEND_FLUSH_TIM).total_seconds() >= cons.TK_POLLTIME * 2 or _LOG_PEND_EVT_CNT >= cons.TK_LOG_AUTO_FLUSH_EVT_CNT or pForceFlush:
+        # flush the log
+        _flushLogFile()
+
+
+def _flushLogFile():
+    """This will flush the log file to file"""
+    # iport globals
+    global _LOG_FILE, _LOG_BUFFER, _LOG_FACILITY, _LOG_PEND_EVT_CNT, _LOG_PEND_FLUSH_TIM
+
+    # we can only flush if there is a file
+    if _LOG_FILE is not None and len(_LOG_BUFFER) > 0:
+        try:
+            # timekpr logging
+            if _LOG_FACILITY < cons.TK_LOG_FACILITY_PYL:
+                # open log file
+                with open(_LOG_FILE, "a") as logFile:
+                    # loop
+                    for rM in _LOG_BUFFER:
+                        # write whole buffer to log file
+                        logFile.write(rM["m"])
+            # get back until we have set up logger
+            elif _LOG_FACILITY > cons.TK_LOG_FACILITY_TKL and _LOGGER is None:
+                return
+            else:
+                # loop
+                for rM in _LOG_BUFFER:
+                    # non-custom logging
+                    if rM["l"] <= cons.TK_LOG_LEVEL_DEBUG:
+                        # debug
+                        _LOGGER.debug(rM["m"])
+                    else:
+                        # debug
+                        _LOGGER.log(rM["l"], rM["m"])
+
+            # reset
+            _LOG_PEND_EVT_CNT = 0
+            _LOG_PEND_FLUSH_TIM = datetime.now()
+            _LOG_BUFFER.clear()
+        except Exception as ex:
+            # spit out to console
+            consoleOut("ERROR: can not write to log due to:\n%s" % (ex))

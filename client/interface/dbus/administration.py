@@ -117,7 +117,7 @@ class timekprAdminConnector(object):
             result = -1
             message = msg.getTranslation("TK_MSG_UNEXPECTED_ERROR") % (("\"%s\" in \"%s.%s\"") % (pExceptionStr, pFPath, pFName))
         # log error
-        log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: \"%s\" in \"%s.%s\"" % (pExceptionStr, pFPath, pFName))
+        log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: \"%s\" in \"%s.%s\"" % (pExceptionStr, pFPath, pFName))
         # result
         return result, message
 

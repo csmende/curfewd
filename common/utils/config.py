@@ -195,7 +195,7 @@ class timekprConfig(object):
         # read config failed, we need to initialize
         if not result:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: could not parse main configuration file (%s) properly, will use default values" % (self._configFile))
+            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: could not parse main configuration file (%s) properly, will use default values" % (self._configFile))
             # init config
             self.initDefaultConfiguration()
             # re-read the file
@@ -208,7 +208,7 @@ class timekprConfig(object):
         self._timekprConfig[param] = cons.TK_VERSION
         # read
         param = "TIMEKPR_LOGLEVEL"
-        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=cons.TK_LOG_LEVEL_INFO, pCheckValue=None, pOverallSuccess=resultValue)
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=cons.TK_USR_LOG_LEVEL_INFO, pCheckValue=None, pOverallSuccess=resultValue)
         # read
         param = "TIMEKPR_POLLTIME"
         resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=cons.TK_POLLTIME, pCheckValue=None, pOverallSuccess=resultValue)
@@ -274,14 +274,14 @@ class timekprConfig(object):
         # if we could not read some values, save what we could + defaults
         if not resultValue:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "WARNING: some values in main config file (%s) could not be read or new configuration option was introduced, valid values and defaults are used / saved instead" % (self._configFile))
+            log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: some values in main config file (%s) could not be read or new configuration option was introduced, valid values and defaults are used / saved instead" % (self._configFile))
             # save what we could
             self.initDefaultConfiguration(True)
 
         # if we could not read some values, report that (directories only)
         if not result:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: some directory values in main config file (%s) could not be read, valid values and defaults used (config NOT overwritten)" % (self._configFile))
+            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: some directory values in main config file (%s) could not be read, valid values and defaults used (config NOT overwritten)" % (self._configFile))
 
         # clear
         self._timekprConfig["CONFIGLOADER"] = {}
@@ -314,7 +314,7 @@ class timekprConfig(object):
         # set up param
         param = "TIMEKPR_LOGLEVEL"
         dstLines += ["%s\n" % "# this defines logging level of the timekpr (1 - normal, 2 - debug, 3 - extra debug)"]
-        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(cons.TK_LOG_LEVEL_INFO))]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(cons.TK_USR_LOG_LEVEL_INFO))]
         # set up param
         param = "TIMEKPR_POLLTIME"
         dstLines += ["%s\n" % "# this defines polling time (in memory) in seconds"]
@@ -741,7 +741,7 @@ class timekprUserConfig(object):
             # read config failed, we need to initialize
             if not result:
                 # logging
-                log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: could not parse the main configuration file (%s) properly, will use default values" % (self._configFile))
+                log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: could not parse the main configuration file (%s) properly, will use default values" % (self._configFile))
                 # init config
                 self.initUserConfiguration()
                 # re-read the file
@@ -819,7 +819,7 @@ class timekprUserConfig(object):
             # if we could not read some values, save what we could + defaults
             if not resultValue:
                 # logging
-                log.log(cons.TK_LOG_LEVEL_INFO, "WARNING: some values in user config file (%s) could not be read or new configuration option was introduced, valid values and defaults are used / saved instead" % (self._configFile))
+                log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: some values in user config file (%s) could not be read or new configuration option was introduced, valid values and defaults are used / saved instead" % (self._configFile))
                 # init config with partial values read and save what we could
                 self.initUserConfiguration(True)
 
@@ -1322,7 +1322,7 @@ class timekprUserControl(object):
             # read config failed, we need to initialize
             if not result:
                 # logging
-                log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: could not parse the user control file (%s) properly, will recreate" % (self._configFile))
+                log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: could not parse the user control file (%s) properly, will recreate" % (self._configFile))
                 # init config
                 self.initUserControl()
                 # re-read the file
@@ -1356,7 +1356,7 @@ class timekprUserControl(object):
             # if we could not read some values, save what we could + defaults
             if not resultValue:
                 # logging
-                log.log(cons.TK_LOG_LEVEL_INFO, "WARNING: some values in user control file (%s) could not be read or new configuration option was introduced, valid values and defaults are used / saved instead" % (self._configFile))
+                log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: some values in user control file (%s) could not be read or new configuration option was introduced, valid values and defaults are used / saved instead" % (self._configFile))
                 # save what we could
                 self.initUserControl(True)
 
@@ -1633,7 +1633,7 @@ class timekprClientConfig(object):
         # read config failed, we need to initialize
         if not result:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: could not parse the configuration file (%s) properly, will use default values" % (self._configFile))
+            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: could not parse the configuration file (%s) properly, will use default values" % (self._configFile))
             # write correct config file
             self.initClientConfig()
             # re-read the file
@@ -1646,7 +1646,7 @@ class timekprClientConfig(object):
         section = "CONFIG"
         # read
         param = "LOG_LEVEL"
-        resultValue, self._timekprClientConfig[param] = _readAndNormalizeValue(self._timekprClientConfig, section, param, pDefaultValue=cons.TK_LOG_LEVEL_INFO, pCheckValue=None, pOverallSuccess=resultValue)
+        resultValue, self._timekprClientConfig[param] = _readAndNormalizeValue(self._timekprClientConfig, section, param, pDefaultValue=cons.TK_USR_LOG_LEVEL_INFO, pCheckValue=None, pOverallSuccess=resultValue)
         # read
         param = "SHOW_LIMIT_NOTIFICATION"
         resultValue, self._timekprClientConfig[param] = _readAndNormalizeValue(self._timekprClientConfig, section, param, pDefaultValue=True, pCheckValue=None, pOverallSuccess=resultValue)
@@ -1680,7 +1680,7 @@ class timekprClientConfig(object):
         # if we could not read some values, save what we could + defaults
         if not resultValue:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "WARNING: some values in client confguration file (%s) could not be read or new configuration option was introduced, valid values and defaults are used / saved instead" % (self._configFile))
+            log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: some values in client confguration file (%s) could not be read or new configuration option was introduced, valid values and defaults are used / saved instead" % (self._configFile))
             # save what we could
             self.initClientConfig(True)
 
@@ -1730,7 +1730,7 @@ class timekprClientConfig(object):
         # problems loading default config
         if not result:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: could not parse the configuration file (%s) properly, will use default values" % (self._configMainFile))
+            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: could not parse the configuration file (%s) properly, will use default values" % (self._configMainFile))
 
         # finalize directory
         self._timekprClientConfig[param] = os.path.join(self._configDirPrefix, (cons.TK_SHARED_DIR_DEV if cons.TK_DEV_ACTIVE else value))
@@ -1761,7 +1761,7 @@ class timekprClientConfig(object):
         # set up param
         param = "LOG_LEVEL"
         dstLines += ["%s\n" % "# user logging level (1 - normal, 2 - debug, 3 - extra debug)"]
-        dstLines += ["%s = %s\n" % (param, str(self._timekprClientConfig[param]) if pReuseValues else str(cons.TK_LOG_LEVEL_INFO))]
+        dstLines += ["%s = %s\n" % (param, str(self._timekprClientConfig[param]) if pReuseValues else str(cons.TK_USR_LOG_LEVEL_INFO))]
         # set up param
         param = "SHOW_LIMIT_NOTIFICATION"
         dstLines += ["%s\n" % "# whether to show limit change notification"]

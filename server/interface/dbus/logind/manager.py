@@ -44,7 +44,7 @@ class timekprUserLoginManager(object):
         self._connectionRetryCount += 1
         # if there was a connection before, give a big fat warning
         if self._login1ManagerInterface is not None:
-            log.log(cons.TK_LOG_LEVEL_INFO, "IMPORTANT WARNING: connection to DBUS was lost, trying to establish it again, retry %i" % (self._connectionRetryCount))
+            log.log(cons.TK_LOG_LEVEL_WARN, "IMPORTANT WARNING: connection to DBUS was lost, trying to establish it again, retry %i" % (self._connectionRetryCount))
 
         try:
             log.log(cons.TK_LOG_LEVEL_DEBUG, "getting login1 object on DBUS")
@@ -69,7 +69,7 @@ class timekprUserLoginManager(object):
             # reset retries
             self._connectionRetryCount = 0
         except Exception as exc:
-            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: error getting DBUS login manager: %s" % (exc))
+            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: error getting DBUS login manager: %s" % (exc))
             # reset connections
             self._login1ManagerInterface = None
             self._login1Object = None
@@ -188,7 +188,7 @@ class timekprUserLoginManager(object):
                 # add user session to return list
                 userSessions.append({"sessionId": str(rUserSession[0]), "sessionPath": str(rUserSession[1]), "type": sessionType, "vtnr": sessionVTNr, "seat": sessionSeat, "state": sessionState})
             except Exception as exc:
-                log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: error getting session properties for session \"%s\" DBUS: %s" % (str(rUserSession[1]), exc))
+                log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: error getting session properties for session \"%s\" DBUS: %s" % (str(rUserSession[1]), exc))
             
             # free
             del login1SessionInterface, login1SessionObject
@@ -273,7 +273,7 @@ class timekprUserLoginManager(object):
             except Exception as exc:
                 # cannot switch as we can't get seat
                 willSwitchTTY = False
-                log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: error getting seat (%s) from DBUS: %s" % (str(pSeatId), exc))
+                log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: error getting seat (%s) from DBUS: %s" % (str(pSeatId), exc))
 
             # only if we got the seat
             if willSwitchTTY:
@@ -283,7 +283,7 @@ class timekprUserLoginManager(object):
                 log.log(cons.TK_LOG_LEVEL_INFO, "INFO:%s switching TTY to %s" % (" (forced)" if pForce else "", self._loginManagerVTNr))
                 # finally switching the TTY
                 if cons.TK_DEV_ACTIVE:
-                    log.log(cons.TK_LOG_LEVEL_INFO, "DEVELOPMENT ACTIVE, not switching my sessions, sorry...")
+                    log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not switching my sessions, sorry...")
                 else:
                     # finally switching the TTY
                     login1SeatInterface.SwitchTo(self._loginManagerVTNr)
@@ -321,7 +321,7 @@ class timekprUserLoginManager(object):
                 log.log(cons.TK_LOG_LEVEL_INFO, "(delayed 0.1 sec) killing \"%s\" session \"%s\" (%s, %s)" % (pUserName, rUserSession["sessionPath"], rUserSession["sessionId"], rUserSession["type"]))
                 # killing time
                 if cons.TK_DEV_ACTIVE:
-                    log.log(cons.TK_LOG_LEVEL_INFO, "DEVELOPMENT ACTIVE, not killing myself, sorry...")
+                    log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not killing myself, sorry...")
                 elif pRestrictionType == cons.TK_CTRL_RES_K:
                     GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.KillSession, rUserSession["sessionId"], "all", signal.SIGTERM)
                 else:
@@ -351,7 +351,7 @@ class timekprUserLoginManager(object):
             # timeout
             tmo = cons.TK_POLLTIME * 2 + 1
             # dispatch a killer for leftovers
-            log.log(cons.TK_LOG_LEVEL_INFO, "dipatching a killer for leftover processes after %i seconds" % (tmo))
+            log.log(cons.TK_LOG_LEVEL_WARN, "dipatching a killer for leftover processes after %i seconds" % (tmo))
             # schedule leftover processes to be killed (it's rather sophisticated killing and checks whether we need to kill gui or terminal processes)
             GLib.timeout_add_seconds(tmo, misc.killLeftoverUserProcesses, pUserName, pTimekprConfig)
 
@@ -361,7 +361,7 @@ class timekprUserLoginManager(object):
         """Suspend computer"""
         # only if we are not in DEV mode
         if cons.TK_DEV_ACTIVE:
-            log.log(cons.TK_LOG_LEVEL_INFO, "DEVELOPMENT ACTIVE, not suspending myself, sorry...")
+            log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not suspending myself, sorry...")
         else:
             log.log(cons.TK_LOG_LEVEL_DEBUG, "start suspendComputer in the name of \"%s\"" % (pUserName))
             GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.Suspend, False)
@@ -370,7 +370,7 @@ class timekprUserLoginManager(object):
         """Shutdown computer"""
         # only if we are not in DEV mode
         if cons.TK_DEV_ACTIVE:
-            log.log(cons.TK_LOG_LEVEL_INFO, "DEVELOPMENT ACTIVE, not issuing shutdown for myself, sorry...")
+            log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not issuing shutdown for myself, sorry...")
         else:
             log.log(cons.TK_LOG_LEVEL_DEBUG, "start shutdownComputer in the name of \"%s\"" % (pUserName))
             GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.PowerOff, False)

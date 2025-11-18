@@ -83,7 +83,7 @@ class timekprAdminClient(object):
                 # use CLI
                 # validate possible parameters and their values, when fine - execute them as well
                 self.checkAndExecuteAdminCommands(*args)
-                log.flushLogFile()
+                log.autoFlushLogFile(True)
 
     # --------------- initialization / helper methods --------------- #
 
