@@ -77,7 +77,7 @@ class timekprAdminClient(object):
         # for CLI connections
         if timekprForceCLI:
             # connect
-            self._timekprAdminConnector.initTimekprConnection(True)
+            self._timekprAdminConnector.initTimekprConnection(True, False, timekprForceCLI)
             # connected?
             if self._timekprAdminConnector.isConnected()[1]:
                 # use CLI
