@@ -8,16 +8,18 @@ Created on Aug 28, 2018
 _START_TIME = None
 _END_TIME = None
 _RESULT = 0
+_LOCK_FILE = None
 
 # imports
 from datetime import datetime
 import os
 import pwd
 import inspect
-import stat
 import sys
 import traceback
 import re
+import tempfile
+import fcntl
 try:
     import psutil
     _PSUTIL = True
@@ -112,58 +114,58 @@ def measureDBUSTimeElapsed(pStart=False, pStop=False, pPrintToConsole=False, pDb
 
 def checkAndSetRunning(pAppName, pUserName=""):
     """Check whether application is already running"""
-    # set up pidfile name
-    pidFile = os.path.join(cons.TK_LOG_TEMP_DIR, "%s.%s" % ((pAppName if pUserName == "" else "%s.%s" % (pAppName, pUserName)), cons.TK_LOG_PID_EXT))
-    processPid = "0"
-    processCmd = ""
+    # glo
+    global _LOCK_FILE
+    # def
     isAlreadyRunning = False
-    isWritable = True
+    # set up pidfile name
+    pidFileName = "%s.%s" % ((pAppName if pUserName == "" else "%s.%s" % (pAppName, pUserName)), cons.TK_LOG_PID_EXT)
 
-    # check if we have pid file for the app
-    if os.path.isfile(pidFile):
-        # check stats
-        fileStat = os.stat(pidFile)
-        # check permissions
-        isWritable = (stat.S_IWUSR & fileStat.st_mode and fileStat.st_uid == os.getuid())
+    # determine the location to put pid/lock file in
+    for rDir in cons.TK_LOG_PID_DIRS:
+        # if path is variable, let's get it
+        if rDir.startswith("$"):
+            # get location
+            pidFile = os.getenv(rDir[1:])
+        else:
+            # def
+            pidFile = rDir
+        # set?
+        if pidFile is None or pidFile == "":
+            continue
 
-        # if file is not ours, we don't even try to read from it
-        if isWritable:
-            # if we have a file, we read the pid from there
-            with open(pidFile, "r") as pidfiler:
-                # determine pid
-                processPid = pidfiler.readline(10).rstrip("\n").rstrip("\r")
-                # check if pid is numeric
-                processPid = "0" if not processPid.isnumeric() else processPid
+        # check if we can write to it
+        try:
+            with tempfile.TemporaryFile(dir=pidFile):
+                pass
+        except Exception:
+            continue
 
-            # so we have a running app, now we check whether its our app
-            if processPid != "0":
-                # get process commandline
-                procPidFile = os.path.join("/proc", processPid, "cmdline")
+        # assemble the final
+        pidFile = os.path.join(pidFile, pidFileName)
 
-                # check whether we have a process running with this pid
-                if os.path.isfile(procPidFile):
-                    # we wrap this with try in case pid is very short-lived
-                    try:
-                        with open(procPidFile, "r") as pidfile:
-                            processCmd = pidfile.readline()
-                    except Exception:
-                        processCmd = ""
+        # try to get the lock on the file
+        try:
+            # file
+            _LOCK_FILE = open(pidFile, "w")
+            # try lock
+            fcntl.flock(_LOCK_FILE, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            # write pid to it (not needed rly, but still)
+            _LOCK_FILE.write(str(os.getpid()))
+            # write
+            _LOCK_FILE.flush()
+            # msg
+            log.log(cons.TK_LOG_LEVEL_WARN, "pid file written to %s" % (pidFile))
+        except BlockingIOError:
+            # we are running
+            isAlreadyRunning = True
+            # print this to console as well
+            log.log(cons.TK_LOG_LEVEL_WARN, "Timekpr-nExT \"%s\" is already running for user \"%s\"" % (pAppName, pUserName if pUserName != "" else "root"))
+            if pUserName != "":
+                print("Timekpr-nExT \"%s\" is already running for user \"%s\"" % (pAppName, pUserName if pUserName != "" else "root"))
 
-    # check if this is our process
-    if pAppName in processCmd:
-        # we are running
-        isAlreadyRunning = True
-        # print this to console as well
-        print("Timekpr-nExT \"%s\" is already running for user \"%s\"" % (pAppName, pUserName if pUserName != "" else "root"))
-    else:
-        # check if we have pid file and it is a link for some reason
-        if os.path.islink(pidFile) or not isWritable:
-            # remove the "old" pid file
-            os.remove(pidFile)
-        # set our pid
-        with open(pidFile, "w") as pidfilew:
-            # write our pid to pid file
-            processCmd = pidfilew.write(str(os.getpid()))
+        # fin
+        break
 
     # return whether we are running
     return isAlreadyRunning
