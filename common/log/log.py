@@ -50,24 +50,30 @@ def setLogging(pLogLevel, pLogDir, pWho, pUserName):
     # set up file
     _LOG_FILE = os.path.join(pLogDir, _getLogFileName(pWho, pUserName))
     # set up logging name
-    _LOG_NAME = ("timekprc.py" if pWho == cons.TK_LOG_OWNER_CLIENT else ("timekpra.py" if pWho == cons.TK_LOG_OWNER_ADMIN else ("timekpra.py" if pWho == cons.TK_LOG_OWNER_ADMIN_SU else "timekprd.py")))
+    _LOG_NAME = ("timekprc" if pWho == cons.TK_LOG_OWNER_CLIENT else ("timekpra" if pWho == cons.TK_LOG_OWNER_ADMIN else ("timekpra-su" if pWho == cons.TK_LOG_OWNER_ADMIN_SU else "timekprd")))
 
     # logger used
     if _LOG_FACILITY > cons.TK_LOG_FACILITY_TKL:
         # add python logger
         _LOGGER = logging.getLogger(_LOG_NAME)
         _LOGGER.setLevel(pLogLevel)
+
         # journald
         if _LOG_FACILITY > cons.TK_LOG_FACILITY_PYL:
-            # add journald handler
-            _LOGGER.addHandler(JournalHandler())
-        else:
             # set up
-            fHandler = logging.FileHandler(_LOG_FILE)
-            fHandler.setLevel(cons.TK_LOG_LEVEL_DEBUG)
-            mFmt = logging.Formatter("%(message)s")
-            fHandler.setFormatter(mFmt)
-            _LOGGER.addHandler(fHandler)
+            lHandler = JournalHandler(SYSLOG_IDENTIFIER=_LOG_NAME)
+        else:
+            # set up file handler
+            lHandler = logging.FileHandler(_LOG_FILE)
+
+        # finish handler
+        lHandler.setLevel(cons.TK_LOG_LEVEL_DEBUG)
+        # set up logging format
+        mFmt = logging.Formatter("%(message)s")
+        lHandler.setFormatter(mFmt)
+        # add journald handler
+        _LOGGER.addHandler(lHandler)
+
     # set up level
     setLogLevel(pLogLevel)
 
@@ -158,7 +164,7 @@ def autoFlushLogFile(pForceFlush=False):
 def _flushLogFile():
     """This will flush the log file to file"""
     # iport globals
-    global _LOG_FILE, _LOG_BUFFER, _LOG_FACILITY, _LOG_PEND_EVT_CNT, _LOG_PEND_FLUSH_TIM
+    global _LOG_FILE, _LOG_BUFFER, _LOGGER, _LOG_FACILITY, _LOG_PEND_EVT_CNT, _LOG_PEND_FLUSH_TIM
 
     # we can only flush if there is a file
     if _LOG_FILE is not None and len(_LOG_BUFFER) > 0:
