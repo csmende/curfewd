@@ -30,6 +30,8 @@ Requires:         ( python3-psutil )
 Requires:         ( ( libindicator-gtk3 and libappindicator-gtk3 ) or ( typelib-1_0-Gtk-3_0 and ( ( libayatana-indicator3-7 and typelib-1_0-AyatanaAppIndicator3-0_1 ) or ( libindicator3-7 and typelib-1_0-AppIndicator3-0_1 ) ) ) )
 Requires:         ( gettext )
 
+Suggests:         ( python3-systemd )
+
 Requires(post):   ( systemd )
 Requires(preun):  ( systemd )
 Requires(postun): ( systemd )
