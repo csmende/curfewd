@@ -226,10 +226,18 @@ class timekprUserManager(object):
         return userActive, userScreenLocked
 
     def lockUserSessions(self):
-        """Ask login manager to lock user sessions"""
+        """Ask login manager to lock user sessions (from users perspective)"""
         # go through all user sessions
         for rSessionId in self._timekprUserSessions:
             # we lock only GUI sessions
             if str(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "Type")) in cons.TK_SESSION_TYPES_CTRL:
-                # lock session
-                self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_IF].Lock()
+                # do not lock in DEV mode
+                if cons.TK_DEV_ACTIVE:
+                    log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not locking myself out, sorry...")
+                else:
+                    # lock session
+                    self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_IF].Lock()
+
+    def getUserSessionList(self):
+        """Get cached session list"""
+        return self._timekprUserSessions

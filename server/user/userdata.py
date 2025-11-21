@@ -910,10 +910,10 @@ class timekprUser(object):
         self._timekprUserNotification.processEmergencyNotification(pFinalNotificationType, max(int(pSecondsLeft), 0))
 
     def lockUserSessions(self):
-        """Lock all user sessions"""
-        # only if we are not in DEV mode
-        if cons.TK_DEV_ACTIVE:
-            log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not locking myself, sorry...")
-        else:
-            # lock session
-            self._timekprUserManager.lockUserSessions()
+        """Lock all user sessions (from users perspective)"""
+        # lock session
+        self._timekprUserManager.lockUserSessions()
+
+    def getUserSessionList(self):
+        """Get cached session list"""
+        return self._timekprUserManager.getUserSessionList()

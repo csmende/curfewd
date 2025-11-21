@@ -302,6 +302,23 @@ class timekprUserLoginManager(object):
         # return false for repeat schedule to be discarded
         return False
 
+    def lockUserSessionsManager(self, pUserSessions):
+        """Ask login manager to lock user sessions"""
+        log.log(cons.TK_LOG_LEVEL_EXTRA_DEBUG, "start lockUserSessionsManager")
+
+        # go through all user sessions
+        for rSessionId in pUserSessions:
+            # we lock only GUI sessions
+            if str(pUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "Type")) in cons.TK_SESSION_TYPES_CTRL:
+                # not locking myself out
+                if cons.TK_DEV_ACTIVE:
+                    log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not locking myself out, sorry...")
+                else:
+                    # lock
+                    GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.LockSession, rSessionId)
+
+        log.log(cons.TK_LOG_LEVEL_EXTRA_DEBUG, "finish lockUserSessionsManager")
+
     def terminateUserSessions(self, pUserName, pUserPath, pTimekprConfig, pRestrictionType):
         """Terminate user sessions"""
         log.log(cons.TK_LOG_LEVEL_EXTRA_DEBUG, "start terminateUserSessions")
