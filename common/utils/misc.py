@@ -351,3 +351,31 @@ def getSecondsFromTimeStr(pTimeStr):
 
     # fin
     return secs
+
+
+def getTimeStrFromSeconds(pSeconds):
+    # for building our final string
+    parts = []
+    # secs
+    seconds = abs(pSeconds)
+    # get sign
+    parts += ["-"] if seconds < 0 else []
+    # secs
+    seconds = abs(seconds)
+
+    # calc stuff
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+
+    # days
+    parts += ["%sd" % (days)] if days else []
+    # hrs
+    parts += ["%sh" % (hours)] if hours else []
+    # mins
+    parts += ["%sm" % (minutes)] if minutes else []
+    # seconds left
+    parts += ["%ss" % (seconds)] if seconds or len(parts) == 0 else []
+
+    # fin
+    return "".join(parts)

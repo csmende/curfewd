@@ -6,6 +6,10 @@ timekpr-next (0.5.9-5ubuntu6~ppa1) unstable; urgency=medium
   * fixed a bug with config parser (#2130832)
       in python 3.14 it became totally not fit for my purpose, rewrote config handling completely
   * added more verbose error logging
+  * added synonyms for information retrieval options in CLI:
+      --getuserlist is the same as --userlist
+      --getuserinfo is the same as --userinfo
+      --getuserinfort is the same as --userinfort
   * added possibility for CLI version to specify time as time string for those who cannot or don't want to convert time to seconds:
       time can be specified as 1h10m10s as opposed to 4210 seconds previously
       this affects the following options:
@@ -15,7 +19,9 @@ timekpr-next (0.5.9-5ubuntu6~ppa1) unstable; urgency=medium
         --settimeleft
         --setplaytimelimits
         --setplaytimeleft
-      time is returned in seconds, so math is still required :)
+      time can be returned either in seconds (as currently) and in time string if "-h" is passed to information retrieval options:
+        --getuserinfo
+        --getuserinfort
   * fixed a hint / description for "Hide icon and notifications" checkbox
   * added fr_CA and en_GB translations from LP
   * fix the shebangs, feng-shui style
