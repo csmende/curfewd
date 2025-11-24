@@ -575,6 +575,7 @@ This section provides extra per-user configuration options.
 
 ---
 
+<a name="restrictionlockouttypes"></a>
 ##### Restriction / lockout types
 
 **Terminate sessions**  
@@ -969,6 +970,8 @@ CLI usage of Timekpr-nExT follows the same security rules as the graphical inter
 - or use `sudo` to gain access.  
 
 Changes made in CLI or GUI are applied **immediately**, in real-time.
+
+> **Note**: before version 0.5.9 CLI returned and accepted time in seconds only, since version 0.5.9 it accepts and can return (optionally) time as time string.
 
 ---
 
