@@ -29,8 +29,9 @@ timekpr-next (0.5.9-5ubuntu6~ppa1) unstable; urgency=medium
   * added support for journald logging
       timekpr logs are pushed to systemd logging facilities, if available
       fallback to standard logging
+  * lock sessions are now performed from login1 manager interface rather than from user session one
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Sat, 15 Nov 2025 22:50:42 +0200
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Mon, 24 Nov 2025 17:26:23 +0200
 
 timekpr-next (0.5.8-9ubuntu2~ppa1) unstable; urgency=medium
 
