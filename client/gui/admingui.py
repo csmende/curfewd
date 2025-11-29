@@ -92,7 +92,7 @@ class timekprAdminGUI(object):
         # exit main loop
         self._mainLoop.quit()
         log.log(cons.TK_LOG_LEVEL_INFO, "Finished")
-        log.flushLogFile()
+        log.autoFlushLogFile(True)
 
     def autoFlushLogFile(self):
         """Periodically save file"""
@@ -3190,4 +3190,4 @@ class timekprAdminGUI(object):
         # close
         self._mainLoop.quit()
         # flush log
-        log.flushLogFile()
+        log.autoFlushLogFile(True)

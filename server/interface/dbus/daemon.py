@@ -119,7 +119,7 @@ class timekprDaemon(dbus.service.Object):
             self.finishTimekpr()
 
         # finish logging
-        log.flushLogFile()
+        log.autoFlushLogFile(True)
 
     def executeTimekprWorker(self):
         """Execute all the logic of timekpr"""
@@ -138,9 +138,9 @@ class timekprDaemon(dbus.service.Object):
             try:
                 self.checkUsers()
             except Exception:
-                log.log(cons.TK_LOG_LEVEL_INFO, "---=== ERROR in \"executeTimekprWorker\" working on users ===---")
-                log.log(cons.TK_LOG_LEVEL_INFO, traceback.format_exc())
-                log.log(cons.TK_LOG_LEVEL_INFO, "---=== ERROR in \"executeTimekprWorker\" working on users ===---")
+                log.log(cons.TK_LOG_LEVEL_ERR, "---=== ERROR in \"executeTimekprWorker\" working on users ===---")
+                log.log(cons.TK_LOG_LEVEL_ERR, traceback.format_exc())
+                log.log(cons.TK_LOG_LEVEL_ERR, "---=== ERROR in \"executeTimekprWorker\" working on users ===---")
 
             # periodically flush the file
             log.autoFlushLogFile()
@@ -157,8 +157,9 @@ class timekprDaemon(dbus.service.Object):
             time.sleep(self._timekprConfig.getTimekprPollTime() - min(time.time() - dtsm, self._timekprConfig.getTimekprPollTime() / 2))
 
         log.log(cons.TK_LOG_LEVEL_INFO, "worker shut down")
+        log.log(cons.TK_LOG_LEVEL_INFO, "--- timekpr v. %s shut down ---" % (cons.TK_VERSION))
         # finish logging
-        log.flushLogFile()
+        log.autoFlushLogFile(True)
 
     def startTimekprDaemon(self):
         """Enable threading for all the tasks"""
@@ -186,7 +187,7 @@ class timekprDaemon(dbus.service.Object):
         # if we had a disaster, remove all users because connection to DBUS was lost
         if wasConnectionLost:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "IMPORTANT WARNING: due to lost DBUS connection, all users are de-initialized (including from DBUS) and re-initalized from saved state")
+            log.log(cons.TK_LOG_LEVEL_WARN, "IMPORTANT WARNING: due to lost DBUS connection, all users are de-initialized (including from DBUS) and re-initalized from saved state")
             # remove them from dbus
             for rUser in self._timekprUserList:
                 # remove from DBUS
@@ -365,17 +366,17 @@ class timekprDaemon(dbus.service.Object):
             try:
                 self._timekprUserList[pUserName].processFinalWarning(pFinalNotificationType, pSecondsLeft)
             except Exception:
-                log.log(cons.TK_LOG_LEVEL_INFO, "ERROR sending notification while terminating users:\n%s" % (traceback.format_exc()))
+                log.log(cons.TK_LOG_LEVEL_ERR, "ERROR sending notification while terminating users:\n%s" % (traceback.format_exc()))
 
         # loop through users to be killed
         for rUserName in self._timekprUserRestrictionList:
-            log.log(cons.TK_LOG_LEVEL_INFO, "RESTRICTIONS, usr: \"%s\", cntd: %i, del: %i, dea: %i" % (rUserName, self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD], self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEL], self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEA]))
+            log.log(cons.TK_LOG_LEVEL_WARN, "RESTRICTIONS, usr: \"%s\", cntd: %i, del: %i, dea: %i" % (rUserName, self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD], self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEL], self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEA]))
             # ## check which restriction is needed ##
             # we are going to TERMINATE user sessions
             if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY] in (cons.TK_CTRL_RES_T, cons.TK_CTRL_RES_K, cons.TK_CTRL_RES_D):
                 # log that we are going to terminate user sessions
                 if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEL] <= 0:
-                    log.log(cons.TK_LOG_LEVEL_INFO, "%s approaching in %s secs" % ("TERMINATE" if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY] == cons.TK_CTRL_RES_T else ("KILL" if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY] == cons.TK_CTRL_RES_K else "SHUTDOWN"), str(self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD])))
+                    log.log(cons.TK_LOG_LEVEL_WARN, "%s approaching in %s secs" % ("TERMINATE" if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY] == cons.TK_CTRL_RES_T else ("KILL" if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY] == cons.TK_CTRL_RES_K else "SHUTDOWN"), str(self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD])))
                     # send messages only when certain time is left
                     if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD] <= self._timekprConfig.getTimekprFinalWarningTime():
                         # final warning
@@ -397,7 +398,7 @@ class timekprDaemon(dbus.service.Object):
                                 # shutdown
                                 self._timekprLoginManager.shutdownComputer(rUserName)
                         except Exception:
-                            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR killing sessions: %s" % (traceback.format_exc()))
+                            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR killing sessions: %s" % (traceback.format_exc()))
             # we are going to LOCK user sessions
             elif self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY] == cons.TK_CTRL_RES_L:
                 # is user active
@@ -413,7 +414,7 @@ class timekprDaemon(dbus.service.Object):
                     # continue if there is no delay
                     if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEA] <= 0:
                         # log
-                        log.log(cons.TK_LOG_LEVEL_INFO, "LOCK approaching in %s secs" % (str(self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD])))
+                        log.log(cons.TK_LOG_LEVEL_WARN, "LOCK approaching in %s secs" % (str(self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD])))
                         # send messages only when certain time is left
                         if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD] <= self._timekprConfig.getTimekprFinalWarningTime():
                             # final warning
@@ -423,9 +424,11 @@ class timekprDaemon(dbus.service.Object):
                             # set restriction for repetitive lock
                             self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEA] = cons.TK_CTRL_LCDEL
                             # log lock
-                            log.log(cons.TK_LOG_LEVEL_INFO, "time is up for user \"%s\", enforcing the LOCK" % (rUserName))
+                            log.log(cons.TK_LOG_LEVEL_WARN, "time is up for user \"%s\", enforcing the LOCK" % (rUserName))
                             # lock computer
-                            self._timekprUserList[rUserName].lockUserSessions()
+                            #self._timekprUserList[rUserName].lockUserSessions()
+                            # lock the computer (from manager)
+                            self._timekprLoginManager.lockUserSessionsManager(self._timekprUserList[rUserName].getUserSessionList())
             # we are going to SUSPEND user sessions
             elif self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY] in (cons.TK_CTRL_RES_S, cons.TK_CTRL_RES_W):
                 # is user active
@@ -441,7 +444,7 @@ class timekprDaemon(dbus.service.Object):
                     # continue if there is no delay
                     if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEL] <= 0:
                         # log
-                        log.log(cons.TK_LOG_LEVEL_INFO, "SUSPEND approaching in %s secs" % (str(self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD])))
+                        log.log(cons.TK_LOG_LEVEL_WARN, "SUSPEND approaching in %s secs" % (str(self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD])))
                         # send messages only when certain time is left
                         if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD] <= self._timekprConfig.getTimekprFinalWarningTime():
                             # final warning
@@ -451,7 +454,7 @@ class timekprDaemon(dbus.service.Object):
                         # check if we have a delay before initiating actions
                         if self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEL] <= 0:
                             # log suspend
-                            log.log(cons.TK_LOG_LEVEL_INFO, "time is up for user \"%s\", enforcing the SUSPEND" % (rUserName))
+                            log.log(cons.TK_LOG_LEVEL_WARN, "time is up for user \"%s\", enforcing the SUSPEND" % (rUserName))
                             # set restriction for repetitive lock when suspending
                             self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEA] = cons.TK_CTRL_LCDEL
                             # set restriction for repetitive suspend
@@ -468,13 +471,15 @@ class timekprDaemon(dbus.service.Object):
                         # do not enforce lock right away after suspend, wait a little
                         elif cons.TK_CTRL_SCDEL - cons.TK_CTRL_LCDEL > self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEL] > 0 and self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEA] <= 0:
                             # log suspend lock
-                            log.log(cons.TK_LOG_LEVEL_INFO, "time is up for user \"%s\", enforcing the SUSPEND LOCK (SUSPEND in %i iterations)" % (rUserName, self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEL]))
+                            log.log(cons.TK_LOG_LEVEL_WARN, "time is up for user \"%s\", enforcing the SUSPEND LOCK (SUSPEND in %i iterations)" % (rUserName, self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEL]))
                             # set restriction for repetitive lock when suspending
                             self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RTDEA] = cons.TK_CTRL_LCDEL
-                            # if delay is still in place, just lock the screen
-                            self._timekprUserList[rUserName].lockUserSessions()
+                            # if delay is still in place, just lock the screen (from user sessions)
+                            #self._timekprUserList[rUserName].lockUserSessions()
+                            # if delay is still in place, just lock the screen (from manager)
+                            self._timekprLoginManager.lockUserSessionsManager(self._timekprUserList[rUserName].getUserSessionList())
             else:
-                log.log(cons.TK_LOG_LEVEL_INFO, "WARN: unsupported restriction type \"%s\"" % (self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY]))
+                log.log(cons.TK_LOG_LEVEL_WARN, "WARN: unsupported restriction type \"%s\"" % (self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY]))
 
             # decrease time for restrictions
             self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD] = max(self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_FCNTD] - 1, 0)
@@ -603,7 +608,7 @@ class timekprDaemon(dbus.service.Object):
             userList = timekprUStore.getSavedUserList(self._timekprConfig.getTimekprConfigDir())
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -635,7 +640,7 @@ class timekprDaemon(dbus.service.Object):
                 self._getUserActualTimeInformation(self._timekprUserList[pUserName], userConfigurationStore)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -664,7 +669,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -693,7 +698,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -720,7 +725,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -748,7 +753,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -776,7 +781,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -806,7 +811,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -831,7 +836,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -856,7 +861,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -885,7 +890,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustTimeSpentFromControl(pSilent=False, pPreserveSpent=(pOperation != "="))
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -915,7 +920,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -943,7 +948,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -971,7 +976,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -998,7 +1003,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1025,7 +1030,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1051,7 +1056,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustLimitsFromConfig(False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1080,7 +1085,7 @@ class timekprDaemon(dbus.service.Object):
                 self._timekprUserList[pUserName].adjustTimeSpentFromControl(pSilent=False, pPreserveSpent=(pOperation != "="))
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1104,7 +1109,7 @@ class timekprDaemon(dbus.service.Object):
             result, message, timekprConfig = mainConfigurationProcessor.getSavedTimekprConfiguration()
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1132,7 +1137,7 @@ class timekprDaemon(dbus.service.Object):
             log.setLogLevel(pLogLevel)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1156,7 +1161,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprPollTime(pPollTimeSecs)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1180,7 +1185,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprSaveTime(pSaveTimeSecs)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1204,7 +1209,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprTrackInactive(pTrackInactive)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1230,7 +1235,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprTerminationTime(pTerminationTimeSecs)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1254,7 +1259,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprFinalWarningTime(pFinalWarningTimeSecs)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1278,7 +1283,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprFinalNotificationTime(pFinalNotificationTimeSecs)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1302,7 +1307,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprSessionsCtrl(pSessionsCtrl)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1327,7 +1332,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprSessionsExcl(pSessionsExcl)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1354,7 +1359,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprUsersExcl(pUsersExcl)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1377,7 +1382,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprPlayTimeEnabled(True if bool(pPlayTimeEnabled) else False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1
@@ -1400,7 +1405,7 @@ class timekprDaemon(dbus.service.Object):
             self._timekprConfig.setTimekprPlayTimeEnhancedActivityMonitorEnabled(True if bool(pPlayTimeAdvancedSearchEnabled) else False)
         except Exception as unexpectedException:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
             result = -1

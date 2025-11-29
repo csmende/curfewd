@@ -25,9 +25,9 @@ class timekprAdminConnector(object):
     def __init__(self):
         """Initialize stuff for connecting to timekpr server"""
         # times
-        self._retryTimeoutSecs = 3
-        self._retryCountLeft = 5
+        self._retryCountLeft = 10
         self._initFailed = False
+        self._isCLI = False
 
         # dbus (timekpr)
         self._timekprBus = (dbus.SessionBus() if (cons.TK_DEV_ACTIVE and cons.TK_DEV_BUS == "ses") else dbus.SystemBus())
@@ -35,15 +35,19 @@ class timekprAdminConnector(object):
         self._timekprUserAdminDbusInterface = None
         self._timekprAdminDbusInterface = None
 
-    def initTimekprConnection(self, pTryOnce, pRescheduleConnection=False):
+    def initTimekprConnection(self, pTryOnce, pRescheduleConnection=False, pCLI=None):
         """Init dbus (connect to timekpr for info)"""
+        # def
+        if pCLI is not None:
+            self._isCLI = pCLI
+
         # reschedule
         if pRescheduleConnection:
             # rescheduling means dropping existing state and try again
             self._timekprObject = None
             self._timekprUserAdminDbusInterface = None
             self._timekprAdminDbusInterface = None
-            self._retryCountLeft = 5
+            self._retryCountLeft = 10
             self._initFailed = False
 
         # only if notifications are ok
@@ -58,7 +62,11 @@ class timekprAdminConnector(object):
             except Exception:
                 self._timekprObject = None
                 # logging
-                log.consoleOut("FAILED to obtain connection to timekpr.\nPlease check that timekpr daemon is working and you have sufficient permissions to access it (either superuser or timekpr group)")
+                lMsg = "FAILED to obtain connection to timekpr. Please check that timekpr daemon is working and you have sufficient permissions to access it (either superuser or timekpr group)"
+                log.log(cons.TK_LOG_LEVEL_ERR, lMsg)
+                # console too, if CLI
+                if self._isCLI:
+                    log.consoleOut(lMsg)
 
             # only if notifications are ok
         if self._timekprObject is not None and self._timekprUserAdminDbusInterface is None:
@@ -72,7 +80,11 @@ class timekprAdminConnector(object):
             except Exception:
                 self._timekprUserAdminDbusInterface = None
                 # logging
-                log.consoleOut("FAILED to connect to timekpr user admin interface.\nPlease check that timekpr daemon is working and you have sufficient permissions to access it (either superuser or timekpr group)")
+                lMsg = "FAILED to connect to timekpr user admin interface. Please check that timekpr daemon is working and you have sufficient permissions to access it (either superuser or timekpr group)"
+                log.log(cons.TK_LOG_LEVEL_ERR, lMsg)
+                # console too, if CLI
+                if self._isCLI:
+                    log.consoleOut(lMsg)
 
             # only if notifications are ok
         if self._timekprObject is not None and self._timekprAdminDbusInterface is None:
@@ -86,16 +98,24 @@ class timekprAdminConnector(object):
             except Exception:
                 self._timekprAdminDbusInterface = None
                 # logging
-                log.consoleOut("FAILED to connect to timekpr user admin interface.\nPlease check that timekpr daemon is working and you have sufficient permissions to access it (either superuser or timekpr group)")
+                lMsg = "FAILED to connect to timekpr user admin interface. Please check that timekpr daemon is working and you have sufficient permissions to access it (either superuser or timekpr group)"
+                log.log(cons.TK_LOG_LEVEL_ERR, lMsg)
+                # console too, if CLI
+                if self._isCLI:
+                    log.consoleOut(lMsg)
 
         # if either of this fails, we keep trying to connect
         if self._timekprUserAdminDbusInterface is None or self._timekprAdminDbusInterface is None:
             if self._retryCountLeft > 0 and not pTryOnce:
-                log.consoleOut("connection failed, %i attempts left, will retry in %i seconds" % (self._retryCountLeft, self._retryTimeoutSecs))
                 self._retryCountLeft -= 1
+                lMsg = "connection failed, %i attempts left, will retry in %i seconds" % (self._retryCountLeft, cons.TK_POLLTIME)
+                log.log(cons.TK_LOG_LEVEL_ERR, lMsg)
+                # console too, if CLI
+                if self._isCLI:
+                    log.consoleOut(lMsg)
 
                 # if either of this fails, we keep trying to connect
-                GLib.timeout_add_seconds(3, self.initTimekprConnection, pTryOnce)
+                GLib.timeout_add_seconds(cons.TK_POLLTIME, self.initTimekprConnection, pTryOnce)
             else:
                 # failed
                 self._initFailed = True
@@ -117,7 +137,7 @@ class timekprAdminConnector(object):
             result = -1
             message = msg.getTranslation("TK_MSG_UNEXPECTED_ERROR") % (("\"%s\" in \"%s.%s\"") % (pExceptionStr, pFPath, pFName))
         # log error
-        log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: \"%s\" in \"%s.%s\"" % (pExceptionStr, pFPath, pFName))
+        log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: \"%s\" in \"%s.%s\"" % (pExceptionStr, pFPath, pFName))
         # result
         return result, message
 

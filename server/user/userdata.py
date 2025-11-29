@@ -385,7 +385,7 @@ class timekprUser(object):
         # in this case we do not reset the values, just soak them up and use them
         if spentHour > 86400 * 365 * 3:
             # way too ahead of last check time, possible CMOS reset time bug
-            log.log(cons.TK_LOG_LEVEL_INFO, "INFO: user was last checked a very long time ago (%i seconds ago), spent values are not reset to avoid inconsistencies from time resets" % (spentHour))
+            log.log(cons.TK_LOG_LEVEL_WARN, "INFO: user was last checked a very long time ago (%i seconds ago), spent values are not reset to avoid inconsistencies from time resets" % (spentHour))
 
             # nothing has changed
             dayChanged = weekChanged = monthChanged = False
@@ -910,10 +910,10 @@ class timekprUser(object):
         self._timekprUserNotification.processEmergencyNotification(pFinalNotificationType, max(int(pSecondsLeft), 0))
 
     def lockUserSessions(self):
-        """Lock all user sessions"""
-        # only if we are not in DEV mode
-        if cons.TK_DEV_ACTIVE:
-            log.log(cons.TK_LOG_LEVEL_INFO, "DEVELOPMENT ACTIVE, not locking myself, sorry...")
-        else:
-            # lock session
-            self._timekprUserManager.lockUserSessions()
+        """Lock all user sessions (from users perspective)"""
+        # lock session
+        self._timekprUserManager.lockUserSessions()
+
+    def getUserSessionList(self):
+        """Get cached session list"""
+        return self._timekprUserManager.getUserSessionList()

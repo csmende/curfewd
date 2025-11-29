@@ -3,7 +3,7 @@
 
 Name:             timekpr-next
 Version:          0.5.9
-Release:          0.1%{?dist}
+Release:          0.2%{?dist}
 Summary:          Keep control of computer usage
 Group:            System Environment/Daemons
 License:          GPLv3
@@ -29,6 +29,8 @@ Requires:         ( python3-gobject )
 Requires:         ( python3-psutil )
 Requires:         ( ( libindicator-gtk3 and libappindicator-gtk3 ) or ( typelib-1_0-Gtk-3_0 and ( ( libayatana-indicator3-7 and typelib-1_0-AyatanaAppIndicator3-0_1 ) or ( libindicator3-7 and typelib-1_0-AppIndicator3-0_1 ) ) ) )
 Requires:         ( gettext )
+
+Suggests:         ( python3-systemd )
 
 Requires(post):   ( systemd )
 Requires(preun):  ( systemd )
@@ -129,6 +131,8 @@ update-desktop-database &> /dev/null || :
 %{_sysconfdir}/xdg/autostart/*
 
 %changelog
+* Mon Nov 24 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-0.2
+- Updated spec file for version 0.5.9, release 0.2 (BETA)
 * Mon Nov 10 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-0.1
 - Updated spec file for version 0.5.9, release 0.1 (BETA)
 * Tue Apr 29 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.8-0.3
