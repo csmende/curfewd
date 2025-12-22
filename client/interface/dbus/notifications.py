@@ -128,7 +128,7 @@ class timekprNotifications(object):
                 except Exception as dbusEx:
                     self._dbusConnections[self.CL_CONN_NOTIF][self.CL_IF] = None
                     # logging
-                    log.log(cons.TK_LOG_LEVEL_INFO, "WARNING: initiating dbus connection (\"%s.%s\", %s, %s), error: %s" % (__name__, self.initClientConnections.__name__, self.CL_CONN_NOTIF, iNames[idx], str(dbusEx)))
+                    log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: initiating dbus connection (\"%s.%s\", %s, %s), error: %s" % (__name__, self.initClientConnections.__name__, self.CL_CONN_NOTIF, iNames[idx], str(dbusEx)))
 
         # only if screensaver is not ok
         if self._dbusConnections[self.CL_CONN_SCR][self.CL_IF] is None and self._dbusConnections[self.CL_CONN_SCR][self.CL_CNT] > 0 and not self._dbusConnections[self.CL_CONN_SCR][self.CL_DEL] > 0:
@@ -216,7 +216,7 @@ class timekprNotifications(object):
                     del self._dbusConnections[self.CL_CONN_SCR][self.CL_IF]
                     self._dbusConnections[self.CL_CONN_SCR][self.CL_IF] = None
                     # logging
-                    log.log(cons.TK_LOG_LEVEL_INFO, "WARNING: initiating dbus connection (\"%s.%s\", %s, %s), error: %s" % (__name__, self.initClientConnections.__name__, self.CL_CONN_SCR, iNames[idx], str(dbusEx)))
+                    log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: initiating dbus connection (\"%s.%s\", %s, %s), error: %s" % (__name__, self.initClientConnections.__name__, self.CL_CONN_SCR, iNames[idx], str(dbusEx)))
 
             # connection successful
             if self._dbusConnections[self.CL_CONN_SCR][self.CL_IF] is not None:
@@ -281,10 +281,10 @@ class timekprNotifications(object):
                             self._dbusConnections[rConn][self.CL_DEL] -= 1
                         else:
                             # logging
-                            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: failed to connect to %s dbus, trying again..." % (rConn))
+                            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: failed to connect to %s dbus, trying again..." % (rConn))
                     else:
                         # connection aborted
-                        log.log(cons.TK_LOG_LEVEL_INFO, "WARNING: dbus connection to %s failed, some functionality will not be available" % (rConn))
+                        log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: dbus connection to %s failed, some functionality will not be available" % (rConn))
 
         # retry
         if doRetry:
@@ -436,10 +436,10 @@ class timekprNotifications(object):
                     # we cannot send notif through dbus
                     self._dbusConnections[self.CL_CONN_NOTIF][self.CL_IF] = None
                     # logging
-                    log.log(cons.TK_LOG_LEVEL_INFO, "ERROR (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.notifyUser.__name__))
+                    log.log(cons.TK_LOG_LEVEL_ERR, "ERROR (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.notifyUser.__name__))
                 else:
                     # logging
-                    log.log(cons.TK_LOG_LEVEL_INFO, "WARNING (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.notifyUser.__name__))
+                    log.log(cons.TK_LOG_LEVEL_WARN, "WARNING (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.notifyUser.__name__))
 
             # save notification ID (only if message is not about PlayTime, otherwise it may dismiss standard time or vice versa)
             if pMsgType == "PlayTime":
@@ -514,7 +514,7 @@ class timekprNotifications(object):
                 # we cannot send notif through dbus
                 self._dbusConnections[self.CL_CONN_TK][self.CL_IF] = None
                 # logging
-                log.log(cons.TK_LOG_LEVEL_INFO, "ERROR (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.requestTimeLeft.__name__))
+                log.log(cons.TK_LOG_LEVEL_ERR, "ERROR (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.requestTimeLeft.__name__))
 
                 # show message to user as well
                 self.notifyUser(cons.TK_MSG_CODE_REMOTE_COMMUNICATION_ERROR, None, cons.TK_PRIO_CRITICAL, pAdditionalMessage=msg.getTranslation("TK_MSG_NOTIFICATION_CONNECTION_ERROR"))
@@ -542,7 +542,7 @@ class timekprNotifications(object):
                 # we cannot send notif through dbus
                 self._dbusConnections[self.CL_CONN_TK][self.CL_IF] = None
                 # logging
-                log.log(cons.TK_LOG_LEVEL_INFO, "ERROR (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.requestTimeLimits.__name__))
+                log.log(cons.TK_LOG_LEVEL_ERR, "ERROR (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.requestTimeLimits.__name__))
 
                 # show message to user as well
                 self.notifyUser(cons.TK_MSG_CODE_REMOTE_COMMUNICATION_ERROR, None, cons.TK_PRIO_CRITICAL, pAdditionalMessage=msg.getTranslation("TK_MSG_NOTIFICATION_CONNECTION_ERROR"))

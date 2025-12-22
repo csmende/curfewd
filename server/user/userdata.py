@@ -385,7 +385,7 @@ class timekprUser(object):
         # in this case we do not reset the values, just soak them up and use them
         if spentHour > 86400 * 365 * 3:
             # way too ahead of last check time, possible CMOS reset time bug
-            log.log(cons.TK_LOG_LEVEL_INFO, "INFO: user was last checked a very long time ago (%i seconds ago), spent values are not reset to avoid inconsistencies from time resets" % (spentHour))
+            log.log(cons.TK_LOG_LEVEL_WARN, "INFO: user was last checked a very long time ago (%i seconds ago), spent values are not reset to avoid inconsistencies from time resets" % (spentHour))
 
             # nothing has changed
             dayChanged = weekChanged = monthChanged = False
@@ -612,7 +612,7 @@ class timekprUser(object):
         timeValues[cons.TK_CTRL_TRACK] = self._timekprUserConfig.getUserTrackInactive()
         timeValues[cons.TK_CTRL_HIDEI] = self._timekprUserConfig.getUserHideTrayIcon()
         timeValues[cons.TK_CTRL_LIMITD] = self._timekprUserData[self._currentDOW][cons.TK_CTRL_LIMITD]
-        timeValues[cons.TK_CTRL_TNL] = (1 if self._timekprUserData[self._currentDOW][cons.TK_CTRL_LIMITD] >= cons.TK_LIMIT_PER_DAY and timeAvailableIntervals >= cons.TK_LIMIT_PER_DAY else 0)
+        timeValues[cons.TK_CTRL_TNL] = (True if self._timekprUserData[self._currentDOW][cons.TK_CTRL_LIMITD] >= cons.TK_LIMIT_PER_DAY and timeAvailableIntervals >= cons.TK_LIMIT_PER_DAY and timeLeftToday >= (self._secondsLeftDay - self._timekprConfig.getTimekprPollTime()) else False)
         # PlayTime (only if enabled)
         if self._isPlayTimeEnabledAccountedActive(pSilent=True)[0]:
             # time and config for PlayTime
@@ -782,11 +782,11 @@ class timekprUser(object):
             # add process (process and description) to the list
             timeLimits[cons.TK_CTRL_PTLST].append(rAppl)
         # add enable as well (exception in limits case)
-        timeLimits[cons.TK_CTRL_PTTLE] = (1 if self._timekprUserConfig.getUserPlayTimeEnabled() else 0)
+        timeLimits[cons.TK_CTRL_PTTLE] = self._timekprUserConfig.getUserPlayTimeEnabled()
         # add override as well (exception in limits case)
-        timeLimits[cons.TK_CTRL_PTTLO] = (1 if self._timekprUserConfig.getUserPlayTimeOverrideEnabled() else 0)
+        timeLimits[cons.TK_CTRL_PTTLO] = self._timekprUserConfig.getUserPlayTimeOverrideEnabled()
         # add allowed during unaccounted intervals as well (exception in limits case)
-        timeLimits[cons.TK_CTRL_PTAUH] = (1 if self._timekprUserConfig.getUserPlayTimeUnaccountedIntervalsEnabled() else 0)
+        timeLimits[cons.TK_CTRL_PTAUH] = self._timekprUserConfig.getUserPlayTimeUnaccountedIntervalsEnabled()
 
         # debug
         if log.isDebugEnabled(cons.TK_LOG_LEVEL_EXTRA_DEBUG):
@@ -907,13 +907,13 @@ class timekprUser(object):
 
     def processFinalWarning(self, pFinalNotificationType, pSecondsLeft):
         """Process emergency message about killing"""
-        self._timekprUserNotification.processEmergencyNotification(pFinalNotificationType, max(pSecondsLeft, 0))
+        self._timekprUserNotification.processEmergencyNotification(pFinalNotificationType, max(int(pSecondsLeft), 0))
 
     def lockUserSessions(self):
-        """Lock all user sessions"""
-        # only if we are not in DEV mode
-        if cons.TK_DEV_ACTIVE:
-            log.log(cons.TK_LOG_LEVEL_INFO, "DEVELOPMENT ACTIVE, not locking myself, sorry...")
-        else:
-            # lock session
-            self._timekprUserManager.lockUserSessions()
+        """Lock all user sessions (from users perspective)"""
+        # lock session
+        self._timekprUserManager.lockUserSessions()
+
+    def getUserSessionList(self):
+        """Get cached session list"""
+        return self._timekprUserManager.getUserSessionList()

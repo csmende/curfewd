@@ -90,7 +90,7 @@ class timekprClient(object):
         # exit main loop
         self._mainLoop.quit()
         log.log(cons.TK_LOG_LEVEL_INFO, "Finished")
-        log.flushLogFile()
+        log.autoFlushLogFile(True)
 
     def requestInitialTimeValues(self):
         """Request initial config from server"""
@@ -194,8 +194,8 @@ class timekprClient(object):
 
         except Exception as dbusEx:
             # logging
-            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.connectTimekprSignalsDBUS.__name__))
-            log.log(cons.TK_LOG_LEVEL_INFO, "ERROR: failed to connect to timekpr dbus, trying again...")
+            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR (DBUS): \"%s\" in \"%s.%s\"" % (str(dbusEx), __name__, self.connectTimekprSignalsDBUS.__name__))
+            log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: failed to connect to timekpr dbus, trying again...")
 
             # did not connect (set connection to None) and schedule for reconnect at default interval
             self._notificationFromDBUS = None

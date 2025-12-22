@@ -2,7 +2,7 @@
 %define _sitelib %( echo %{python3_sitelib} | cut -c 10- )
 
 Name:             timekpr-next
-Version:          0.5.8
+Version:          0.5.9
 Release:          1.0%{?dist}
 Summary:          Keep control of computer usage
 Group:            System Environment/Daemons
@@ -19,6 +19,7 @@ BuildRequires:    ( libappstream-glib or appstream-glib )
 BuildRequires:    ( systemd )
 BuildRequires:    ( sed )
 BuildRequires:    ( grep )
+BuildRequires:    ( python3-devel)
 
 Requires:         ( gtk3 >= 3.4 )
 Requires:         ( polkit or pkexec )
@@ -28,6 +29,8 @@ Requires:         ( python3-gobject )
 Requires:         ( python3-psutil )
 Requires:         ( ( libindicator-gtk3 and libappindicator-gtk3 ) or ( typelib-1_0-Gtk-3_0 and ( ( libayatana-indicator3-7 and typelib-1_0-AyatanaAppIndicator3-0_1 ) or ( libindicator3-7 and typelib-1_0-AppIndicator3-0_1 ) ) ) )
 Requires:         ( gettext )
+
+Suggests:         ( python3-systemd )
 
 Requires(post):   ( systemd )
 Requires(preun):  ( systemd )
@@ -105,9 +108,11 @@ update-desktop-database &> /dev/null || :
 %{_datadir}/icons/hicolor/scalable/apps/*
 %{_datadir}/locale/be/LC_MESSAGES/*
 #%%{_datadir}/locale/cs/LC_MESSAGES/*
-%{_datadir}/locale/es/LC_MESSAGES/*
 %{_datadir}/locale/de/LC_MESSAGES/*
+%{_datadir}/locale/en_GB/LC_MESSAGES/*
+%{_datadir}/locale/es/LC_MESSAGES/*
 %{_datadir}/locale/fr/LC_MESSAGES/*
+%{_datadir}/locale/fr_CA/LC_MESSAGES/*
 #%%{_datadir}/locale/hu/LC_MESSAGES/*
 %{_datadir}/locale/it/LC_MESSAGES/*
 %{_datadir}/locale/lv/LC_MESSAGES/*
@@ -117,7 +122,7 @@ update-desktop-database &> /dev/null || :
 %{_datadir}/metainfo/*
 %{_datadir}/polkit-1/actions/*
 %{_datadir}/timekpr
-%{_prefix}/lib/python3/dist-packages/timekpr
+%{_prefix}/lib/%{_sitelib}/timekpr
 %{_prefix}/lib/systemd/system/*
 %{_sharedstatedir}/timekpr
 %{_sysconfdir}/dbus-1/system.d/*
@@ -126,6 +131,12 @@ update-desktop-database &> /dev/null || :
 %{_sysconfdir}/xdg/autostart/*
 
 %changelog
+* Mon Dec 22 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-1.0
+- Updated spec file for version 0.5.9, release 1.0 (STABLE)
+* Mon Nov 24 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-0.2
+- Updated spec file for version 0.5.9, release 0.2 (BETA)
+* Mon Nov 10 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-0.1
+- Updated spec file for version 0.5.9, release 0.1 (BETA)
 * Sat May 10 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.8-1.0
 - Updated spec file for version 0.5.8, release 1.0 (STABLE)
 * Tue Apr 29 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.8-0.3

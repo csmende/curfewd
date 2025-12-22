@@ -1,3 +1,38 @@
+timekpr-next (0.5.9-1ubuntu1~ppa1) unstable; urgency=medium
+
+  * fixed a bug in notifications when time is not limited was shown even the time was limited
+      this bug manifested itself only when there were only weekly or monthly time limits enforced on users
+  * fixed a bug with dbus notification signals for unknown python version (MR !492908 from alexandre-nunes / Houston4444)
+  * fixed a bug with config parser (#2130832)
+      in python 3.14 it became totally not fit for my purpose, rewrote config handling completely
+  * added more verbose error logging
+  * added synonyms for information retrieval options in CLI:
+      --getuserlist is the same as --userlist
+      --getuserinfo is the same as --userinfo
+      --getuserinfort is the same as --userinfort
+  * added possibility for CLI version to specify time as time string for those who cannot or don't want to convert time to seconds:
+      time can be specified as 1h10m10s as opposed to 4210 seconds previously
+      this affects the following options:
+        --settimelimits
+        --settimelimitweek
+        --settimelimitmonth
+        --settimeleft
+        --setplaytimelimits
+        --setplaytimeleft
+      time can be returned either in seconds (as currently) and in time string if "-h" is passed to information retrieval options:
+        --getuserinfo
+        --getuserinfort
+  * fixed a hint / description for "Hide icon and notifications" checkbox
+  * added fr_CA and en_GB translations from LP
+  * fix the shebangs, feng-shui style
+  * added support for dynamic users which are not specified in passwd (for example, gdm-greeter)
+  * added support for journald logging
+      timekpr logs are pushed to systemd logging facilities, if available
+      fallback to standard logging
+  * lock sessions are now performed from login1 manager interface rather than from user session one
+
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Mon, 22 Dec 2025 16:39:21 +0200
+
 timekpr-next (0.5.8-1ubuntu1~ppa1) unstable; urgency=medium
 
   * added translations for Russian, Dutch, Portugese languages

@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Timekpr nExT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-10 12:20+0300\n"
-"PO-Revision-Date: 2025-04-10 12:21+0300\n"
+"POT-Creation-Date: 2025-10-14 09:17+0300\n"
+"PO-Revision-Date: 2025-10-14 19:18+0300\n"
 "Last-Translator: Eduards Bezverhijs <edzis@inbox.lv>\n"
 "Language-Team: Eduards Bezverhijs\n"
 "Language: lv_LV\n"
@@ -12,8 +12,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2;\n"
-"X-Launchpad-Export-Date: 2024-02-20 09:12+0000\n"
-"X-Generator: Poedit 3.5\n"
+"X-Launchpad-Export-Date: 2025-10-14 06:56+0000\n"
+"X-Generator: Poedit 3.6\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: __:1,2\n"
 
@@ -26,8 +26,7 @@ msgid "==> get saved user list from the server, example"
 msgstr "==> iegūst faktisko lietotāju sarakstu no servera, piemērs"
 
 #: common/constants/messages.py:33
-msgid ""
-"==> get user configuration and time information from the server, example"
+msgid "==> get user configuration and time information from the server, example"
 msgstr "==> iegūst lietotāja konfigurāciju un informāciju no servera, piemērs"
 
 #: common/constants/messages.py:34
@@ -53,11 +52,11 @@ msgstr ""
 
 #: common/constants/messages.py:38
 msgid ""
-"==> set time limits for all allowed days, the number of values must not "
-"exceed the allowed days for the user, example"
+"==> set time limits for all allowed days, the number of values must not exceed "
+"the allowed days for the user, example"
 msgstr ""
-"==> uzstāda laika ierobežojumus visām nedēļas dienām, vērtību skaitam "
-"jāsakrīt ar atļauto dienu skaitu, piemērs"
+"==> uzstāda laika ierobežojumus visām nedēļas dienām, vērtību skaitam jāsakrīt "
+"ar atļauto dienu skaitu, piemērs"
 
 #: common/constants/messages.py:39
 msgid "==> set time limit per week, example"
@@ -83,20 +82,18 @@ msgid ""
 "terminate sessions, \"kill\" - kill sessions, \"shutdown\" - shutdown the "
 "computer), examples"
 msgstr ""
-"==> uzstādīt ierobežojumu veidu (\"lock\" - aizslēgt darbvirsmu, \"suspend\" "
-"- ievietot guļošā režīmā, \"suspendwake\" - ievietot guļošā režīmā un "
-"pamodināt, \"terminate\" - pārtraukt sesijas, \"kill\" - izbeigt sesijas, "
-"\"shutdown\" - izslēgt datoru), piemēri"
+"==> uzstādīt ierobežojumu veidu (\"lock\" - aizslēgt darbvirsmu, \"suspend\" - "
+"ievietot guļošā režīmā, \"suspendwake\" - ievietot guļošā režīmā un pamodināt, "
+"\"terminate\" - pārtraukt sesijas, \"kill\" - izbeigt sesijas, \"shutdown\" - "
+"izslēgt datoru), piemēri"
 
 #: common/constants/messages.py:45
 msgid ""
-"==> set time left for the user at the current moment of time: \"+\" (add "
-"time), \"-\" (subtract time), \"=\" (set exact time available), example (add "
-"one hour)"
+"==> set time left for the user at the current moment of time: \"+\" (add time), "
+"\"-\" (subtract time), \"=\" (set exact time available), example (add one hour)"
 msgstr ""
 "==> uzstāda laika ierobežojumus šodien: \"+\" (pieliek laiku), \"-\" (noņem "
-"laiku), \"=\" (uzstāda konkrētu pieejamo laiku), piemērs (pievieno vienu "
-"stundu)"
+"laiku), \"=\" (uzstāda konkrētu pieejamo laiku), piemērs (pievieno vienu stundu)"
 
 #: common/constants/messages.py:46
 msgid "==> set whether PlayTime is enabled for the user, example"
@@ -104,8 +101,7 @@ msgstr "==> iespējo PlayTime laika uzskaiti lietotājam, piemērs"
 
 #: common/constants/messages.py:47
 msgid ""
-"==> set whether PlayTime must be accounted instead of normal activity, "
-"example"
+"==> set whether PlayTime must be accounted instead of normal activity, example"
 msgstr "==> iespējo PlayTime alternatīvā laika uzskaiti lietotājam, piemērs"
 
 #: common/constants/messages.py:48
@@ -113,8 +109,8 @@ msgid ""
 "==> set whether PlayTime activities are allowed during unaccounted (\"∞\") "
 "intervals, example"
 msgstr ""
-"==> iespējo PlayTime laika uzskaiti arī laika intervālos, kas netiek "
-"uzskaitīti (\"∞\"), piemērs"
+"==> iespējo PlayTime laika uzskaiti arī laika intervālos, kas netiek uzskaitīti "
+"(\"∞\"), piemērs"
 
 #: common/constants/messages.py:49
 msgid "==> set allowed days for PlayTime activities, example"
@@ -142,9 +138,9 @@ msgid ""
 "time), \"-\" (subtract time), \"=\" (set exact time available), example (add "
 "one hour)"
 msgstr ""
-"==> uzstāda PlayTime laika ierobežojumus šodien: \"+\" (pieliek laiku), \"-"
-"\" (noņem laiku), \"=\" (uzstāda konkrētu pieejamo laiku), piemērs (pievieno "
-"vienu stundu)"
+"==> uzstāda PlayTime laika ierobežojumus šodien: \"+\" (pieliek laiku), \"-\" "
+"(noņem laiku), \"=\" (uzstāda konkrētu pieejamo laiku), piemērs (pievieno vienu "
+"stundu)"
 
 #: common/constants/messages.py:55
 msgid "Control sessions types are not passed"
@@ -306,11 +302,9 @@ msgstr "PlayTime uzlabotā aktivitāšu meklētāja vērtība \"%%s\" nav korekt
 #: common/constants/messages.py:90
 #, python-format
 msgid ""
-"PlayTime enhanced activity monitor flag \"%%s\" is not correct and cannot be "
-"set"
+"PlayTime enhanced activity monitor flag \"%%s\" is not correct and cannot be set"
 msgstr ""
-"PlayTime uzlabotā aktivitāšu meklētāja vērtība \"%%s\" nav korekta un "
-"uzstādāma"
+"PlayTime uzlabotā aktivitāšu meklētāja vērtība \"%%s\" nav korekta un uzstādāma"
 
 #: common/constants/messages.py:93
 #, python-format
@@ -432,8 +426,7 @@ msgstr "Lietotāja \"%%s\" ierobežojumu veida vērtība nav korekta"
 
 #: common/constants/messages.py:116
 #, python-format
-msgid ""
-"User's \"%%s\" restriction / lockout type is not correct and cannot be set"
+msgid "User's \"%%s\" restriction / lockout type is not correct and cannot be set"
 msgstr "Lietotāja \"%%s\" ierobežojumu veida vērtība nav korekta un uzstādāma"
 
 #: common/constants/messages.py:117
@@ -469,8 +462,7 @@ msgstr "Lietotāja \"%%s\" PlayTime iespējošanas vērtība korekta un uzstād�
 #: common/constants/messages.py:123
 #, python-format
 msgid "User's \"%%s\" PlayTime override flag is not passed"
-msgstr ""
-"Lietotāja \"%%s\" PlayTime alternatīvā laika uzskaites vērtība nav padota"
+msgstr "Lietotāja \"%%s\" PlayTime alternatīvā laika uzskaites vērtība nav padota"
 
 #: common/constants/messages.py:124
 #, python-format
@@ -482,14 +474,13 @@ msgstr ""
 #, python-format
 msgid "User's \"%%s\" PlayTime override flag is not correct and cannot be set"
 msgstr ""
-"Lietotāja \"%%s\" PlayTime alternatīvā laika uzskaites vērtība nav korekta "
-"un uzstādāma"
+"Lietotāja \"%%s\" PlayTime alternatīvā laika uzskaites vērtība nav korekta un "
+"uzstādāma"
 
 #: common/constants/messages.py:126
 #, python-format
 msgid ""
-"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not "
-"passed"
+"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not passed"
 msgstr ""
 "Lietotāja \"%%s\" PlayTime vērtība, kas pieļauj aktivitātes neuzskaitītajās "
 "stundās, nav padota"
@@ -497,8 +488,7 @@ msgstr ""
 #: common/constants/messages.py:127
 #, python-format
 msgid ""
-"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not "
-"correct"
+"User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not correct"
 msgstr ""
 "Lietotāja \"%%s\" PlayTime vērtība, kas pieļauj aktivitātes neuzskaitītajās "
 "stundās, nav korekta"
@@ -540,8 +530,7 @@ msgstr "Lietotāja \"%%s\" PlayTime dienu laika ierobežojumi nav korekti"
 
 #: common/constants/messages.py:134 common/constants/messages.py:137
 #, python-format
-msgid ""
-"User's \"%%s\" PlayTime day limits list is not correct and cannot be set"
+msgid "User's \"%%s\" PlayTime day limits list is not correct and cannot be set"
 msgstr ""
 "Lietotāja \"%%s\" PlayTime dienu laika ierobežojumi nav korekti un uzstādāmi"
 
@@ -566,8 +555,8 @@ msgstr ""
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:144
 msgid ""
-"Unexpected ERROR while loading configuration. Please inspect Timekpr-nExT "
-"log files"
+"Unexpected ERROR while loading configuration. Please inspect Timekpr-nExT log "
+"files"
 msgstr ""
 "Neparedzēta KĻŪDA ielasot konfigurāciju. Lūdzu pārbaudīt Timekpr-nExT žurnālu"
 
@@ -576,8 +565,7 @@ msgstr ""
 msgid ""
 "Unexpected ERROR getting configuration. Please inspect Timekpr-nExT log files"
 msgstr ""
-"Neparedzēta KĻŪDA iegūstot konfigurāciju. Lūdzu pārbaudīt Timekpr-nExT "
-"žurnālu"
+"Neparedzēta KĻŪDA iegūstot konfigurāciju. Lūdzu pārbaudīt Timekpr-nExT žurnālu"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:148
@@ -585,13 +573,12 @@ msgid ""
 "Unexpected ERROR getting user configuration. Please inspect Timekpr-nExT log "
 "files"
 msgstr ""
-"Neparedzēta KĻŪDA ielasot lietotāja konfigurāciju. Lūdzu pārbaudīt Timekpr-"
-"nExT žurnālu"
+"Neparedzēta KĻŪDA ielasot lietotāja konfigurāciju. Lūdzu pārbaudīt Timekpr-nExT "
+"žurnālu"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:150
-msgid ""
-"Unexpected ERROR getting user list. Please inspect Timekpr-nExT log files"
+msgid "Unexpected ERROR getting user list. Please inspect Timekpr-nExT log files"
 msgstr ""
 "Neparedzēta KĻŪDA ielasot lietotāju sarakstu. Lūdzu pārbaudīt Timekpr-nExT "
 "žurnālu"
@@ -599,15 +586,13 @@ msgstr ""
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:152
 msgid ""
-"Unexpected ERROR updating configuration. Please inspect Timekpr-nExT log "
-"files"
+"Unexpected ERROR updating configuration. Please inspect Timekpr-nExT log files"
 msgstr ""
 "Neparedzēta KĻŪDA mainot konfigurāciju. Lūdzu pārbaudīt Timekpr-nExT žurnālu"
 
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:154
-msgid ""
-"Unexpected ERROR updating control. Please inspect Timekpr-nExT log files"
+msgid "Unexpected ERROR updating control. Please inspect Timekpr-nExT log files"
 msgstr ""
 "Neparedzēta KĻŪDA mainot laika kontroles failu. Lūdzu pārbaudīt Timekpr-nExT "
 "žurnālu"
@@ -642,11 +627,9 @@ msgstr "Nav iespējams pieslēgties"
 #. TRANSLATORS: this message must be 80 symbols long at max
 #: common/constants/messages.py:164
 msgid ""
-"Please reopen the application if you are superuser and Timekpr-nExT is "
-"running"
+"Please reopen the application if you are superuser and Timekpr-nExT is running"
 msgstr ""
-"Atveriet aplikāciju atkārtoti, ja esat administrators un Timekpr-nExT "
-"darbojas"
+"Atveriet aplikāciju atkārtoti, ja esat administrators un Timekpr-nExT darbojas"
 
 #: common/constants/messages.py:165
 msgid "Started"
@@ -725,8 +708,8 @@ msgid ""
 "PlayTime allowed during unaccounted intervals flag for the user has been "
 "processed"
 msgstr ""
-"PlayTime vērtība, kas pieļauj aktivitātes neuzskaitītajās stundās, "
-"lietotājam tika apstrādāta"
+"PlayTime vērtība, kas pieļauj aktivitātes neuzskaitītajās stundās, lietotājam "
+"tika apstrādāta"
 
 #: common/constants/messages.py:184
 msgid "PlayTime allowed days for user have been processed"
@@ -782,12 +765,12 @@ msgstr "Timekpr-nExT savienojums vēl nav pieejams"
 
 #: common/constants/messages.py:199
 msgid ""
-"WARNING: Timekpr-nExT administration utility was asked to run in GUI mode, "
-"but no displays are available, thus running in CLI..."
+"WARNING: Timekpr-nExT administration utility was asked to run in GUI mode, but "
+"no displays are available, thus running in CLI..."
 msgstr ""
 "BRĪDINĀJUMS: Timekpr-nExT administrācijas aplikācijai būtu jāstartējas "
-"grafiski, bet grafiskā vide nav pieejama, tāpēc aplikācija darbosies "
-"termināla režīmā..."
+"grafiski, bet grafiskā vide nav pieejama, tāpēc aplikācija darbosies termināla "
+"režīmā..."
 
 #: common/constants/messages.py:200
 msgid "The command is incorrect:"
@@ -810,8 +793,8 @@ msgid ""
 "weekdays are numbered according to ISO 8601 (i.e. Monday is the first day, "
 "format: 1-7)"
 msgstr ""
-"nedēļas dienas ir numurētas pēc ISO 8601 (t.i. pirmdiena ir pirmā diena "
-"nedēļā, formāts: 1-7)"
+"nedēļas dienas ir numurētas pēc ISO 8601 (t.i. pirmdiena ir pirmā diena nedēļā, "
+"formāts: 1-7)"
 
 #: common/constants/messages.py:205
 msgid "hours are numbered according to ISO 8601 (i.e. 24h clock, format: 0-23)"
@@ -990,8 +973,7 @@ msgstr "Tev atvēlētais laiks beidzies, Tava sesija tiks bloķēta pēc"
 #: common/constants/messages.py:259
 msgid "Your time is up, your computer will be forcibly suspended in"
 msgstr ""
-"Tev atvēlētais laiks beidzies, Tavs dators tiks novietots gulēšanas režīmā "
-"pēc"
+"Tev atvēlētais laiks beidzies, Tavs dators tiks novietots gulēšanas režīmā pēc"
 
 #. TRANSLATORS: this is a part of message "Your time is up, you will be forcibly logged out in %s seconds", please translate accordingly
 #: common/constants/messages.py:261
@@ -1062,8 +1044,7 @@ msgstr "NEPAREDZĒTA KĻŪDA: %%s"
 #, python-format
 msgid "PARAMETER PARSE ERROR (please check parameter validity): %%s"
 msgstr ""
-"PARAMETRU PĀRBAUDES KĻŪDA (lūdzu pārbaudīt, vai parametrs norādīts korekti): "
-"%%s"
+"PARAMETRU PĀRBAUDES KĻŪDA (lūdzu pārbaudīt, vai parametrs norādīts korekti): %%s"
 
 #: common/constants/messages.py:276
 msgid "Command FAILED: access denied"
@@ -1089,33 +1070,31 @@ msgstr "Timekpr-nExT"
 #: resource/client/forms/about.glade:19
 msgctxt "timekpr-next"
 msgid ""
-"This program is free software: you can redistribute it and/or modify it "
-"under the terms of the GNU General Public License as published by the Free "
-"Software Foundation, either version 3 of the License, or (at your option) "
-"any later version.\n"
+"This program is free software: you can redistribute it and/or modify it under "
+"the terms of the GNU General Public License as published by the Free Software "
+"Foundation, either version 3 of the License, or (at your option) any later "
+"version.\n"
 "\n"
-"This program is distributed in the hope that it will be useful, but WITHOUT "
-"ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or "
-"FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for "
-"more details.\n"
+"This program is distributed in the hope that it will be useful, but WITHOUT ANY "
+"WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A "
+"PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n"
 "\n"
 "You should have received a copy of the GNU General Public License along with "
-"this program.  If not, see <http://www.gnu.org/licenses/>. In Debian, see "
-"file /usr/share/common-licenses/GPL-3"
+"this program.  If not, see <http://www.gnu.org/licenses/>. In Debian, see file /"
+"usr/share/common-licenses/GPL-3"
 msgstr ""
-"This program is free software: you can redistribute it and/or modify it "
-"under the terms of the GNU General Public License as published by the Free "
-"Software Foundation, either version 3 of the License, or (at your option) "
-"any later version.\n"
+"This program is free software: you can redistribute it and/or modify it under "
+"the terms of the GNU General Public License as published by the Free Software "
+"Foundation, either version 3 of the License, or (at your option) any later "
+"version.\n"
 "\n"
-"This program is distributed in the hope that it will be useful, but WITHOUT "
-"ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or "
-"FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for "
-"more details.\n"
+"This program is distributed in the hope that it will be useful, but WITHOUT ANY "
+"WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A "
+"PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n"
 "\n"
 "You should have received a copy of the GNU General Public License along with "
-"this program.  If not, see <http://www.gnu.org/licenses/>. In Debian, see "
-"file /usr/share/common-licenses/GPL-3"
+"this program.  If not, see <http://www.gnu.org/licenses/>. In Debian, see file /"
+"usr/share/common-licenses/GPL-3"
 
 #. Please fill in translator credits, each person in new line in format: name.surname@mail.xy, name@mail.xy, nick@mail.xy or so...
 #: resource/client/forms/about.glade:25
@@ -1146,20 +1125,20 @@ msgstr "Piezīmes, izlasi uzmanīgi ;)"
 msgid ""
 "This is the configuration app for Timekpr-nExT. It allows you to set time "
 "limits for your individual users as well as general Timekpr-nExT options.\n"
-"To use this application, you either have to execute it as superuser or have "
-"to be part of the timekpr group.\n"
-"Please note that the \"Timekpr-nExT Configuration\" is available in "
-"superuser (administrator) mode only!\n"
+"To use this application, you either have to execute it as superuser or have to "
+"be part of the timekpr group.\n"
+"Please note that the \"Timekpr-nExT Configuration\" is available in superuser "
+"(administrator) mode only!\n"
 "\n"
 "Please configure carefully: do not lock yourself out!"
 msgstr ""
-"Šī ir Timekpr-nExT pārvaldības aplikācija, tā atļauj veikt uzstādījumus "
-"Taviem lietotājiem kā arī pašam Timekpr-nExT.\n"
+"Šī ir Timekpr-nExT pārvaldības aplikācija, tā atļauj veikt uzstādījumus Taviem "
+"lietotājiem kā arī pašam Timekpr-nExT.\n"
 "\n"
 "Lai lietotu šo aplikāciju, Tev tā jādarbina ar administratora tiesībām vai "
 "jābūt timekpr lietotāju grupā.\n"
-"Lūdzu ņemt vērā, ka \"Timekpr-nExT pārvaldība\" pieejama tikai un vienīgi, "
-"ja aplikācija darbināta ar administratora tiesībām!\n"
+"Lūdzu ņemt vērā, ka \"Timekpr-nExT pārvaldība\" pieejama tikai un vienīgi, ja "
+"aplikācija darbināta ar administratora tiesībām!\n"
 "\n"
 "Lūdzu pārvaldi lietotājus atbildīgi un neatspējo tiesības sev!"
 
@@ -1189,12 +1168,12 @@ msgstr "Informāciju par laika patēriņu"
 
 #: resource/client/forms/admin.glade:610
 msgid ""
-"Continuous time left. May span more than the current day (realtime, "
-"available when user is logged in)"
+"Continuous time left. May span more than the current day (realtime, available "
+"when user is logged in)"
 msgstr ""
 "Vērtība nosaka, cik ilgi varat lietot datoru nepārtraukti, laika izlietojums "
-"var pārklāt vairākas dienas (tiek aprēķināta reālajā laikā, pieejama tikai, "
-"ja lietotājs ir aktīvs)"
+"var pārklāt vairākas dienas (tiek aprēķināta reālajā laikā, pieejama tikai, ja "
+"lietotājs ir aktīvs)"
 
 #: resource/client/forms/admin.glade:612
 msgid "Time left (actual):"
@@ -1203,27 +1182,21 @@ msgstr "Atlikušais laiks (kopā):"
 #: resource/client/forms/admin.glade:626 resource/client/forms/admin.glade:657
 #: resource/client/forms/admin.glade:688 resource/client/forms/admin.glade:732
 #: resource/client/forms/admin.glade:763 resource/client/forms/admin.glade:794
-#: resource/client/forms/client.glade:411
-#: resource/client/forms/client.glade:425
-#: resource/client/forms/client.glade:456
-#: resource/client/forms/client.glade:502
-#: resource/client/forms/client.glade:728
-#: resource/client/forms/client.glade:786
-#: resource/client/forms/client.glade:857
-#: resource/client/forms/client.glade:885
-#: resource/client/forms/client.glade:985
-#: resource/client/forms/client.glade:1011
+#: resource/client/forms/client.glade:411 resource/client/forms/client.glade:425
+#: resource/client/forms/client.glade:456 resource/client/forms/client.glade:502
+#: resource/client/forms/client.glade:728 resource/client/forms/client.glade:786
+#: resource/client/forms/client.glade:857 resource/client/forms/client.glade:885
+#: resource/client/forms/client.glade:985 resource/client/forms/client.glade:1011
 msgid "Format: <days : hours : minutes : seconds>"
 msgstr "Formāts: <dienas : stundas : minūtes : sekundes>"
 
 #: resource/client/forms/admin.glade:641
 msgid ""
-"How long the user was inactive since last login (realtime, available when "
-"user is logged in)"
+"How long the user was inactive since last login (realtime, available when user "
+"is logged in)"
 msgstr ""
 "Vērtība nosaka, cik ilgi lietotājs bijis neaktīvs pēc pēdējās pierakstīšanās "
-"datorā (tiek aprēķināta reālajā laikā, pieejama tikai, ja lietotājs ir "
-"aktīvs)"
+"datorā (tiek aprēķināta reālajā laikā, pieejama tikai, ja lietotājs ir aktīvs)"
 
 #: resource/client/forms/admin.glade:643
 msgid "Time inactive (actual):"
@@ -1250,8 +1223,7 @@ msgstr "Izlietotais laiks (šodiena):"
 #: resource/client/forms/admin.glade:747
 msgid "Time spent this week (saved stated, not real-time)"
 msgstr ""
-"Izlietotais laiks šajā nedēļā (saglabātais laiks, nav faktiskais šībrīža "
-"laiks)"
+"Izlietotais laiks šajā nedēļā (saglabātais laiks, nav faktiskais šībrīža laiks)"
 
 #: resource/client/forms/admin.glade:749 resource/client/forms/client.glade:717
 msgid "Time spent (week):"
@@ -1260,8 +1232,7 @@ msgstr "Izlietotais laiks (nedēļa):"
 #: resource/client/forms/admin.glade:777
 msgid "Time spent this month (saved stated, not real-time)"
 msgstr ""
-"Izlietotais laiks šajā mēnesī (saglabātais laiks, nav faktiskais šībrīža "
-"laiks)"
+"Izlietotais laiks šajā mēnesī (saglabātais laiks, nav faktiskais šībrīža laiks)"
 
 #: resource/client/forms/admin.glade:779 resource/client/forms/client.glade:744
 msgid "Time spent (month):"
@@ -1331,8 +1302,7 @@ msgstr ""
 msgid "PlayTime left (actual):"
 msgstr "Atlikušais PlayTime laiks (kopā):"
 
-#: resource/client/forms/admin.glade:1150
-#: resource/client/forms/admin.glade:1181
+#: resource/client/forms/admin.glade:1150 resource/client/forms/admin.glade:1181
 #: resource/client/forms/admin.glade:1269
 msgid "Format: <hours : minutes : seconds>"
 msgstr "Formāts: <stundas : minūtes : sekundes>"
@@ -1340,15 +1310,14 @@ msgstr "Formāts: <stundas : minūtes : sekundes>"
 #: resource/client/forms/admin.glade:1165
 msgid "PlayTime available today (saved stated, not real-time)"
 msgstr ""
-"Pieejamais PlayTime laiks šodien (saglabātais laiks, netiek aprēķināts "
-"reālajā laikā)"
+"Pieejamais PlayTime laiks šodien (saglabātais laiks, netiek aprēķināts reālajā "
+"laikā)"
 
 #: resource/client/forms/admin.glade:1167
 msgid "PlayTime left (today):"
 msgstr "Atlikušais PlayTime laiks (šodien):"
 
-#: resource/client/forms/admin.glade:1196
-#: resource/client/forms/admin.glade:1212
+#: resource/client/forms/admin.glade:1196 resource/client/forms/admin.glade:1212
 msgid ""
 "Active PlayTime activity count (realtime, available when user is logged in)"
 msgstr ""
@@ -1374,8 +1343,7 @@ msgid ""
 "Brief information about time spent and everything related to time management "
 "for this day"
 msgstr ""
-"Vispārīga informācija par laika izlietojumu un laika ierobežojumiem par šo "
-"dienu"
+"Vispārīga informācija par laika izlietojumu un laika ierobežojumiem par šo dienu"
 
 #: resource/client/forms/admin.glade:1307
 msgid "Info & Today"
@@ -1390,26 +1358,22 @@ msgid "Week day limits"
 msgstr "Nedēļas dienu ierobežojumi"
 
 #. This is meant for very short (e.g. one letter) abbreviation of hours
-#: resource/client/forms/admin.glade:1370
-#: resource/client/forms/admin.glade:1869
+#: resource/client/forms/admin.glade:1370 resource/client/forms/admin.glade:1869
 #: resource/client/forms/admin.glade:2271
 msgid "h"
 msgstr "s"
 
-#: resource/client/forms/admin.glade:1374
-#: resource/client/forms/admin.glade:2275
+#: resource/client/forms/admin.glade:1374 resource/client/forms/admin.glade:2275
 msgid "Choose hours to be adjusted for selected days."
 msgstr "Izvēloties stundas, tās tiks mainītas izvēlētajām dienām."
 
 #. This is meant for very short (e.g. one letter) abbreviation of minutes
-#: resource/client/forms/admin.glade:1386
-#: resource/client/forms/admin.glade:1885
+#: resource/client/forms/admin.glade:1386 resource/client/forms/admin.glade:1885
 #: resource/client/forms/admin.glade:2287
 msgid "m"
 msgstr "m"
 
-#: resource/client/forms/admin.glade:1390
-#: resource/client/forms/admin.glade:2291
+#: resource/client/forms/admin.glade:1390 resource/client/forms/admin.glade:2291
 msgid "Choose minutes to be adjusted for selected days."
 msgstr "Izvēloties minūtes, tās tiks mainītas izvēlētajām dienām."
 
@@ -1420,8 +1384,8 @@ msgid ""
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
-"Palielināt laika ierobežojumu balstoties uz izvēlēto laika vienību (stundas "
-"vai minūtes) izvēlētajam dienām.\n"
+"Palielināt laika ierobežojumu balstoties uz izvēlēto laika vienību (stundas vai "
+"minūtes) izvēlētajam dienām.\n"
 "\n"
 "Lūdzu ņemt vērā, ka iespējams izvēlēties vairāk par vienu dienu vienlaicīgi!"
 
@@ -1432,8 +1396,8 @@ msgid ""
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
-"Samazināt laika ierobežojumu balstoties uz izvēlēto laika vienību (stundas "
-"vai minūtes) izvēlētajam dienām.\n"
+"Samazināt laika ierobežojumu balstoties uz izvēlēto laika vienību (stundas vai "
+"minūtes) izvēlētajam dienām.\n"
 "\n"
 "Lūdzu ņemt vērā, ka iespējams izvēlēties vairāk par vienu dienu vienlaicīgi!"
 
@@ -1456,8 +1420,7 @@ msgid ""
 "Please note that if the day's limit ends at 24:00 and the next day's limit "
 "starts at 00:00, then the user can work continuously past midnight.\n"
 "\n"
-"Please note that multiple intervals cannot be configured within the same "
-"hour.\n"
+"Please note that multiple intervals cannot be configured within the same hour.\n"
 "An interval can start or end or contain a specific hour, but not more than "
 "once. This is by design, not a bug.\n"
 "\n"
@@ -1466,13 +1429,13 @@ msgstr ""
 "Opcija \"∞\" norāda, ka laiks, ka patērēts šī intervāla ietvaros, netiks "
 "uzskaitīts kā iztērēts, bet gan pieskaitīts dīkstāves laikam.\n"
 "\n"
-"Lūdzu ņemiet vērā, ka ja diena beidzas ar 24 stundu un nākamās dienas 0 "
-"stunda ir atļauta, lietotājs bez pārtraukuma var strādāt arī pēc pusnakts.\n"
+"Lūdzu ņemiet vērā, ka ja diena beidzas ar 24 stundu un nākamās dienas 0 stunda "
+"ir atļauta, lietotājs bez pārtraukuma var strādāt arī pēc pusnakts.\n"
 "\n"
-"Lūdzu ņemt vērā, ka vienas stundas ietvaros NAV iespējams konfigurēt vairāk "
-"par vienu intervālu\n"
-"Tas var sākties šajā stundā, beigties šajā stundā, pilnībā iekļauties "
-"stundā, bet ne vairāk par vienu vienā stundā.\n"
+"Lūdzu ņemt vērā, ka vienas stundas ietvaros NAV iespējams konfigurēt vairāk par "
+"vienu intervālu\n"
+"Tas var sākties šajā stundā, beigties šajā stundā, pilnībā iekļauties stundā, "
+"bet ne vairāk par vienu vienā stundā.\n"
 "\n"
 
 #: resource/client/forms/admin.glade:1585
@@ -1488,8 +1451,7 @@ msgid ""
 msgstr ""
 "Pievienot jaunu laika intervālu, kas būs pieejams lietotājam.\n"
 "\n"
-"Pēc intervāla izveides, samainiet to pēc saviem ieskatiem pa tiešo tabulā "
-"zemāk."
+"Pēc intervāla izveides, samainiet to pēc saviem ieskatiem pa tiešo tabulā zemāk."
 
 #: resource/client/forms/admin.glade:1624
 msgid "Delete the selected time interval from the available list of intervals."
@@ -1538,16 +1500,16 @@ msgstr "Izvēloties minūtes, tās tiks mainītas izvēlētajam periodam."
 
 #: resource/client/forms/admin.glade:1917
 msgid ""
-"Increase weekly or monthly time allowance by selected time unit (days or "
-"hours or minutes) for the selected period."
+"Increase weekly or monthly time allowance by selected time unit (days or hours "
+"or minutes) for the selected period."
 msgstr ""
-"Palielināt nedēļas vai mēneša laika ierobežojumu balstoties uz izvēlēto "
-"laika vienību (dienas vai stundas vai minūtes) izvēlētajam periodam."
+"Palielināt nedēļas vai mēneša laika ierobežojumu balstoties uz izvēlēto laika "
+"vienību (dienas vai stundas vai minūtes) izvēlētajam periodam."
 
 #: resource/client/forms/admin.glade:1931
 msgid ""
-"Decrease weekly or monthly time allowance by selected time unit (days or "
-"hours or minutes) for the selected period."
+"Decrease weekly or monthly time allowance by selected time unit (days or hours "
+"or minutes) for the selected period."
 msgstr ""
 "Samazināt nedēļas vai mēneša laika ierobežojumu balstoties uz izvēlēto laika "
 "vienību (dienas vai stundas vai minūtes) izvēlētajam periodam."
@@ -1556,8 +1518,7 @@ msgstr ""
 msgid ""
 "Weekly and monthly limits for the user.\n"
 "\n"
-"These limits are applied to user together with the rest of limit "
-"configuration."
+"These limits are applied to user together with the rest of limit configuration."
 msgstr ""
 "Nedēļas un mēneša laika ierobežojumi lietotājam.\n"
 "\n"
@@ -1587,8 +1548,7 @@ msgstr "PlayTime aktivitāšu konfigurācija"
 msgid "PlayTime options"
 msgstr "PlayTime konfigurācija"
 
-#: resource/client/forms/admin.glade:2114
-#: resource/client/forms/admin.glade:2153
+#: resource/client/forms/admin.glade:2114 resource/client/forms/admin.glade:2153
 msgid "Enable PlayTime for selected user"
 msgstr "Iespējot PlayTime izvēlētajam lietotājam"
 
@@ -1596,8 +1556,7 @@ msgstr "Iespējot PlayTime izvēlētajam lietotājam"
 msgid "Enable PlayTime:"
 msgstr "Iespējot PlayTime:"
 
-#: resource/client/forms/admin.glade:2130
-#: resource/client/forms/admin.glade:2167
+#: resource/client/forms/admin.glade:2130 resource/client/forms/admin.glade:2167
 msgid ""
 "Enable PlayTime override for selected user.\n"
 "\n"
@@ -1612,45 +1571,42 @@ msgid ""
 msgstr ""
 "Iespējot PlayTime alternatīvā laika uzskaiti izvēlētajam lietotājam.\n"
 "\n"
-"Šī opcija ignorē spēkā esošo laika uzskaiti tā, ka tikai tad, ja darbojas "
-"kāda no PlayTime aktivitāšu sarakstā esošā aplikācija, laiks tiek "
-"uzskaitīts!\n"
+"Šī opcija ignorē spēkā esošo laika uzskaiti tā, ka tikai tad, ja darbojas kāda "
+"no PlayTime aktivitāšu sarakstā esošā aplikācija, laiks tiek uzskaitīts!\n"
 "\n"
 "Šis slēdzis ietekmē tikai laika patēriņa uzskaiti, laika intervālu kontrole "
 "paliek spēkā!\n"
 "\n"
-"Ja nedarbojas neviena no aktivitātēm, laiks tiek uzskatīts kā dīkstāves "
-"laiks, kas nozīmē, ka šis ir brīvais laiks lietotājam!"
+"Ja nedarbojas neviena no aktivitātēm, laiks tiek uzskatīts kā dīkstāves laiks, "
+"kas nozīmē, ka šis ir brīvais laiks lietotājam!"
 
 #: resource/client/forms/admin.glade:2138
 msgid "Enable PlayTime override:"
 msgstr "Iespējot alternatīvo PlayTime:"
 
-#: resource/client/forms/admin.glade:2186
-#: resource/client/forms/admin.glade:2207
+#: resource/client/forms/admin.glade:2186 resource/client/forms/admin.glade:2207
 msgid ""
 "Allow PlayTime activities during unaccounted (\"∞\") time intervals for "
 "selected user.\n"
 "\n"
 "This setting allows the user to use applications configured in his PlayTime "
-"activity list during time intervals which are marked as unaccounted "
-"(\"∞\").\n"
+"activity list during time intervals which are marked as unaccounted (\"∞\").\n"
 "\n"
-"If this setting is enabled, the use of activities will not be accounted "
-"towards PlayTime limits, otherwise applications in PlayTime activity list "
-"will be terminated as soon as they are started during unaccounted (\"∞\") "
-"time intervals."
+"If this setting is enabled, the use of activities will not be accounted towards "
+"PlayTime limits, otherwise applications in PlayTime activity list will be "
+"terminated as soon as they are started during unaccounted (\"∞\") time "
+"intervals."
 msgstr ""
-"Šī pazīme atļauj lietot PlayTime aktivitātes neuzskaitītajos (\"∞\") "
-"intervālos izvēlētajam lietotājam.\n"
+"Šī pazīme atļauj lietot PlayTime aktivitātes neuzskaitītajos (\"∞\") intervālos "
+"izvēlētajam lietotājam.\n"
 "\n"
 "Lietotājam būs iespēja darbināt aplikācijas, kas reģistrētas tā PlayTime "
 "aktivitāšu sarakstā arī intervālos, kas apzīmēti kā neuzskaitītie (\"∞\").\n"
 "\n"
 "Ja šī pazīme ir iespējota, lietotāja pavadītais laiks izmantojot PlayTime "
 "aktivitātes netiks uzskaitīts, savukārt ja pazīme ir atspējota, aplikācijas, "
-"kas reģistrētas un tiek startētas neuzskaitītajos (\"∞\") intervālos, tiks "
-"tiks terminētas."
+"kas reģistrētas un tiek startētas neuzskaitītajos (\"∞\") intervālos, tiks tiks "
+"terminētas."
 
 #: resource/client/forms/admin.glade:2192
 msgid "Allowed during \"∞\" intervals:"
@@ -1660,15 +1616,14 @@ msgstr "Atļauts neuzskaitītajos (\"∞\") intervālos:"
 msgid "This lets you configure PlayTime limits."
 msgstr "Šī sadaļa atļauj pārvaldīt PlayTime ierobežojumus."
 
-#: resource/client/forms/admin.glade:2253
-#: resource/client/forms/client.glade:1253
+#: resource/client/forms/admin.glade:2253 resource/client/forms/client.glade:1253
 msgid "PlayTime limits"
 msgstr "PlayTime limiti"
 
 #: resource/client/forms/admin.glade:2311
 msgid ""
-"Increase daily PlayTime allowance by selected time unit (hours or minutes) "
-"for selected days.\n"
+"Increase daily PlayTime allowance by selected time unit (hours or minutes) for "
+"selected days.\n"
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
@@ -1679,8 +1634,8 @@ msgstr ""
 
 #: resource/client/forms/admin.glade:2328
 msgid ""
-"Decrease daily PlayTime allowance by selected time unit (hours or minutes) "
-"for selected days.\n"
+"Decrease daily PlayTime allowance by selected time unit (hours or minutes) for "
+"selected days.\n"
 "\n"
 "Please note, that you may select more than one day for the adjustment!"
 msgstr ""
@@ -1694,8 +1649,8 @@ msgid ""
 "Lists day of the week and additional information about the day's PlayTime "
 "limit.\n"
 "\n"
-"Please enable / disable days for the user and set time allowance for "
-"PlayTime activities."
+"Please enable / disable days for the user and set time allowance for PlayTime "
+"activities."
 msgstr ""
 "Nedēļas dienu saraksts un papildus informācija par PlayTime ierobežojumiem.\n"
 "\n"
@@ -1710,13 +1665,13 @@ msgstr "PlayTime aktivitātes"
 msgid ""
 "Add new PlayTime activity.\n"
 "\n"
-"Please specify activity mask and user friendly description in the activity "
-"list directly."
+"Please specify activity mask and user friendly description in the activity list "
+"directly."
 msgstr ""
 "Pievienot jaunu PlayTime aktivitāti.\n"
 "\n"
-"Lūdzu norādiet aktivitātes masku / nosaukumu un lietotājam draudzīgu "
-"aprakstu pa tiešo tabulā zemāk."
+"Lūdzu norādiet aktivitātes masku / nosaukumu un lietotājam draudzīgu aprakstu "
+"pa tiešo tabulā zemāk."
 
 #: resource/client/forms/admin.glade:2470
 msgid "Remove selected entry from PlayTime activities."
@@ -1724,8 +1679,8 @@ msgstr "Nodzēst izvēlēto PlayTime aktivitāti no saraksta."
 
 #: resource/client/forms/admin.glade:2514
 msgid ""
-"Please specify a list of full process (executable) names without path as "
-"case sensitive strings to be monitored in the system.\n"
+"Please specify a list of full process (executable) names without path as case "
+"sensitive strings to be monitored in the system.\n"
 "\n"
 "It's possible to specify RegExp masks for processes too, but please be very "
 "careful about them as misusing this setting may lead to killing unwanted "
@@ -1733,12 +1688,12 @@ msgid ""
 "\n"
 "NOTE: RegExp is an expert setting!"
 msgstr ""
-"Lūdzu norādīt pilnu procesa (palaidējprogrammas) nosaukumu bez pilna ceļa uz "
-"to kā reģistrjutīgu simbolu virkni, kas tiks monitorēta sistēmā.\n"
+"Lūdzu norādīt pilnu procesa (palaidējprogrammas) nosaukumu bez pilna ceļa uz to "
+"kā reģistrjutīgu simbolu virkni, kas tiks monitorēta sistēmā.\n"
 "\n"
-"Nosaukumam iespējams norādīt arī RegExp (regulāras izteiksmes), bet esiet "
-"ļoti uzmanīgi tās ievadot, jo nepareizas izteiksmes ievades rezultātā, var "
-"tikt izbeigti lietotāja procesi, kurus iespējams, nevēlējāties izbeigt!\n"
+"Nosaukumam iespējams norādīt arī RegExp (regulāras izteiksmes), bet esiet ļoti "
+"uzmanīgi tās ievadot, jo nepareizas izteiksmes ievades rezultātā, var tikt "
+"izbeigti lietotāja procesi, kurus iespējams, nevēlējāties izbeigt!\n"
 "\n"
 "PIEZĪME: RegExp ir eksperta opcija!"
 
@@ -1758,40 +1713,36 @@ msgstr "PlayTime pārvaldība"
 msgid "Additional configuration options"
 msgstr "Papildus konfigurācijas iespējas"
 
-#: resource/client/forms/admin.glade:2639
-#: resource/client/forms/admin.glade:2662
+#: resource/client/forms/admin.glade:2639 resource/client/forms/admin.glade:2662
 msgid ""
 "Select whether inactive session time is counted.\n"
 "\n"
 "If this is unchecked, time spent in console (not terminal emulator) login "
-"sessions and while the screen is locked is NOT taken into account. This "
-"varies among desktop environments."
+"sessions and while the screen is locked is NOT taken into account. This varies "
+"among desktop environments."
 msgstr ""
-"Šī pazīme nosaka vai laiks, kuru lietotājs pavadījis dīkstāvē tiek "
-"uzskaitīts.\n"
+"Šī pazīme nosaka vai laiks, kuru lietotājs pavadījis dīkstāvē tiek uzskaitīts.\n"
 "\n"
-"Ja pazīme nav iespējota, pavadītais laiks konsolē (ne terminālī) un "
-"aizslēgtajā sesijā NETIEK uzskaitīts (šīs pazīmes darbspēja ļoti atkarīga no "
-"grafiskās vides kurā strādājat)"
+"Ja pazīme nav iespējota, pavadītais laiks konsolē (ne terminālī) un aizslēgtajā "
+"sesijā NETIEK uzskaitīts (šīs pazīmes darbspēja ļoti atkarīga no grafiskās "
+"vides kurā strādājat)"
 
 #: resource/client/forms/admin.glade:2643
 msgid "Track inactive sessions:"
 msgstr "Uzskaitīt neaktīvās sesijas:"
 
-#: resource/client/forms/admin.glade:2679
-#: resource/client/forms/admin.glade:2702
+#: resource/client/forms/admin.glade:2679 resource/client/forms/admin.glade:2702
 msgid ""
 "Select whether to show Timekpr-next's padlock icon and notifications to the "
 "user.\n"
 "\n"
-"Please note that unchecking this will disable showing all information and "
+"Please note that checking this will disable showing all information and "
 "notifications to the user!"
 msgstr ""
-"Šī pazīme nosaka vai lietotājam tiks rādīta slēdzenes ikona un paziņojumi "
-"par laika patēriņu.\n"
+"Izvēlieties, vai rādīt Timekpr-next slēdzenes ikonu un paziņojumus lietotājam.\n"
 "\n"
-"Lūdzu ņemt vērā, ka uzstādot šo pazīmi, lietotājam nebūs pieejama slēdzenes "
-"ikona un neviens paziņojums!"
+"Lūdzu, ņemiet vērā, ka, atzīmējot šo opciju, tiks atspējota visa informācijas "
+"un paziņojumu rādīšana lietotājam!"
 
 #: resource/client/forms/admin.glade:2683
 msgid "Hide icon and notifications:"
@@ -1875,11 +1826,10 @@ msgstr "gulēšanas režīms"
 msgid ""
 "When time ends, computer will be suspended (put to sleep).\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes.\n"
+"This option is not a restriction and is more suited for self control purposes.\n"
 "\n"
-"When woken up when there is still no time left, computer screen will be "
-"locked and put to sleep again after some time."
+"When woken up when there is still no time left, computer screen will be locked "
+"and put to sleep again after some time."
 msgstr ""
 "Kad lietotājam beidzies atvēlētais laiks, dators tiks novietots gulēšanas "
 "režīmā.\n"
@@ -1887,9 +1837,9 @@ msgstr ""
 "Šis ierobežojumu veids faktiski nav ierobežojums, tas vairāk domāts "
 "paškontroles nodrošināšanai.\n"
 "\n"
-"Ja dators tiks pamodināts brīdī, kad lietotājam atvēlētais laiks ir "
-"beidzies, datora ekrāns tiks bloķēts un pēc kāda laika dators tiks novietots "
-"gulēšanas režīmā."
+"Ja dators tiks pamodināts brīdī, kad lietotājam atvēlētais laiks ir beidzies, "
+"datora ekrāns tiks bloķēts un pēc kāda laika dators tiks novietots gulēšanas "
+"režīmā."
 
 #: resource/client/forms/admin.glade:2867
 msgid "suspend / wakeup computer"
@@ -1897,25 +1847,23 @@ msgstr "gulēšanas un pamošanās režīms"
 
 #: resource/client/forms/admin.glade:2871
 msgid ""
-"When time ends, computer will be suspended (put to sleep) and will be woken "
-"up at start of next available time interval for the user.\n"
+"When time ends, computer will be suspended (put to sleep) and will be woken up "
+"at start of next available time interval for the user.\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes.\n"
+"This option is not a restriction and is more suited for self control purposes.\n"
 "\n"
-"When woken up when there is still no time left, computer screen will be "
-"locked and put to sleep again after some time."
+"When woken up when there is still no time left, computer screen will be locked "
+"and put to sleep again after some time."
 msgstr ""
 "Kad lietotājam beidzies atvēlētais laiks, dators tiks novietots gulēšanas "
-"režīmā un tiks pamodināts automātiski, kad atvēlētie ierobežojumi to "
-"atļaus.\n"
+"režīmā un tiks pamodināts automātiski, kad atvēlētie ierobežojumi to atļaus.\n"
 "\n"
 "Šis ierobežojumu veids faktiski nav ierobežojums, tas vairāk domāts "
 "paškontroles nodrošināšanai.\n"
 "\n"
-"Ja dators tiks pamodināts brīdī, kad lietotājam atvēlētais laiks ir "
-"beidzies, datora ekrāns tiks bloķēts un pēc kāda laika dators tiks novietots "
-"gulēšanas režīmā."
+"Ja dators tiks pamodināts brīdī, kad lietotājam atvēlētais laiks ir beidzies, "
+"datora ekrāns tiks bloķēts un pēc kāda laika dators tiks novietots gulēšanas "
+"režīmā."
 
 #: resource/client/forms/admin.glade:2889
 msgid "lock screen"
@@ -1925,8 +1873,7 @@ msgstr "bloķēt ekrānu"
 msgid ""
 "When time ends, computer screen will be locked.\n"
 "\n"
-"This option is not a restriction and is more suited for self control "
-"purposes."
+"This option is not a restriction and is more suited for self control purposes."
 msgstr ""
 "Kad lietotājam beidzies atvēlētais laiks, dators tiks aizslēgts (lock).\n"
 "\n"
@@ -1937,13 +1884,13 @@ msgstr ""
 msgid ""
 "Select a time interval when computer can be woken up automatically.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Ievadiet laika intervālu, kad vēlama automātiskā pamošanās.\n"
 "\n"
-"Šī opcija darbosies tikai tad, ja sistēmas BIOS / UEFI atbalsta pamošanos "
-"pēc RTC (reālā laika pulkstenis) un šī opcija ir iespējota!"
+"Šī opcija darbosies tikai tad, ja sistēmas BIOS / UEFI atbalsta pamošanos pēc "
+"RTC (reālā laika pulkstenis) un šī opcija ir iespējota!"
 
 #: resource/client/forms/admin.glade:2928
 msgid "Wakeup hour interval:"
@@ -1953,25 +1900,25 @@ msgstr "Pamošanās stundas:"
 msgid ""
 "Enter start hour for the automatic wakeup function.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Ievadiet automātiskās pamošanās sākuma stundu.\n"
 "\n"
-"Šī opcija darbosies tikai tad, ja sistēmas BIOS / UEFI atbalsta pamošanos "
-"pēc RTC (reālā laika pulkstenis) un šī opcija ir iespējota!"
+"Šī opcija darbosies tikai tad, ja sistēmas BIOS / UEFI atbalsta pamošanos pēc "
+"RTC (reālā laika pulkstenis) un šī opcija ir iespējota!"
 
 #: resource/client/forms/admin.glade:2959
 msgid ""
 "Enter end hour for the automatic wakeup function.\n"
 "\n"
-"Please note that this option is only effective if wake up by RealTime Clock "
-"is supported and enabled in BIOS / UEFI!"
+"Please note that this option is only effective if wake up by RealTime Clock is "
+"supported and enabled in BIOS / UEFI!"
 msgstr ""
 "Ievadiet automātiskās pamošanās beigu stundu.\n"
 "\n"
-"Šī opcija darbosies tikai tad, ja sistēmas BIOS / UEFI atbalsta pamošanos "
-"pēc RTC (reālā laika pulkstenis) un šī opcija ir iespējota!"
+"Šī opcija darbosies tikai tad, ja sistēmas BIOS / UEFI atbalsta pamošanos pēc "
+"RTC (reālā laika pulkstenis) un šī opcija ir iespējota!"
 
 #: resource/client/forms/admin.glade:2997
 msgid "Apply configuration"
@@ -1985,8 +1932,7 @@ msgstr "Iespējot papildus konfigurācijas iespēju maiņu šajā lapā"
 msgid "Additional configuration"
 msgstr "Papildus konfigurācija"
 
-#: resource/client/forms/admin.glade:3021
-#: resource/client/forms/admin.glade:3695
+#: resource/client/forms/admin.glade:3021 resource/client/forms/admin.glade:3695
 msgid "Additional options"
 msgstr "Papildus limiti"
 
@@ -2002,8 +1948,7 @@ msgstr "Ar Timekpr-nExT saistītā konfigurācija"
 msgid "Control Timekpr-nExT Settings"
 msgstr "Pārvaldīt Timekpr-nExT konfigurāciju"
 
-#: resource/client/forms/admin.glade:3112
-#: resource/client/forms/admin.glade:3264
+#: resource/client/forms/admin.glade:3112 resource/client/forms/admin.glade:3264
 msgid ""
 "Timekpr-nExT log level.\n"
 "\n"
@@ -2020,16 +1965,15 @@ msgstr ""
 "Vērtību nozīme: 1 - standarta līmenis, 2 - atkļūdošanas līmenis, 3 - "
 "padziļināts atkļūdošanas līmenis"
 
-#: resource/client/forms/admin.glade:3132
-#: resource/client/forms/admin.glade:3180
+#: resource/client/forms/admin.glade:3132 resource/client/forms/admin.glade:3180
 msgid ""
 "Session polling time granularity which specifies how often user sessions and "
 "activity are checked and accounted.\n"
 "\n"
 "3 - 5 seconds are optimal, don't change this if unsure."
 msgstr ""
-"Sesiju laika uzskaites biežums, kas nosaka cik bieži tiek aptaujātas "
-"lietotāju sesijas un uzskaitīts to patērētais laiks.\n"
+"Sesiju laika uzskaites biežums, kas nosaka cik bieži tiek aptaujātas lietotāju "
+"sesijas un uzskaitīts to patērētais laiks.\n"
 "\n"
 "3 - 5 sekundes ir optimāli, lūdzu nemainīt bez vajadzības."
 
@@ -2037,52 +1981,49 @@ msgstr ""
 msgid "Poll interval"
 msgstr "Atjaunošanas intervāls"
 
-#: resource/client/forms/admin.glade:3148
-#: resource/client/forms/admin.glade:3251
+#: resource/client/forms/admin.glade:3148 resource/client/forms/admin.glade:3251
 msgid ""
 "Specify the time in seconds when Timekpr-nExT starts continuous real-time "
 "countdown before enforcing a restriction / lockout to user's sessions."
 msgstr ""
-"Norādiet atlikušo laiku sekundēs, pirms kura Timekpr-nExT sāks laika ik "
-"sekunžu atskaiti pirms piemērot izvēlēto ierobežojumu lietotāja sesijām."
+"Norādiet atlikušo laiku sekundēs, pirms kura Timekpr-nExT sāks laika ik sekunžu "
+"atskaiti pirms piemērot izvēlēto ierobežojumu lietotāja sesijām."
 
-#: resource/client/forms/admin.glade:3164
-#: resource/client/forms/admin.glade:3214
+#: resource/client/forms/admin.glade:3164 resource/client/forms/admin.glade:3214
 msgid ""
 "This specifies the rate in seconds at which actual user state is saved to "
 "disk.\n"
 "\n"
 "To improve performance and still have great accuracy, Timekpr-nExT accounts "
-"time in memory at \"Poll interval\" frequency, this setting defines a "
-"frequency at which user state is saved to disk for permanent storage."
+"time in memory at \"Poll interval\" frequency, this setting defines a frequency "
+"at which user state is saved to disk for permanent storage."
 msgstr ""
-"Šī vērtība nosaka sekunžu intervālu ar kādu lietotāju uzskaitītais laiks "
-"tiek saglabāts uz diska.\n"
+"Šī vērtība nosaka sekunžu intervālu ar kādu lietotāju uzskaitītais laiks tiek "
+"saglabāts uz diska.\n"
 "\n"
-"Lai nodrošinātu augstu precizitāti nezaudējot ātrdarbību, Timekpr-nExT "
-"uzskaita laiku atmiņā ar biežumu \"Atjaunošanas intervāls\", savukārt šī "
-"opcija nodrošina uzskaitītā laika saglabāšanu uz diska ilgtermiņa glabāšanai."
+"Lai nodrošinātu augstu precizitāti nezaudējot ātrdarbību, Timekpr-nExT uzskaita "
+"laiku atmiņā ar biežumu \"Atjaunošanas intervāls\", savukārt šī opcija "
+"nodrošina uzskaitītā laika saglabāšanu uz diska ilgtermiņa glabāšanai."
 
 #: resource/client/forms/admin.glade:3168
 msgid "Save time"
 msgstr "Saglabāšanas laiks"
 
-#: resource/client/forms/admin.glade:3198
-#: resource/client/forms/admin.glade:3233
+#: resource/client/forms/admin.glade:3198 resource/client/forms/admin.glade:3233
 msgid ""
 "Number of seconds left for user before enforcing a configured restriction / "
 "lockout to his sessions.\n"
 "\n"
 "After this is reached and user is still active, the user's sessions will be "
-"handled according to specified restriction / lockout, and almost nothing can "
-"be done to prevent it."
+"handled according to specified restriction / lockout, and almost nothing can be "
+"done to prevent it."
 msgstr ""
 "Lietotājam atlikušo sekunžu skaits pirms pielietot izvēlēto ierobežojumu tā "
 "sesijām.\n"
 "\n"
 "Kad šis apjoms tiks sasniegts un lietotājs joprojām būs aktīvs, lietotāja "
-"sesijām tiks piemērots tam izvēlētais ierobežojums. Sasniedzot šo punktu, "
-"nav iespējams izdarīt gandrīz neko, lai to novērstu."
+"sesijām tiks piemērots tam izvēlētais ierobežojums. Sasniedzot šo punktu, nav "
+"iespējams izdarīt gandrīz neko, lai to novērstu."
 
 #: resource/client/forms/admin.glade:3202
 msgid "Termination time"
@@ -2096,14 +2037,13 @@ msgstr "Atskaites laiks"
 msgid "Log level"
 msgstr "Žurnāla līmenis"
 
-#: resource/client/forms/admin.glade:3281
-#: resource/client/forms/admin.glade:3297
+#: resource/client/forms/admin.glade:3281 resource/client/forms/admin.glade:3297
 msgid ""
 "Number of seconds left for user's available time before sending a final "
 "critical notification that time is about to run out.\n"
 "\n"
-"NOTE: the rest of the notification times are configurable per user by user "
-"in client application!"
+"NOTE: the rest of the notification times are configurable per user by user in "
+"client application!"
 msgstr ""
 "Atlikušais sekunžu skaits lietotāja atvēlētajam laikam pirms sūtīt kritisku "
 "paziņojumu par to, ka atvēlētais laiks drīz beigsies.\n"
@@ -2184,17 +2124,16 @@ msgstr "Dzēst lietotāju no neuzskaitāmo lietotāju saraksta"
 msgid ""
 "List of users excluded from tracking.\n"
 "\n"
-"Please specify actual usernames, not real names here. For example, "
-"\"jsmith\", not \"John Smith\"."
+"Please specify actual usernames, not real names here. For example, \"jsmith\", "
+"not \"John Smith\"."
 msgstr ""
-"Neuzskaitāmo lietotāju saraksts - lietotājvārdi, kuru datorā pavadītais "
-"laiks netiek uzskaitīts.\n"
+"Neuzskaitāmo lietotāju saraksts - lietotājvārdi, kuru datorā pavadītais laiks "
+"netiek uzskaitīts.\n"
 "\n"
 "Lūdzu norādīt faktiskos lietotājvārdus nevis vārdus (piem.: lūdzu norādīt "
 "gmerkelis, nevis \"Garlībs Merķelis\")"
 
-#: resource/client/forms/admin.glade:3722
-#: resource/client/forms/admin.glade:3741
+#: resource/client/forms/admin.glade:3722 resource/client/forms/admin.glade:3741
 #: resource/client/forms/admin.glade:3777
 msgid ""
 "This setting controls whether PlayTime functionality is enabled.\n"
@@ -2224,9 +2163,9 @@ msgid ""
 "Please be careful and double check your RegExp patterns in each individual "
 "user's PlayTime activity masks!"
 msgstr ""
-"Šī pazīme nosaka vai PlayTime aktivitāšu meklēšanai sistēmā tiks izmantota "
-"arī procesa komandrinda ieskaitot procesa parametrus (pēc noklusējuma "
-"aktivitātes tiek filtrētas tikai pēc procesa nosaukuma).\n"
+"Šī pazīme nosaka vai PlayTime aktivitāšu meklēšanai sistēmā tiks izmantota arī "
+"procesa komandrinda ieskaitot procesa parametrus (pēc noklusējuma aktivitātes "
+"tiek filtrētas tikai pēc procesa nosaukuma).\n"
 "\n"
 "Ja pazīme iespējota, Timekpr-nExT meklēs procesus, kas reģistrēti lietotāja "
 "aktivitāšu sarakstā izmantojot pirmos 512 komandrindas simbolus, tādā veidā "
@@ -2255,8 +2194,7 @@ msgstr "Timekpr-nExT pārvaldības iestatījumi"
 msgid "Timekpr-nExT Configuration"
 msgstr "Timekpr-nExT pārvaldība"
 
-#: resource/client/forms/admin.glade:3866
-#: resource/client/forms/admin.glade:3883
+#: resource/client/forms/admin.glade:3866 resource/client/forms/admin.glade:3883
 msgid "Status of Timekpr-nExT admin client"
 msgstr "Timekpr-nExT pārvaldības aplikācijas statuss"
 
@@ -2296,8 +2234,7 @@ msgstr "Saglabāt visas izmaiņas"
 msgid "Close the window"
 msgstr "Aizvērt logu"
 
-#: resource/client/forms/client.glade:297
-#: resource/client/forms/client.glade:314
+#: resource/client/forms/client.glade:297 resource/client/forms/client.glade:314
 msgid "Current effective username"
 msgstr "Patreizējais faktiskais lietotājs"
 
@@ -2318,8 +2255,7 @@ msgstr "Izlietotais laiks (sesija):"
 #: resource/client/forms/client.glade:441
 msgid "Time inactive this session or after Timekpr-nExT has been restarted"
 msgstr ""
-"Dīkstāves laiks šai sesijai vai dīkstāves laiks no Timekpr-nExT "
-"pārstartēšanas"
+"Dīkstāves laiks šai sesijai vai dīkstāves laiks no Timekpr-nExT pārstartēšanas"
 
 #: resource/client/forms/client.glade:443
 msgid "Time inactive:"
@@ -2339,8 +2275,7 @@ msgstr "Nepārtrauktā laika ierobežojums:"
 msgid "Total time available left today in a row, up to the end of the day"
 msgstr "Nepārtraukti pieejamais laiks šodien līdz pašām dienas beigām"
 
-#: resource/client/forms/client.glade:489
-#: resource/client/forms/client.glade:974
+#: resource/client/forms/client.glade:489 resource/client/forms/client.glade:974
 msgid "Time left today:"
 msgstr "Atlikušais laiks šodien:"
 
@@ -2348,8 +2283,7 @@ msgstr "Atlikušais laiks šodien:"
 msgid "These are the days and limits that are available to you"
 msgstr "Šeit atrādītas dienas un ierobežojumi, kas attiecas uz Tevi"
 
-#: resource/client/forms/client.glade:573
-#: resource/client/forms/client.glade:1171
+#: resource/client/forms/client.glade:573 resource/client/forms/client.glade:1171
 msgid "Days & Limits"
 msgstr "Diena un ierobežojumi"
 
@@ -2393,11 +2327,10 @@ msgid ""
 "sessions and while the screen is locked is NOT taken into account.\n"
 "This varies among desktop environments."
 msgstr ""
-"Šī pazīme nosaka vai laiks, kuru lietotājs pavadījis dīkstāvē tiek "
-"uzskaitīts.\n"
+"Šī pazīme nosaka vai laiks, kuru lietotājs pavadījis dīkstāvē tiek uzskaitīts.\n"
 "\n"
-"Ja pazīme nav iespējota, pavadītais laiks konsolē (ne terminālī) un "
-"aizslēgtajā sesijā NETIEK uzskaitīts.\n"
+"Ja pazīme nav iespējota, pavadītais laiks konsolē (ne terminālī) un aizslēgtajā "
+"sesijā NETIEK uzskaitīts.\n"
 "Šīs pazīmes darbspēja ļoti atkarīga no grafiskās vides kurā strādājat."
 
 #: resource/client/forms/client.glade:760
@@ -2407,16 +2340,15 @@ msgstr "Uzskaitīt neaktīvās:"
 #: resource/client/forms/client.glade:773
 msgid ""
 "Select whether inactive session time is counted. If this is unchecked, time "
-"spent in console (not terminal emulator) login sessions and while the screen "
-"is locked is NOT taken into account. This varies among desktop environments."
+"spent in console (not terminal emulator) login sessions and while the screen is "
+"locked is NOT taken into account. This varies among desktop environments."
 msgstr ""
-"Šī pazīme nosaka vai laiks, kuru lietotājs pavadījis dīkstāvē tiek "
-"uzskaitīts, ja pazīme nav iespējota, pavadītais laiks konsolē (ne terminālī) "
-"un aizslēgtajā sesijā NETIEK uzskaitīts (šīs pazīmes darbspēja ļoti atkarīga "
-"no grafiskās vides kurā strādājat)"
+"Šī pazīme nosaka vai laiks, kuru lietotājs pavadījis dīkstāvē tiek uzskaitīts, "
+"ja pazīme nav iespējota, pavadītais laiks konsolē (ne terminālī) un aizslēgtajā "
+"sesijā NETIEK uzskaitīts (šīs pazīmes darbspēja ļoti atkarīga no grafiskās "
+"vides kurā strādājat)"
 
-#: resource/client/forms/client.glade:820
-#: resource/client/forms/client.glade:918
+#: resource/client/forms/client.glade:820 resource/client/forms/client.glade:918
 msgid "Additional limits"
 msgstr "Papildus limiti"
 
@@ -2452,8 +2384,7 @@ msgstr "Kopējais šodien izlietotais PlayTime laiks"
 msgid "Time spent today:"
 msgstr "Šodien izlietotais laiks:"
 
-#: resource/client/forms/client.glade:1027
-#: resource/client/forms/client.glade:1042
+#: resource/client/forms/client.glade:1027 resource/client/forms/client.glade:1042
 msgid ""
 "This option overrides the default time accounting.\n"
 "\n"
@@ -2462,16 +2393,15 @@ msgid ""
 msgstr ""
 "Šī opcija iespējo alternatīvo laika uzskaiti PlayTime aktivitātēm.\n"
 "\n"
-"Ja šī opcija ir iespējota, laiks tiek uzskaitīts tikai tad, ja darbojas kāda "
-"no PlayTime sarakstā esošajām aplikācijām, savukārt pārējais laiks tiek "
-"uzskatīts kā dīkstāves laiks."
+"Ja šī opcija ir iespējota, laiks tiek uzskaitīts tikai tad, ja darbojas kāda no "
+"PlayTime sarakstā esošajām aplikācijām, savukārt pārējais laiks tiek uzskatīts "
+"kā dīkstāves laiks."
 
 #: resource/client/forms/client.glade:1046
 msgid "Time limit override:"
 msgstr "Alternatīva laika uzskaite:"
 
-#: resource/client/forms/client.glade:1060
-#: resource/client/forms/client.glade:1073
+#: resource/client/forms/client.glade:1060 resource/client/forms/client.glade:1073
 msgid "Number of currently active PlayTime activities"
 msgstr "Šobrīd darbojošos PlayTime aktivitāšu skaits"
 
@@ -2479,8 +2409,7 @@ msgstr "Šobrīd darbojošos PlayTime aktivitāšu skaits"
 msgid "Running activities:"
 msgstr "Darbojošās aktivitātes:"
 
-#: resource/client/forms/client.glade:1086
-#: resource/client/forms/client.glade:1106
+#: resource/client/forms/client.glade:1086 resource/client/forms/client.glade:1106
 msgid ""
 "Allow activities during unaccounted (\"∞\") time intervals.\n"
 "\n"
@@ -2491,9 +2420,8 @@ msgstr ""
 "Atļaut lietot aktivitātes neuzskaitītajos (\"∞\") laika intervālos.\n"
 "\n"
 "Šī pazīme atļauj lietotājam izmantot aplikācijas, kas reģistrētas sadaļā "
-"\"Aplikāciju / aktivitāšu saraksts\" intervālos, kas atzīmēti kā "
-"neuzskaitīti (\"∞\"), ja šī pazīme nav iespējota, neviena no aktivitātēm nav "
-"atļauta!"
+"\"Aplikāciju / aktivitāšu saraksts\" intervālos, kas atzīmēti kā neuzskaitīti "
+"(\"∞\"), ja šī pazīme nav iespējota, neviena no aktivitātēm nav atļauta!"
 
 #: resource/client/forms/client.glade:1090
 msgid "Allowed during \"∞\":"
@@ -2504,15 +2432,14 @@ msgid ""
 "These are days and limits that available to you as part of PlayTime activity "
 "restrictions"
 msgstr ""
-"Šeit atrādītas dienas un ierobežojumi, kas attiecas uz PlayTime "
-"funkcionalitāti"
+"Šeit atrādītas dienas un ierobežojumi, kas attiecas uz PlayTime funkcionalitāti"
 
 #: resource/client/forms/client.glade:1205
 msgid ""
 "This shows activities / applications which are part of PlayTime restrictions"
 msgstr ""
-"Šis saraksts atrāda PlayTime aktivitātes / aplikācijas, kas tika iespējotas "
-"kā daļa no PlayTime ierobežojumiem"
+"Šis saraksts atrāda PlayTime aktivitātes / aplikācijas, kas tika iespējotas kā "
+"daļa no PlayTime ierobežojumiem"
 
 #: resource/client/forms/client.glade:1228
 msgid "Activity / application list"
@@ -2535,16 +2462,15 @@ msgid ""
 "Warning - a yellow icon and an informational notification will be shown\n"
 "Severe - a red icon and important notification will be shown\n"
 "Critical - a red icon and critical notification will be shown, this "
-"notification usually is shown over all open applications and stays open "
-"until dismissed, however this behaviour highly depends on Desktop "
-"Environment in use"
+"notification usually is shown over all open applications and stays open until "
+"dismissed, however this behaviour highly depends on Desktop Environment in use"
 msgstr ""
 "Personalizēta pieejamā laika ziņojumu konfigurācija.\n"
 "\n"
-"Lūdzu konfigurē notifikācijas pēc saviem ieskatiem. Lūdzu ņemt vērā, ka ir "
-"divi paziņojumu veidi, kurus nav iespējams personalizēt: pēdējais "
-"brīdinājums, kas tiek rādīts kādu laiku pirms pieejamā laika beigām un laika "
-"atskaites paziņojumi, kas tiek rādīti ļoti īsi pirms laika beigām.\n"
+"Lūdzu konfigurē notifikācijas pēc saviem ieskatiem. Lūdzu ņemt vērā, ka ir divi "
+"paziņojumu veidi, kurus nav iespējams personalizēt: pēdējais brīdinājums, kas "
+"tiek rādīts kādu laiku pirms pieejamā laika beigām un laika atskaites "
+"paziņojumi, kas tiek rādīti ļoti īsi pirms laika beigām.\n"
 "\n"
 "Vērtība \"Laiks\" nosaka atlikušo laiku, kad paziņojums tiks rādīts, vērtība "
 "\"Svarīgums\" nosaka ikonas krāsu un paziņojuma veidu, paskaidrojumi zemāk.\n"
@@ -2552,8 +2478,8 @@ msgstr ""
 "Informācija - tiek rādīta zaļa ikona un informatīvs paziņojums\n"
 "Brīdinājums - tiek rādīta dzeltena ikona un informatīvs paziņojums\n"
 "Svarīgs - tiek rādīta sarkana ikona un svarīgs paziņojums\n"
-"Kritisks - tiek rādīta sarkana ikona un kritisks paziņojums, kurš tipiski "
-"tiek atrādīts pa virsu visām atvērtajām aplikācijām un paliek atvērts, kamēr "
+"Kritisks - tiek rādīta sarkana ikona un kritisks paziņojums, kurš tipiski tiek "
+"atrādīts pa virsu visām atvērtajām aplikācijām un paliek atvērts, kamēr "
 "lietotājs to nav noraidījis, bet tomēr šāda paziņojumu uzvedība ir ļoti "
 "atkarīga no grafiskās vides, ko lietojat"
 
@@ -2583,23 +2509,22 @@ msgid ""
 "Warning - a yellow icon and an informational notification will be shown\n"
 "Severe - a red icon and important notification will be shown\n"
 "Critical - a red icon and critical notification will be shown, this "
-"notification usually is shown over all open applications and stays open "
-"until dismissed, however this behaviour highly depends on Desktop "
-"Environment in use"
+"notification usually is shown over all open applications and stays open until "
+"dismissed, however this behaviour highly depends on Desktop Environment in use"
 msgstr ""
 "Personalizēta pieejamā PlayTime laika ziņojumu konfigurācija.\n"
 "\n"
 "Lūdzu konfigurē notifikācijas pēc saviem ieskatiem.\n"
 "\n"
-"Vērtība \"Laiks\" nosaka atlikušo PlayTime laiku, kad paziņojums tiks "
-"rādīts, vērtība \"Svarīgums\" nosaka ikonas krāsu un paziņojuma veidu, "
-"paskaidrojumi zemāk.\n"
+"Vērtība \"Laiks\" nosaka atlikušo PlayTime laiku, kad paziņojums tiks rādīts, "
+"vērtība \"Svarīgums\" nosaka ikonas krāsu un paziņojuma veidu, paskaidrojumi "
+"zemāk.\n"
 "\n"
 "Informācija - tiek rādīta zaļa ikona un informatīvs paziņojums\n"
 "Brīdinājums - tiek rādīta dzeltena ikona un informatīvs paziņojums\n"
 "Svarīgs - tiek rādīta sarkana ikona un svarīgs paziņojums\n"
-"Kritisks - tiek rādīta sarkana ikona un kritisks paziņojums, kurš tipiski "
-"tiek atrādīts pa virsu visām atvērtajām aplikācijām un paliek atvērts, kamēr "
+"Kritisks - tiek rādīta sarkana ikona un kritisks paziņojums, kurš tipiski tiek "
+"atrādīts pa virsu visām atvērtajām aplikācijām un paliek atvērts, kamēr "
 "lietotājs to nav noraidījis, bet tomēr šāda paziņojumu uzvedība ir ļoti "
 "atkarīga no grafiskās vides, ko lietojat"
 
@@ -2629,15 +2554,14 @@ msgstr ""
 "Nosaka vai lietot balss notifikācijas, ja opcija nav pieejama, tā būs "
 "atspējota.\n"
 "\n"
-"Ja vēlaties izmantot balss notifikācijas, lūdzu instalēt \"python3-espeak\" "
-"vai \"python3-espeak-ng\" pakotni."
+"Ja vēlaties izmantot balss notifikācijas, lūdzu instalēt \"python3-espeak\" vai "
+"\"python3-espeak-ng\" pakotni."
 
 #: resource/client/forms/client.glade:1574
 msgid "Use speech notifications"
 msgstr "Pielietot balss paziņojumus"
 
-#: resource/client/forms/client.glade:1593
-#: resource/client/forms/client.glade:1615
+#: resource/client/forms/client.glade:1593 resource/client/forms/client.glade:1615
 msgid ""
 "This sets the logging level.\n"
 "\n"
@@ -2653,8 +2577,8 @@ msgstr "Tehniskā žurnāla līmenis"
 
 #: resource/client/forms/client.glade:1641
 msgid ""
-"Specify whether to show a notification when limit configurations or "
-"allowance changes"
+"Specify whether to show a notification when limit configurations or allowance "
+"changes"
 msgstr "Nosaka vai rādīt paziņojumu gadījumā, ja ierobežojumi tikuši mainīti"
 
 #: resource/client/forms/client.glade:1649
@@ -2679,8 +2603,8 @@ msgstr "Rādīt visus paziņojumus"
 msgid ""
 "Specify whether to show seconds in notification area.\n"
 "\n"
-"Some desktop environments, like KDE5, do not support text besides "
-"notification icons."
+"Some desktop environments, like KDE5, do not support text besides notification "
+"icons."
 msgstr ""
 "Nosaka vai atrādīt sekundes blakus ikonai notifikāciju panelī.\n"
 "\n"
@@ -2690,26 +2614,24 @@ msgstr ""
 msgid "Show seconds in notification area"
 msgstr "Rādīt sekundes"
 
-#: resource/client/forms/client.glade:1720
-#: resource/client/forms/client.glade:1744
+#: resource/client/forms/client.glade:1720 resource/client/forms/client.glade:1744
 msgid ""
-"This sets how long a notification is shown for regular notifications about "
-"time left and configuration changes.\n"
+"This sets how long a notification is shown for regular notifications about time "
+"left and configuration changes.\n"
 "\n"
 "The value is specified in seconds.\n"
 "A value of 0 means show until dismissed (not recommended for regular "
 "notifications).\n"
 "\n"
-"Please note that the desktop environment you use may override this timeout, "
-"in which case this setting will not have any effect on notification."
+"Please note that the desktop environment you use may override this timeout, in "
+"which case this setting will not have any effect on notification."
 msgstr ""
-"Šī pazīme nosaka cik ilgi uz ekrāna tiek rādīti standarta paziņojumi par "
-"laika patēriņu un ierobežojumu izmaiņām.\n"
+"Šī pazīme nosaka cik ilgi uz ekrāna tiek rādīti standarta paziņojumi par laika "
+"patēriņu un ierobežojumu izmaiņām.\n"
 "\n"
 "Vērtība norādīta sekundēs.\n"
-"Vērtība 0 nozīmē, ka ziņojums tiks rādīts līdz lietotājs to aizvērs "
-"pašrocīgi (opcija netiek rekomendēta izmantošanai parastajiem "
-"paziņojumiem).\n"
+"Vērtība 0 nozīmē, ka ziņojums tiks rādīts līdz lietotājs to aizvērs pašrocīgi "
+"(opcija netiek rekomendēta izmantošanai parastajiem paziņojumiem).\n"
 "\n"
 "Lūdzu ņemt vērā, ka jūsu lietotā vide var pārtvert šo opciju, kas nozīmē, ka "
 "šai opcija nebūs nekāda ietekme uz paziņojumiem."
@@ -2718,24 +2640,22 @@ msgstr ""
 msgid "Notification timeout (sec)"
 msgstr "Pārējo paziņojumu ilgums (sek)"
 
-#: resource/client/forms/client.glade:1776
-#: resource/client/forms/client.glade:1801
+#: resource/client/forms/client.glade:1776 resource/client/forms/client.glade:1801
 msgid ""
-"This sets how long a notification is shown for \"Critical\" notifications "
-"about time left (when the icon turns red).\n"
+"This sets how long a notification is shown for \"Critical\" notifications about "
+"time left (when the icon turns red).\n"
 "\n"
 "The value is specified in seconds.\n"
 "A value of 0 means show until dismissed.\n"
 "\n"
-"Please note that the desktop environment you use may override this timeout, "
-"in which case this setting will not have any effect on notification."
+"Please note that the desktop environment you use may override this timeout, in "
+"which case this setting will not have any effect on notification."
 msgstr ""
-"Šī pazīme nosaka cik ilgi uz ekrāna tiek rādīti kritiskie paziņojumi (kad "
-"ikona par laika patēriņu ir sarkana).\n"
+"Šī pazīme nosaka cik ilgi uz ekrāna tiek rādīti kritiskie paziņojumi (kad ikona "
+"par laika patēriņu ir sarkana).\n"
 "\n"
 "Vērtība norādīta sekundēs.\n"
-"Vērtība 0 nozīmē, ka ziņojums tiks rādīts līdz lietotājs to aizvērs "
-"pašrocīgi.\n"
+"Vērtība 0 nozīmē, ka ziņojums tiks rādīts līdz lietotājs to aizvērs pašrocīgi.\n"
 "\n"
 "Lūdzu ņemt vērā, ka jūsu lietotā vide var pārtvert šo opciju, kas nozīmē, ka "
 "šai opcija nebūs nekāda ietekme uz paziņojumiem."
@@ -2746,16 +2666,16 @@ msgstr "Kritisko paziņojumu ilgums (sek)"
 
 #: resource/client/forms/client.glade:1830
 msgid ""
-"Select whether to use sound \"bell\" (short notification sound) to announce "
-"a new notification from Timekpr-nExT.\n"
+"Select whether to use sound \"bell\" (short notification sound) to announce a "
+"new notification from Timekpr-nExT.\n"
 "\n"
 "This works only for enabled notifications.\n"
 "\n"
 "If this setting is not editable, your environment does not advertise sound "
 "notification support."
 msgstr ""
-"Šī pazīme nosaka vai paziņojumam jāpievieno īss skaņas signāls brīdi, kad "
-"tiek parādīts ziņojums no Timekpr-nExT.\n"
+"Šī pazīme nosaka vai paziņojumam jāpievieno īss skaņas signāls brīdi, kad tiek "
+"parādīts ziņojums no Timekpr-nExT.\n"
 "\n"
 "Darbojas tikai tad, ja iespējoti brīdinājumi.\n"
 "\n"
@@ -2769,3 +2689,41 @@ msgstr "Lieto īsu skaņas signālu paziņojumos"
 #: resource/client/forms/client.glade:1862
 msgid "Configuration"
 msgstr "Konfigurācija"
+
+#~ msgid ""
+#~ "Select whether to show Timekpr-next's padlock icon and notifications to the "
+#~ "user.\n"
+#~ "\n"
+#~ "Please note that unchecking this will disable showing all information and "
+#~ "notifications to the user!"
+#~ msgstr ""
+#~ "Šī pazīme nosaka vai lietotājam tiks rādīta slēdzenes ikona un paziņojumi "
+#~ "par laika patēriņu.\n"
+#~ "\n"
+#~ "Lūdzu ņemt vērā, ka uzstādot šo pazīmi, lietotājam nebūs pieejama slēdzenes "
+#~ "ikona un neviens paziņojums!"
+
+#~ msgid ""
+#~ "Select whether to use speech notifications, if available.\n"
+#~ "\n"
+#~ "You may be able to make speech notifications available by installing package "
+#~ "\"python3-espeak\"."
+#~ msgstr ""
+#~ "Nosaka vai lietot balss notifikācijas, ja opcija nav pieejama, tā būs "
+#~ "atspējota.\n"
+#~ "\n"
+#~ "Ja vēlaties izmantot balss notifikācijas, lūdzu instalēt \"python3-espeak\" "
+#~ "pakotni."
+
+#~ msgid ""
+#~ "==> set restriction / lockout type (\"lock\" - lock session, \"suspend\" - "
+#~ "suspend the computer, \"suspendwake\" - suspend and wake up, \"terminate\" - "
+#~ "terminate sessions, \"shutdown\" - shutdown the computer), examples"
+#~ msgstr ""
+#~ "==> uzstādīt ierobežojumu veidu (\"lock\" - aizslēgt darbvirsmu, \"suspend\" "
+#~ "- ievietot guļošā režīmā, \"suspendwake\" - ievietot guļošā režīmā un "
+#~ "pamodināt, \"terminate\" - izbeigt sesijas, \"shutdown\" - izslēgt datoru), "
+#~ "piemēri"
+
+#~ msgid "Copyright (c) 2018-2021 Eduards Bezverhijs"
+#~ msgstr "Visas tiesības aizsargātas (c) 2018-2021 Eduards Bezverhijs"

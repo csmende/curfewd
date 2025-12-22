@@ -503,9 +503,9 @@ class timekprGUI(object):
                         # count
                         dayIdx += 1
                         # if override enabled, we do not show limits because that's not meaningful
-                        timeLimitStr = self.formatTimeStr(cons.TK_DATETIME_START + timedelta(seconds=rDay[1]) if not self._timeTimeLimitOverridePT else None, "t")
+                        timeLimitStr = self.formatTimeStr(cons.TK_DATETIME_START + timedelta(seconds=int(rDay[1])) if not self._timeTimeLimitOverridePT else None, "t")
                         # add to the list
-                        self._timekprConfigDialogBuilder.get_object("timekprPTAllowedDaysLimitsDaysLS").append([rDay[0], (cons.TK_DATETIME_START + timedelta(days=int(rDay[0])-1)).strftime("%A"), "%s" % (timeLimitStr)])
+                        self._timekprConfigDialogBuilder.get_object("timekprPTAllowedDaysLimitsDaysLS").append([str(rDay[0]), (cons.TK_DATETIME_START + timedelta(days=int(rDay[0])-1)).strftime("%A"), "%s" % (timeLimitStr)])
                         # if alllowed list has current day
                         if currDay == int(rDay[0]) + 1:
                             # index

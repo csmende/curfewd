@@ -29,8 +29,9 @@ Depends: gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1,
          ${python3:Depends}
 Suggests: espeak,
           gnome-shell-extension-appindicator,
-          python3-espeak
-Conflicts: timekpr-next-beta
+          python3-espeak,
+          python3-systemd
+Conflicts: timekpr-next
 Provides: timekpr
 Replaces: timekpr,
           timekpr-beta,
