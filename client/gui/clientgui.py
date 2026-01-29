@@ -20,8 +20,8 @@ from timekpr.common.constants import messages as msg
 _NO_TIME_LABEL = "--:--:--"
 _NO_TIME_LABEL_SHORT = "--:--"
 _NO_TIME_LIMIT_LABEL = "--:--:--:--"
-_HOUR_REGEXP = re.compile("^([0-9]{1,2})$")
-_HOUR_MIN_REGEXP = re.compile("^([0-9]{1,2}):([0-9]{1,2})$")
+_HOUR_REGEXP = re.compile(r"^([0-9]{1,2})$")
+_HOUR_MIN_REGEXP = re.compile(r"^([0-9]{1,2}):([0-9]{1,2})$")
 
 
 class timekprGUI(object):

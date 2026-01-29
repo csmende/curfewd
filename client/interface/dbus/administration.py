@@ -131,11 +131,10 @@ class timekprAdminConnector(object):
         """Format exception and pass it back"""
         # check for permission error
         if "org.freedesktop.DBus.Error.AccessDenied" in pExceptionStr:
-            result = -1
-            message = msg.getTranslation("TK_MSG_DBUS_COMMUNICATION_COMMAND_FAILED")
+            result, message = msg.getTranslation(s="TK_MSG_DBUS_COMMUNICATION_COMMAND_FAILED", e=True)
         else:
-            result = -1
-            message = msg.getTranslation("TK_MSG_UNEXPECTED_ERROR") % (("\"%s\" in \"%s.%s\"") % (pExceptionStr, pFPath, pFName))
+            result, message = msg.getTranslation(s="TK_MSG_UNEXPECTED_ERROR", e=True)
+            message %= (("\"%s\" in \"%s.%s\"") % (pExceptionStr, pFPath, pFName))
         # log error
         log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: \"%s\" in \"%s.%s\"" % (pExceptionStr, pFPath, pFName))
         # result

@@ -534,17 +534,17 @@ class timekprDaemon(dbus.service.Object):
     def requestTimeLimits(self, pUserName):
         """Request to send config to client (returns error in case no user and the like)"""
         # result
-        result = -1
-        message = msg.getTranslation("TK_MSG_CONFIG_LOADER_USER_NOTFOUND") % (pUserName)
+        result = 0
+        message = ""
 
         # check if we have this user
         if pUserName in self._timekprUserList:
             # pass this to actual method
             self._timekprUserList[pUserName].getTimeLimits()
-
+        else:
             # result
-            result = 0
-            message = ""
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_USER_NOTFOUND", e=True)
+            message %= (pUserName)
 
         # result
         return result, message
@@ -553,17 +553,17 @@ class timekprDaemon(dbus.service.Object):
     def requestTimeLeft(self, pUserName):
         """Request to send current state of time & limits for user (returns error in case no user and the like)"""
         # result
-        result = -1
-        message = msg.getTranslation("TK_MSG_CONFIG_LOADER_USER_NOTFOUND") % (pUserName)
+        result = 0
+        message = ""
 
         # check if we have this user
         if pUserName in self._timekprUserList:
             # pass this to actual method
             self._timekprUserList[pUserName].getTimeLeft(True)
-
-            # result
-            result = 0
-            message = ""
+        else:
+            # err
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_USER_NOTFOUND", e=True)
+            message %= (pUserName)
 
         # result
         return result, message
@@ -574,17 +574,17 @@ class timekprDaemon(dbus.service.Object):
     def processUserSessionAttributes(self, pUserName, pWhat, pKey, pValue):
         """Request to verify or set user session attributes (returns error in case no user and the like)"""
         # result
-        result = -1
-        message = msg.getTranslation("TK_MSG_CONFIG_LOADER_USER_NOTFOUND") % (pUserName)
+        result = 0
+        message = ""
 
         # check if we have this user
         if pUserName in self._timekprUserList:
             # pass this to actual method
             self._timekprUserList[pUserName].processUserSessionAttributes(pWhat, pKey, pValue)
-
-            # result
-            result = 0
-            message = ""
+        else:
+            # err
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_USER_NOTFOUND", e=True)
+            message %= (pUserName)
 
         # result
         return result, message
@@ -611,8 +611,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_USERLIST_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_USERLIST_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message, userList
@@ -643,8 +642,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_USER_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_USER_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message, userConfigurationStore
@@ -672,8 +670,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -701,8 +698,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -728,8 +724,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -756,8 +751,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -784,8 +778,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -814,8 +807,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -839,8 +831,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -864,8 +855,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -893,8 +883,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONTROL_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONTROL_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -923,8 +912,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -951,8 +939,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -979,8 +966,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1006,8 +992,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1033,8 +1018,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1059,8 +1043,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1088,8 +1071,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONTROL_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONTROL_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1112,8 +1094,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message, timekprConfig
@@ -1140,8 +1121,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1164,8 +1144,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1188,8 +1167,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1212,8 +1190,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1238,8 +1215,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1262,8 +1238,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1286,8 +1261,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1310,8 +1284,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1335,8 +1308,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1362,8 +1334,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1385,8 +1356,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
@@ -1408,8 +1378,7 @@ class timekprDaemon(dbus.service.Object):
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
 
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
 
         # result
         return result, message
