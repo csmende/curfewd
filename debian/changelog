@@ -1,3 +1,11 @@
+timekpr-next (0.5.10-1ubuntu1~ppa1) unstable; urgency=medium
+
+  * timekpra will now exit with non zero exit code when there are errors processing
+      user request
+  * added Lao translation (thanks to boneni)
+
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Thu, 29 Jan 2026 19:37:13 +0200
+
 timekpr-next (0.5.9-5ubuntu6~ppa1) unstable; urgency=medium
 
   * fixed a bug in notifications when time is not limited was shown even the time was limited
