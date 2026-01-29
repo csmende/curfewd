@@ -31,4 +31,4 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, _timekprAdminClient.finishTimekpr)
 
     # start up timekpr admin client
-    _timekprAdminClient.startTimekprAdminClient(*sys.argv)
+    sys.exit(_timekprAdminClient.startTimekprAdminClient(*sys.argv))
