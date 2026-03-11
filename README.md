@@ -152,7 +152,7 @@ customize restrictions and user experience as needed._
 #### Core of Timekpr-nExT
 
 Behind the scenes, Timekpr-nExT includes a background service (often called a
-"daemon"—not a demon!) that monitors the system and enforces all restrictions.
+"daemon"-not a demon!) that monitors the system and enforces all restrictions.
 
 There is no screenshot for it, but rest assured: it is always running quietly in
 the background, doing its job for you. ;)
@@ -351,7 +351,7 @@ continuously (e.g. 07:00–13:00 and 13:00–14:30). Adjacent intervals might me
 automatically.
 
 Keep in mind: if there is even a one-minute gap between intervals, the user will
-face their configured restriction during the gap—for example, session
+face their configured restriction during the gap-for example, session
 termination.
 
 A design choice in Timekpr-nExT also ensures that a single hour cannot contain
@@ -404,14 +404,14 @@ allowance is used up, those applications are terminated. Running them again ends
 them immediately.
 
 Keep in mind that PlayTime is generally treated as a **special time limit inside
-the regular time limit**, so all normal rules apply—except when **override
+the regular time limit**, so all normal rules apply-except when **override
 mode** is enabled (explained later).
 
 PlayTime was originally designed for games, but supervisors may monitor any
 software, such as web browsers, chat apps, or even calculators.
 
 _**Please note:** PlayTime time is still counted even during “∞” (unaccounted)
-intervals—**unless override mode is enabled**._
+intervals-**unless override mode is enabled**._
 
 ---
 
@@ -488,13 +488,13 @@ _**Please note:** PlayTime limits do not apply when override mode is enabled._
 
 This is the most important PlayTime section. Here you configure the activities
 (processes) that should be monitored. This list is not a simple allowlist or
-denylist—each activity requires a **process mask**.
+denylist-each activity requires a **process mask**.
 
 Determining the correct mask may require using a system monitor tool. Any KDE or
 GNOME “System Monitor” works well. You can also use a console or SSH.
 
 Linux applications can be installed almost anywhere and often by the user
-themselves—Steam, Lutris, Heroic, and many others install games in user-owned
+themselves-Steam, Lutris, Heroic, and many others install games in user-owned
 directories. Applications also do not identify themselves as “games” or
 “restricted programs,” so automatic detection is essentially impossible.
 
@@ -508,7 +508,7 @@ used when configuring PlayTime activities.
 If you are not familiar with the terminal, this may look intimidating at first.
 However, you can use graphical system monitoring tools instead. KDE and GNOME
 both provide “System Monitor” applications that work well for this purpose.  
-Look for columns such as **Process Name**, **Command**, or **Command Line**—these
+Look for columns such as **Process Name**, **Command**, or **Command Line**-these
 are your best helpers. You can always search online or ask your community how to
 identify an executable name.
 
@@ -521,7 +521,7 @@ Games typically use the most resources while running, so they appear near the
 top of the list.
 
 Look at the COMMAND column. If something looks like the activity you want to
-limit, take the executable name only—without its full path or any arguments.
+limit, take the executable name only-without its full path or any arguments.
 Example: If you see `/opt/discord-canary/DiscordCanary --type=renderer ...`
 then the correct mask is just `DiscordCanary`. This is the part after the last
 slash and before the arguments.
@@ -755,7 +755,7 @@ Allows users to tailor Timekpr-nExT behavior:
 <a name="typicalusecase"></a>
 ## Typical use case
 
-Imagine Liane wants to limit computer time for Cartman because he spends too much time online talking to Kyle and Stan _(Kenny doesn’t count—he doesn’t have a computer)_.  
+Imagine Liane wants to limit computer time for Cartman because he spends too much time online talking to Kyle and Stan _(Kenny doesn’t count-he doesn’t have a computer)_.  
 She also wants to reserve 2 hours on Monday (15:00–17:00) for mandatory anger management classes.
 
 Liane wants a flexible schedule within strict time windows for weekdays and holidays. Using Timekpr-nExT, she can configure it as follows:
@@ -870,11 +870,15 @@ Preferred method is same as Ubuntu:
 ## Compatibility
 
 Timekpr-nExT **was** developed to be compatible with most Desktop Environments. During development, around 20 VMs **were** used to test major
-changes, but not all possible setups are tested in the wild. Currently, testing is mostly on demand, based on bug reports or
-developer discretion. In other words, nothing gets proactively tested until there is a reason.
+changes, but not all possible setups were tested in the wild. Currently, testing is mostly on demand, based on bug reports or
+developer discretion. In other words, nothing gets proactively tested until there is a real reason for it.
 
-Tested Desktop Environments include: **KDE, GNOME, Cinnamon, MATE, XFCE**  
-Tested distributions include: **Ubuntu, Manjaro/ArchLinux, Debian, Fedora, openSUSE**
+I am not using Timekpr-nExT myself and do not test it against new releases of its dependencies or desktop environments.
+If it worked before, I hope it continues to work. If something suddenly starts working, great.
+If something breaks, please report a bug - otherwise it may never be fixed.
+
+Previously tested Desktop Environments include: **KDE, GNOME, Cinnamon, MATE, XFCE**  
+Previously tested distributions include: **Ubuntu, Manjaro/ArchLinux, Debian, Fedora, openSUSE**
 
 > Please check the [nuances](#quirks) section for more detailed information.  
 > If you encounter an issue, see [this](#bugs) and file a bug report.
@@ -1002,7 +1006,7 @@ Timekpr-nExT writes logs to track execution and performance. These files are gen
 They mainly serve as a record in case something goes wrong and can be helpful for debugging.
 
 - Log files contain mostly **technical details**; nothing sensitive except usernames (which can be obfuscated if necessary).  
-- From version `0.5.1`, log level changes take effect immediately—no restart required.  
+- From version `0.5.1`, log level changes take effect immediately-no restart required.  
 - Log size can be reduced by lowering log level in the administration app, though level 2 (default) is preferred for troubleshooting.
 
 </br>
@@ -1035,7 +1039,7 @@ To gather logs from `journalctl`, use the following commands:
 
 After gathering the log files, **compress them** (e.g., using `tar.gz` or `zip`) and attach them to bug reports for faster troubleshooting.
 
-Without logs, I **cannot investigate issues** — there’s no way to magically see into your system without this information! In other
+Without logs, I **cannot investigate issues** - there’s no way to magically see into your system without this information! In other
 words - **my crystal ball is broken**!
 
 ---
@@ -1114,15 +1118,19 @@ You can also help by **translating Timekpr-nExT** into your language: [https://t
 <a name="disclaimer"></a>
 ## Disclaimer
 
-Timekpr-nExT originated from the need to improve **timekpr-revived**, focusing on precise time accounting and proper session termination. Initially, it was developed for personal use (to monitor my kid’s computer usage), but that need no longer exists.  
+Timekpr-nExT originated from the need to improve **timekpr-revived**, focusing on precise time accounting and proper session termination. Initially, it was developed for personal use (to control my kid’s computer usage), but that need no longer exists for years already.  
 
-Key points:  
+Support and development:  
 
-- **Proactive feature development is limited:** Expect feature additions mainly from user suggestions or requests.  
-- **Testing on new distributions is limited:** Timekpr-nExT may not be actively tested on the latest OS versions unless bugs are reported.  
+- **Proactive feature development is limited:** Expect feature additions mainly from user suggestions or requests. Occasionally, I may also implement something simply because I feel like it would be useful.  
+- **Testing on new distributions is almost non-existent:** Timekpr-nExT may not be actively tested on the latest OS versions unless bugs are reported.  
+- **Testing in general is almost non-existent**: I have not used Timekpr-nExT myself for a long time and do not plan to, therefore testing is limited to what is required for bug fixes.  
+
+Features:  
+
 - **Configurability:** Timekpr-nExT is flexible; simple needs can be met without complexity, but advanced configurations are possible.
 
-If the application meets your needs, consider showing support [here](#support). Otherwise, suggest features or improvements—you may see them implemented in future updates.
+If the application meets your needs, consider showing support [here](#support). Otherwise, suggest features or improvements-you may see them implemented in future updates.
 
 ---
 

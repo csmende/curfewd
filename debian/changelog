@@ -1,10 +1,13 @@
-timekpr-next-beta (0.5.10-1ubuntu1~ppa1) unstable; urgency=medium
+timekpr-next-beta (0.5.10-2ubuntu1~ppa1) unstable; urgency=medium
 
   * timekpra will now exit with non zero exit code when there are errors processing
       user request
   * added Lao translation (thanks to boneni)
+  * disable previously implemented workarounds
+      TTY switch which was needed for older GDM login screen which got lost and did not show user the login screen
+      after terminating sessions timekpr was killing leftover processes which should be terminated along the session
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Thu, 29 Jan 2026 19:37:13 +0200
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Wed, 11 Mar 2026 08:21:41 +0200
 
 timekpr-next-beta (0.5.9-5ubuntu6~ppa1) unstable; urgency=medium
 
