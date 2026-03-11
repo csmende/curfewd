@@ -201,6 +201,8 @@ class timekprUserLoginManager(object):
 
     def determineLoginManagerVT(self, pUserName, pUserPath):
         """Get login manager session VTNr"""
+        pass
+        """
         # if we did not yet find a login manager VTNr
         if self._loginManagerVTNr is None and self._loginManagerVTNrRetries < cons.TK_MAX_RETRIES:
             # def
@@ -256,9 +258,13 @@ class timekprUserLoginManager(object):
             self._loginManagerVTNrRetries += 1
             # seat is NOT found and we'll not try to find it anymore
             log.log(cons.TK_LOG_LEVEL_INFO, "INFO: login manager (%s) TTY is NOT found, giving up until restart" % (pUserName))
+        """
 
     def switchTTY(self, pSeatId, pForce):
         """Swith TTY for login screen"""
+        pass
+
+        """
         # defaults
         willSwitchTTY = True
         # switch to right TTY (if needed)
@@ -301,6 +307,7 @@ class timekprUserLoginManager(object):
 
         # return false for repeat schedule to be discarded
         return False
+        """
 
     def lockUserSessionsManager(self, pUserSessions):
         """Ask login manager to lock user sessions"""
@@ -328,7 +335,7 @@ class timekprUserLoginManager(object):
         userSessionList = self.getUserSessionList(pUserName, pUserPath)
         # indication whether we are killing smth
         sessionsToKill = 0
-        lastSeat = None
+        #lastSeat = None
         userActive = False
 
         # go through all user sessions
@@ -344,7 +351,7 @@ class timekprUserLoginManager(object):
                 else:
                     GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.TerminateSession, rUserSession["sessionId"])
                 # get last seat
-                lastSeat = rUserSession["seat"] if rUserSession["seat"] is not None and rUserSession["seat"] != "" and rUserSession["vtnr"] is not None and rUserSession["vtnr"] != "" and self._loginManagerVTNr != rUserSession["vtnr"] else lastSeat
+                #lastSeat = rUserSession["seat"] if rUserSession["seat"] is not None and rUserSession["seat"] != "" and rUserSession["vtnr"] is not None and rUserSession["vtnr"] != "" and self._loginManagerVTNr != rUserSession["vtnr"] else lastSeat
                 # determine whether user is active
                 userActive = userActive or rUserSession["state"] == "active"
                 # count sessions to kill
@@ -352,6 +359,7 @@ class timekprUserLoginManager(object):
             else:
                 log.log(cons.TK_LOG_LEVEL_INFO, "saving \"%s\" session %s (%s)" % (pUserName, rUserSession["sessionPath"], rUserSession["type"]))
 
+        """
         # kill leftover processes (if we are killing smth)
         if sessionsToKill > 0 and userActive and lastSeat is not None:
             # timeout
@@ -371,6 +379,7 @@ class timekprUserLoginManager(object):
             log.log(cons.TK_LOG_LEVEL_WARN, "dipatching a killer for leftover processes after %i seconds" % (tmo))
             # schedule leftover processes to be killed (it's rather sophisticated killing and checks whether we need to kill gui or terminal processes)
             GLib.timeout_add_seconds(tmo, misc.killLeftoverUserProcesses, pUserName, pTimekprConfig)
+        """
 
         log.log(cons.TK_LOG_LEVEL_EXTRA_DEBUG, "finish terminateUserSessions")
 
