@@ -238,7 +238,7 @@ class timekprUserLoginManager(object):
                     # loop through users and try to guess login managers
                     for rSession in userSessionList:
                         # check whether user seems to be login manager user
-                        if rSession["type"] in cons.TK_SESSION_TYPES_CTRL:
+                        if rSession["type"] in cons.TK_SESSION_TYPES_CTRL and rSession["state"] in ("online", "active"):
                             # we got right session, save VTNr
                             loginSessionVTNr = rSession["vtnr"]
                             # done
