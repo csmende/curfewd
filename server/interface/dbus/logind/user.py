@@ -144,7 +144,33 @@ class timekprUserManager(object):
 
         # init active accounting (the status is determined by sessions, not by user state)
         userActive = userScreenLocked = False
-        sessionLockedState = "False"
+
+        # get locked state, only if it's available
+        if self._sessionLockedStateAvailable is None:
+            # if enabled
+            if pTimekprConfig.getTimekprUseLockedHintEnabled() is True:
+                try:
+                    # get locked state
+                    rSessionId = next(iter(self._timekprUserSessions))
+                    sessionLockedState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "LockedHint")))
+                    # locked state available
+                    if sessionLockedState in ("True", "False"):
+                        # state used
+                        self._sessionLockedStateAvailable = True
+                        log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is available for user \"%s\" and will be used for idle state detection (if it works correctly)" % (self._userName))
+                except:
+                    # nothing
+                    pass
+            else:
+                # locked state will not be used
+                self._sessionLockedStateAvailable = False
+                log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is DISABLED for user \"%s\", will rely on client screensaver state (if it works)" % (self._userName))
+
+            # not set
+            if self._sessionLockedStateAvailable is None:
+                # locked state not used
+                self._sessionLockedStateAvailable = False
+                log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is NOT available for user \"%s\", will rely on client screensaver state (if it works)" % (self._userName))
 
         # if user locked the computer
         if pIsScreenLocked and not pTimekprUserConfig.getUserTrackInactive():
@@ -154,7 +180,7 @@ class timekprUserManager(object):
             # go through all user sessions
             for rSessionId in self._timekprUserSessions:
                 # not locked
-                sessionLockedState = "False"
+                sessionLockedState = None
 
                 # dbus performance measurement
                 misc.measureDBUSTimeElapsed(pStart=True)
@@ -165,19 +191,9 @@ class timekprUserManager(object):
                 sessionState = str(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "State"))
                 sessionIdleState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "IdleHint")))
                 # get locked state, only if it's available
-                if self._sessionLockedStateAvailable or self._sessionLockedStateAvailable is None:
-                    try:
-                        # get locked state
-                        sessionLockedState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "LockedHint")))
-                        # locked state available
-                        if self._sessionLockedStateAvailable is None:
-                            # state used
-                            self._sessionLockedStateAvailable = True
-                            log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is available for user \"%s\" and will be used for idle state detection (if it works)" % (self._userName))
-                    except:
-                        # locked state not used
-                        self._sessionLockedStateAvailable = False
-                        log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is NOT available for user \"%s\", will rely on client screensaver state (if it works)" % (self._userName))
+                if self._sessionLockedStateAvailable is True:
+                    # get locked state
+                    sessionLockedState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "LockedHint")))
                 # measurement logging
                 misc.measureDBUSTimeElapsed(pStop=True, pDbusIFName=rSessionId)
 
@@ -185,7 +201,7 @@ class timekprUserManager(object):
                 log.log(cons.TK_LOG_LEVEL_DEBUG, "session stats, styp: %s, sVTNr: %s, sl1St: %s, sl1idlst: %s, sl1lckst: %s" % (sessionType, sessionVTNr, sessionState, sessionIdleState, sessionLockedState))
 
                 # check if active
-                if sessionState == "active" and sessionIdleState == "False" and sessionLockedState == "False":
+                if sessionState == "active" and sessionIdleState == "False" and sessionLockedState != "True":
                     # validate against session types we specifically do not track
                     if sessionType in pTimekprConfig.getTimekprSessionsExcl():
                         # session is on the list of session types we specifically do not track
@@ -220,7 +236,7 @@ class timekprUserManager(object):
         # screen lock state
         userScreenLocked = (pIsScreenLocked or sessionLockedState == "True")
 
-        log.log(cons.TK_LOG_LEVEL_DEBUG, "---=== finish isUserActive: %s ===---" % (str(userActive)))
+        log.log(cons.TK_LOG_LEVEL_DEBUG, "---=== finish isUserActive for \"%s\": %s ===---" % (self._userName, str(userActive)))
 
         # return whether user is active
         return userActive, userScreenLocked

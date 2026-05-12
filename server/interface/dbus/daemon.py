@@ -1355,6 +1355,28 @@ class timekprDaemon(dbus.service.Object):
         return result, message
 
     @dbus.service.method(cons.TK_DBUS_ADMIN_INTERFACE, in_signature="b", out_signature="is")
+    def setTimekprUseLockedHintEnabled(self, pUseLockedHint):
+        """Set whether PlayTime is enabled globally"""
+        try:
+            # check the configuration
+            mainConfigurationProcessor = timekprConfigurationProcessor()
+
+            # check and set config
+            result, message = mainConfigurationProcessor.checkAndSetTimekprUseLockedHintEnabled(True if bool(pUseLockedHint) else False)
+
+            # set in memory as well
+            self._timekprConfig.setTimekprUseLockedHintEnabled(True if bool(pUseLockedHint) else False)
+        except Exception as unexpectedException:
+            # logging
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
+
+        # result
+        return result, message
+
+    @dbus.service.method(cons.TK_DBUS_ADMIN_INTERFACE, in_signature="b", out_signature="is")
     def setTimekprPlayTimeEnabled(self, pPlayTimeEnabled):
         """Set whether PlayTime is enabled globally"""
         try:

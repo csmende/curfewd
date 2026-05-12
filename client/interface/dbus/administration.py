@@ -851,6 +851,30 @@ class timekprAdminConnector(object):
         # result
         return result, message
 
+    def setTimekprUseLockedHintEnabled(self, pUseLockedHint):
+        """Set up global LockedHint enable switch"""
+        # initial values
+        result, message = self.initReturnCodes(pInit=True, pCall=False)
+
+        # if we have end-point
+        if self._timekprAdminDbusInterface is not None:
+            # defaults
+            result, message = self.initReturnCodes(pInit=False, pCall=True)
+
+            # notify through dbus
+            try:
+                # call dbus method
+                result, message = self._timekprAdminDbusInterface.setTimekprUseLockedHintEnabled(pUseLockedHint)
+            except Exception as ex:
+                # exception
+                result, message = self.formatException(str(ex), __name__, self.setTimekprUseLockedHintEnabled.__name__)
+
+                # we cannot send notif through dbus, we need to reschedule connecton
+                self.initTimekprConnection(False, True)
+
+        # result
+        return result, message
+
     def setTimekprPlayTimeEnabled(self, pPlayTimeEnabled):
         """Set up global PlayTime enable switch"""
         # initial values

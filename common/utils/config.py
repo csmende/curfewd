@@ -271,6 +271,12 @@ class timekprConfig(object):
         param = "TIMEKPR_PLAYTIME_ENHANCED_ACTIVITY_MONITOR_ENABLED"
         resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=cons.TK_PLAYTIME_ENABLED, pCheckValue=None, pOverallSuccess=resultValue)
 
+        # global misc config section
+        section = "MISC"
+        # read
+        param = "TIMEKPR_USE_LOCKED_HINT"
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=True, pCheckValue=None, pOverallSuccess=resultValue)
+
         # if we could not read some values, save what we could + defaults
         if not resultValue:
             # logging
@@ -384,6 +390,16 @@ class timekprConfig(object):
         dstLines += [ "%s = %s\n" % (param, self._timekprConfig[param] if pReuseValues else cons.TK_LOGFILE_DIR)]
 
         # section
+        section = "MISC"
+        # values / comments
+        dstLines += ["\n[%s]\n" % section]
+        dstLines += ["%s\n" % "#### this section contains global misc configuration"]
+        # set up param
+        param = "TIMEKPR_USE_LOCKED_HINT"
+        dstLines += ["%s\n" % "# whether timekpr should use LockedHint for screen locking detection from login1 (it is/was quite buggy)"]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(True))]
+
+        # section
         section = "PLAYTIME"
         # values / comments
         dstLines += ["\n[%s]\n" % section]
@@ -444,12 +460,18 @@ class timekprConfig(object):
         # which users to exclude from time accounting
         param = "TIMEKPR_USERS_EXCL"
         values[param] = str(self._timekprConfig[param])
+
+        # whether use of LockedHint is enabled
+        param = "TIMEKPR_USE_LOCKED_HINT"
+        values[param] = str(self._timekprConfig[param])
+
         # whether PlayTime is enabled
         param = "TIMEKPR_PLAYTIME_ENABLED"
         values[param] = str(self._timekprConfig[param])
         # whether PlayTime enhanced activity monitor is enabled
         param = "TIMEKPR_PLAYTIME_ENHANCED_ACTIVITY_MONITOR_ENABLED"
         values[param] = str(self._timekprConfig[param])
+
         # ## pass placeholders for directories ##
         # config dir
         param = "TIMEKPR_CONFIG_DIR"
@@ -506,6 +528,10 @@ class timekprConfig(object):
             log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
             # log
             param = "TIMEKPR_USERS_EXCL"
+            log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
+
+            # log
+            param = "TIMEKPR_USE_LOCKED_HINT"
             log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
 
             # log
@@ -624,6 +650,13 @@ class timekprConfig(object):
         # result
         return cons.TK_LOGFILE_DIR_DEV if cons.TK_DEV_ACTIVE else self._timekprConfig[param]
 
+    def getTimekprUseLockedHintEnabled(self):
+        """Return whether we can use buggy LockedHint from login1 to detect inactivity"""
+        # param
+        param = "TIMEKPR_USE_LOCKED_HINT"
+        # result
+        return self._timekprConfig[param]
+
     def getTimekprPlayTimeEnabled(self):
         """Return whether we have PlayTime enabled"""
         # param
@@ -692,6 +725,11 @@ class timekprConfig(object):
         """Set sessions to exclude"""
         # set
         self._timekprConfig["TIMEKPR_USERS_EXCL"] = ";".join(pUsersExcl)
+
+    def setTimekprUseLockedHintEnabled(self, pUseLockedHint):
+        """Set use LockedHint enable flag"""
+        # set
+        self._timekprConfig["TIMEKPR_USE_LOCKED_HINT"] = pUseLockedHint
 
     def setTimekprPlayTimeEnabled(self, pPlayTimeEnabled):
         """Set PlayTime enable flag"""
