@@ -199,72 +199,68 @@ class timekprUserLoginManager(object):
         # return sessions
         return userSessions
 
-    def determineLoginManagerVT(self, pUserName, pUserPath):
+    def determineLoginManagerVT(self, pUserName, pUserPath, pTimekprConfig):
         """Get login manager session VTNr"""
-        pass
-        """
-        # if we did not yet find a login manager VTNr
-        if self._loginManagerVTNr is None and self._loginManagerVTNrRetries < cons.TK_MAX_RETRIES:
-            # def
-            loginManager = None
-            # loop through login managers
-            for rLMan in cons.TK_USERS_LOGIN_MANAGERS.split(";"):
-                # since we are checking this with UID less than 1K (or whatever is configured in limits file)
-                # we can safely compare usernames or try to use LIKE operator on user name
-                # exact match
-                if rLMan == pUserName:
-                    # we found one
-                    loginManager = pUserName
-                else:
-                    # try to determine if we found one (according to "3.278 Portable Filename Character Set" additional symbols are ._-)
-                    for rSymb in (".", "_", "-"):
-                        # check for name
-                        if "%s%s" % (rSymb, rLMan) in pUserName or "%s%s%s" % (rSymb, rLMan, rSymb) in pUserName or "%s%s" % (rLMan, rSymb) in pUserName:
-                            # we found one
-                            loginManager = pUserName
-                            # first match is ok
-                            break
+        # if we need to
+        if pTimekprConfig.getTimekprSwitchTTYEnabled():
+            # if we did not yet find a login manager VTNr
+            if self._loginManagerVTNr is None and self._loginManagerVTNrRetries < cons.TK_MAX_RETRIES:
+                # def
+                loginManager = None
+                # loop through login managers
+                for rLMan in cons.TK_USERS_LOGIN_MANAGERS.split(";"):
+                    # since we are checking this with UID less than 1K (or whatever is configured in limits file)
+                    # we can safely compare usernames or try to use LIKE operator on user name
+                    # exact match
+                    if rLMan == pUserName:
+                        # we found one
+                        loginManager = pUserName
+                    else:
+                        # try to determine if we found one (according to "3.278 Portable Filename Character Set" additional symbols are ._-)
+                        for rSymb in (".", "_", "-"):
+                            # check for name
+                            if "%s%s" % (rSymb, rLMan) in pUserName or "%s%s%s" % (rSymb, rLMan, rSymb) in pUserName or "%s%s" % (rLMan, rSymb) in pUserName:
+                                # we found one
+                                loginManager = pUserName
+                                # first match is ok
+                                break
 
-            # determine if we have one like manager
-            if loginManager is not None:
-                # advance counter
+                # determine if we have one like manager
+                if loginManager is not None:
+                    # advance counter
+                    self._loginManagerVTNrRetries += 1
+                    # log
+                    log.log(cons.TK_LOG_LEVEL_INFO, "INFO: searching for login manager (%s) VTNr" % (pUserName))
+                    # VTNr (default)
+                    loginSessionVTNr = None
+                    # get user session list
+                    userSessionList = self.getUserSessionList(pUserName, pUserPath)
+                    # loop through users and try to guess login managers
+                    for rSession in userSessionList:
+                        # check whether user seems to be login manager user
+                        if rSession["type"] in cons.TK_SESSION_TYPES_CTRL:
+                            # we got right session, save VTNr
+                            loginSessionVTNr = rSession["vtnr"]
+                            # done
+                            break
+                    # if we found login manager VTNr
+                    if loginSessionVTNr is not None and loginSessionVTNr != "":
+                        # return VTNr
+                        self._loginManagerVTNr = loginSessionVTNr
+                        # seat is found
+                        log.log(cons.TK_LOG_LEVEL_INFO, "INFO: login manager (%s) TTY found: %s" % (pUserName, self._loginManagerVTNr))
+                else:
+                    # log
+                    log.log(cons.TK_LOG_LEVEL_DEBUG, "INFO: searching for login manager, user (%s) does not look like one" % (pUserName))
+            # in case we tried hard
+            elif self._loginManagerVTNr is None and self._loginManagerVTNrRetries == cons.TK_MAX_RETRIES:
+                # advance counter (so we never get here again)
                 self._loginManagerVTNrRetries += 1
-                # log
-                log.log(cons.TK_LOG_LEVEL_DEBUG, "INFO: searching for login manager (%s) VTNr" % (pUserName))
-                # VTNr (default)
-                loginSessionVTNr = None
-                # get user session list
-                userSessionList = self.getUserSessionList(pUserName, pUserPath)
-                # loop through users and try to guess login managers
-                for rSession in userSessionList:
-                    # check whether user seems to be login manager user
-                    if rSession["type"] in cons.TK_SESSION_TYPES_CTRL:
-                        # we got right session, save VTNr
-                        loginSessionVTNr = rSession["vtnr"]
-                        # done
-                        break
-                # if we found login manager VTNr
-                if loginSessionVTNr is not None and loginSessionVTNr != "":
-                    # return VTNr
-                    self._loginManagerVTNr = loginSessionVTNr
-                    # seat is found
-                    log.log(cons.TK_LOG_LEVEL_INFO, "INFO: login manager (%s) TTY found: %s" % (pUserName, self._loginManagerVTNr))
-            else:
-                # log
-                log.log(cons.TK_LOG_LEVEL_DEBUG, "INFO: searching for login manager, user (%s) does not look like one" % (pUserName))
-        # in case we tried hard
-        elif self._loginManagerVTNr is None and self._loginManagerVTNrRetries == cons.TK_MAX_RETRIES:
-            # advance counter (so we never get here again)
-            self._loginManagerVTNrRetries += 1
-            # seat is NOT found and we'll not try to find it anymore
-            log.log(cons.TK_LOG_LEVEL_INFO, "INFO: login manager (%s) TTY is NOT found, giving up until restart" % (pUserName))
-        """
+                # seat is NOT found and we'll not try to find it anymore
+                log.log(cons.TK_LOG_LEVEL_INFO, "INFO: login manager (%s) TTY is NOT found, giving up until restart" % (pUserName))
 
     def switchTTY(self, pSeatId, pForce):
         """Swith TTY for login screen"""
-        pass
-
-        """
         # defaults
         willSwitchTTY = True
         # switch to right TTY (if needed)
@@ -307,7 +303,6 @@ class timekprUserLoginManager(object):
 
         # return false for repeat schedule to be discarded
         return False
-        """
 
     def lockUserSessionsManager(self, pUserSessions):
         """Ask login manager to lock user sessions"""
@@ -335,7 +330,7 @@ class timekprUserLoginManager(object):
         userSessionList = self.getUserSessionList(pUserName, pUserPath)
         # indication whether we are killing smth
         sessionsToKill = 0
-        #lastSeat = None
+        lastSeat = None
         userActive = False
 
         # go through all user sessions
@@ -351,7 +346,8 @@ class timekprUserLoginManager(object):
                 else:
                     GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.TerminateSession, rUserSession["sessionId"])
                 # get last seat
-                #lastSeat = rUserSession["seat"] if rUserSession["seat"] is not None and rUserSession["seat"] != "" and rUserSession["vtnr"] is not None and rUserSession["vtnr"] != "" and self._loginManagerVTNr != rUserSession["vtnr"] else lastSeat
+                if pTimekprConfig.getTimekprSwitchTTYEnabled():
+                    lastSeat = rUserSession["seat"] if rUserSession["seat"] is not None and rUserSession["seat"] != "" and rUserSession["vtnr"] is not None and rUserSession["vtnr"] != "" and self._loginManagerVTNr != rUserSession["vtnr"] else lastSeat
                 # determine whether user is active
                 userActive = userActive or rUserSession["state"] == "active"
                 # count sessions to kill
@@ -359,9 +355,8 @@ class timekprUserLoginManager(object):
             else:
                 log.log(cons.TK_LOG_LEVEL_INFO, "saving \"%s\" session %s (%s)" % (pUserName, rUserSession["sessionPath"], rUserSession["type"]))
 
-        """
         # kill leftover processes (if we are killing smth)
-        if sessionsToKill > 0 and userActive and lastSeat is not None:
+        if pTimekprConfig.getTimekprSwitchTTYEnabled() and sessionsToKill > 0 and userActive and lastSeat is not None:
             # timeout
             tmo = cons.TK_POLLTIME - 1
             # switch TTY
@@ -372,14 +367,13 @@ class timekprUserLoginManager(object):
             log.log(cons.TK_LOG_LEVEL_INFO, "TTY switch ommitted for user %s" % (pUserName))
 
         # cleanup
-        if sessionsToKill > 0:
+        if pTimekprConfig.getTimekprKillLeftOverProcessesEnabled() and sessionsToKill > 0:
             # timeout
             tmo = cons.TK_POLLTIME * 2 + 1
             # dispatch a killer for leftovers
             log.log(cons.TK_LOG_LEVEL_WARN, "dipatching a killer for leftover processes after %i seconds" % (tmo))
             # schedule leftover processes to be killed (it's rather sophisticated killing and checks whether we need to kill gui or terminal processes)
             GLib.timeout_add_seconds(tmo, misc.killLeftoverUserProcesses, pUserName, pTimekprConfig)
-        """
 
         log.log(cons.TK_LOG_LEVEL_EXTRA_DEBUG, "finish terminateUserSessions")
 
