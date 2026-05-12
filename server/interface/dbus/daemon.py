@@ -223,7 +223,7 @@ class timekprDaemon(dbus.service.Object):
                     # sys user
                     log.log(cons.TK_LOG_LEVEL_INFO, "NOTE: a system or mismatched user \"%s\" with UID %s explicitly excluded (note issued once per user)" % (rUserName, userDict[cons.TK_CTRL_UID]))
                     # try to get login manager VT (if not already found)
-                    self._timekprLoginManager.determineLoginManagerVT(rUserName, userDict[cons.TK_CTRL_UPATH])
+                    self._timekprLoginManager.determineLoginManagerVT(rUserName, userDict[cons.TK_CTRL_UPATH], self._timekprConfig)
                     # add to ignored list
                     self._timekprIgnoredUserList[userDict[cons.TK_CTRL_UID]] = {
                         cons.TK_CTRL_UID: userDict[cons.TK_CTRL_UID],
@@ -1356,7 +1356,7 @@ class timekprDaemon(dbus.service.Object):
 
     @dbus.service.method(cons.TK_DBUS_ADMIN_INTERFACE, in_signature="b", out_signature="is")
     def setTimekprUseLockedHintEnabled(self, pUseLockedHint):
-        """Set whether PlayTime is enabled globally"""
+        """Set whether LockedHint is used globally"""
         try:
             # check the configuration
             mainConfigurationProcessor = timekprConfigurationProcessor()
@@ -1366,6 +1366,50 @@ class timekprDaemon(dbus.service.Object):
 
             # set in memory as well
             self._timekprConfig.setTimekprUseLockedHintEnabled(True if bool(pUseLockedHint) else False)
+        except Exception as unexpectedException:
+            # logging
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
+
+        # result
+        return result, message
+
+    @dbus.service.method(cons.TK_DBUS_ADMIN_INTERFACE, in_signature="b", out_signature="is")
+    def setTimekprSwitchTTYEnabled(self, pSwitchTTYEnabled):
+        """Set whether switch tty option is enabled globally"""
+        try:
+            # check the configuration
+            mainConfigurationProcessor = timekprConfigurationProcessor()
+
+            # check and set config
+            result, message = mainConfigurationProcessor.checkAndSetTimekprSwitchTTYEnabled(True if bool(pSwitchTTYEnabled) else False)
+
+            # set in memory as well
+            self._timekprConfig.setTimekprSwitchTTYEnabled(True if bool(pSwitchTTYEnabled) else False)
+        except Exception as unexpectedException:
+            # logging
+            log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))
+
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_SAVECONFIG_UNEXPECTED_ERROR", e=True)
+
+        # result
+        return result, message
+
+    @dbus.service.method(cons.TK_DBUS_ADMIN_INTERFACE, in_signature="b", out_signature="is")
+    def setTimekprKillLeftOverProcessesEnabled(self, pKillLeftOverProcessesEnabled):
+        """Set whether kill leftover processes option is enabled globally"""
+        try:
+            # check the configuration
+            mainConfigurationProcessor = timekprConfigurationProcessor()
+
+            # check and set config
+            result, message = mainConfigurationProcessor.checkAndSetTimekprKillLeftOverProcessesEnabled(True if bool(pKillLeftOverProcessesEnabled) else False)
+
+            # set in memory as well
+            self._timekprConfig.setTimekprKillLeftOverProcessesEnabled(True if bool(pKillLeftOverProcessesEnabled) else False)
         except Exception as unexpectedException:
             # logging
             log.log(cons.TK_LOG_LEVEL_ERR, "Unexpected ERROR (details, %s)!" % (misc.getExceptionDetails()))

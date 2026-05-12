@@ -875,6 +875,54 @@ class timekprAdminConnector(object):
         # result
         return result, message
 
+    def setTimekprSwitchTTYEnabled(self, pSwitchTTYEnabled):
+        """Set up global switch tty option"""
+        # initial values
+        result, message = self.initReturnCodes(pInit=True, pCall=False)
+
+        # if we have end-point
+        if self._timekprAdminDbusInterface is not None:
+            # defaults
+            result, message = self.initReturnCodes(pInit=False, pCall=True)
+
+            # notify through dbus
+            try:
+                # call dbus method
+                result, message = self._timekprAdminDbusInterface.setTimekprSwitchTTYEnabled(pSwitchTTYEnabled)
+            except Exception as ex:
+                # exception
+                result, message = self.formatException(str(ex), __name__, self.setTimekprSwitchTTYEnabled.__name__)
+
+                # we cannot send notif through dbus, we need to reschedule connecton
+                self.initTimekprConnection(False, True)
+
+        # result
+        return result, message
+
+    def setTimekprKillLeftOverProcessesEnabled(self, pKillLeftOverProcessesEnabled):
+        """Set up global kill leftover processes option"""
+        # initial values
+        result, message = self.initReturnCodes(pInit=True, pCall=False)
+
+        # if we have end-point
+        if self._timekprAdminDbusInterface is not None:
+            # defaults
+            result, message = self.initReturnCodes(pInit=False, pCall=True)
+
+            # notify through dbus
+            try:
+                # call dbus method
+                result, message = self._timekprAdminDbusInterface.setTimekprKillLeftOverProcessesEnabled(pKillLeftOverProcessesEnabled)
+            except Exception as ex:
+                # exception
+                result, message = self.formatException(str(ex), __name__, self.setTimekprKillLeftOverProcessesEnabled.__name__)
+
+                # we cannot send notif through dbus, we need to reschedule connecton
+                self.initTimekprConnection(False, True)
+
+        # result
+        return result, message
+
     def setTimekprPlayTimeEnabled(self, pPlayTimeEnabled):
         """Set up global PlayTime enable switch"""
         # initial values

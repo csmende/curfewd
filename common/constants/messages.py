@@ -86,6 +86,12 @@ def initMessages():
     _messages["TK_MSG_ADMIN_CHK_LOCKEDHINT_NONE"] = {"s": _("LockedHint flag is not passed"), "e": i}
     _messages["TK_MSG_ADMIN_CHK_LOCKEDHINT_INVALID"] = {"s": _("LockedHint flag \"%%s\" is not correct"), "e": i}
     _messages["TK_MSG_ADMIN_CHK_LOCKEDHINT_INVALID_SET"] = {"s": _("LockedHint flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_SWITCHTTY_NONE"] = {"s": _("SwitchTTY flag is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_SWITCHTTY_INVALID"] = {"s": _("SwitchTTY flag \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_SWITCHTTY_INVALID_SET"] = {"s": _("SwitchTTY flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_KILLLEFTOVERS_NONE"] = {"s": _("Kill leftover processes flag is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_KILLLEFTOVERS_INVALID"] = {"s": _("Kill leftover processes flag \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_KILLLEFTOVERS_INVALID_SET"] = {"s": _("Kill leftover processes flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
     _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_NONE"] = {"s": _("PlayTime flag is not passed"), "e": i}
     _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID"] = {"s": _("PlayTime flag \"%%s\" is not correct"), "e": i}
     _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID_SET"] = {"s": _("PlayTime flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1

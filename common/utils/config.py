@@ -276,6 +276,12 @@ class timekprConfig(object):
         # read
         param = "TIMEKPR_USE_LOCKED_HINT"
         resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=True, pCheckValue=None, pOverallSuccess=resultValue)
+        # read
+        param = "TIMEKPR_SWITCH_TTY_ENABLED"
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=False, pCheckValue=None, pOverallSuccess=resultValue)
+        # read
+        param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=False, pCheckValue=None, pOverallSuccess=resultValue)
 
         # if we could not read some values, save what we could + defaults
         if not resultValue:
@@ -398,6 +404,14 @@ class timekprConfig(object):
         param = "TIMEKPR_USE_LOCKED_HINT"
         dstLines += ["%s\n" % "# whether timekpr should use LockedHint for screen locking detection from login1 (it is/was quite buggy)"]
         dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(True))]
+        # set up param
+        param = "TIMEKPR_SWITCH_TTY_ENABLED"
+        dstLines += ["%s\n" % "# whether timekpr should try to switch to login manager after terminating sessions (system should take care of it theoretically)"]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(False))]
+        # set up param
+        param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+        dstLines += ["%s\n" % "# whether timekpr should try to kill all leftover processes related to session after terminating it (system should take care of it theoretically)"]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(False))]
 
         # section
         section = "PLAYTIME"
@@ -463,6 +477,12 @@ class timekprConfig(object):
 
         # whether use of LockedHint is enabled
         param = "TIMEKPR_USE_LOCKED_HINT"
+        values[param] = str(self._timekprConfig[param])
+        # whether switch TTY is enabled
+        param = "TIMEKPR_SWITCH_TTY_ENABLED"
+        values[param] = str(self._timekprConfig[param])
+        # whether kill leftover processes is enabled
+        param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
         values[param] = str(self._timekprConfig[param])
 
         # whether PlayTime is enabled
@@ -532,6 +552,12 @@ class timekprConfig(object):
 
             # log
             param = "TIMEKPR_USE_LOCKED_HINT"
+            log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
+            # log
+            param = "TIMEKPR_SWITCH_TTY_ENABLED"
+            log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
+            # log
+            param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
             log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
 
             # log
@@ -657,6 +683,20 @@ class timekprConfig(object):
         # result
         return self._timekprConfig[param]
 
+    def getTimekprSwitchTTYEnabled(self):
+        """Get switch TTY enable flag"""
+        # param
+        param = "TIMEKPR_SWITCH_TTY_ENABLED"
+        # result
+        return self._timekprConfig[param]
+
+    def getTimekprKillLeftOverProcessesEnabled(self):
+        """Get kill leftover processes enable flag"""
+        # param
+        param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+        # result
+        return self._timekprConfig[param]
+
     def getTimekprPlayTimeEnabled(self):
         """Return whether we have PlayTime enabled"""
         # param
@@ -730,6 +770,16 @@ class timekprConfig(object):
         """Set use LockedHint enable flag"""
         # set
         self._timekprConfig["TIMEKPR_USE_LOCKED_HINT"] = pUseLockedHint
+
+    def setTimekprSwitchTTYEnabled(self, pSwitchTTYEnabled):
+        """Set switch TTY enable flag"""
+        # set
+        self._timekprConfig["TIMEKPR_SWITCH_TTY_ENABLED"] = pSwitchTTYEnabled
+
+    def setTimekprKillLeftOverProcessesEnabled(self, pKillLeftOverProcessesEnabled):
+        """Set kill leftover processes enable flag"""
+        # set
+        self._timekprConfig["TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"] = pKillLeftOverProcessesEnabled
 
     def setTimekprPlayTimeEnabled(self, pPlayTimeEnabled):
         """Set PlayTime enable flag"""
