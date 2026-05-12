@@ -52,92 +52,102 @@ def initMessages():
     _messages["TK_MSG_USER_ADMIN_CMD_SETPLAYTIMELEFT"] = {"s": _("==> set PlayTime left for the user at the current moment of time: \"+\" (add time), \"-\" (subtract time), \"=\" (set exact time available), example (add one hour)"), "e": 0}
 
     # ## this defines messages for use in configuration validation ##
-    _messages["TK_MSG_ADMIN_CHK_CTRLSESSIONS_NONE"] = {"s": _("Control sessions types are not passed"), "e": 11}
-    _messages["TK_MSG_ADMIN_CHK_CTRLSESSIONS_INVALID"] = {"s": _("Control sessions types list is not correct"), "e": 11}
-    _messages["TK_MSG_ADMIN_CHK_CTRLSESSIONS_INVALID_SET"] = {"s": _("Control sessions types list is not correct and cannot be set"), "e": 11}
-    _messages["TK_MSG_ADMIN_CHK_EXCLSESSIONS_NONE"] = {"s": _("Excluded session types are not passed"), "e": 12}
-    _messages["TK_MSG_ADMIN_CHK_EXCLSESSIONS_INVALID"] = {"s": _("Excluded session types list is not correct"), "e": 12}
-    _messages["TK_MSG_ADMIN_CHK_EXCLSESSIONS_INVALID_SET"] = {"s": _("Excluded session types list is not correct and cannot be set"), "e": 12}
-    _messages["TK_MSG_ADMIN_CHK_EXCLUSERS_NONE"] = {"s": _("Excluded user list is not passed"), "e": 13}
-    _messages["TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID"] = {"s": _("Excluded user list is not correct"), "e": 13}
-    _messages["TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID_SET"] = {"s": _("Excluded user list is not correct and cannot be set"), "e": 13}
-    _messages["TK_MSG_ADMIN_CHK_FINALWARNTIME_NONE"] = {"s": _("Final warning time is not passed"), "e": 14}
-    _messages["TK_MSG_ADMIN_CHK_FINALWARNTIME_INVALID"] = {"s": _("Final warning time \"%%s\" is not correct"), "e": 14}
-    _messages["TK_MSG_ADMIN_CHK_FINALWARNTIME_INVALID_SET"] = {"s": _("Final warning time \"%%s\" is not correct and cannot be set"), "e": 14}
-    _messages["TK_MSG_ADMIN_CHK_FINALNOTIFTIME_NONE"] = {"s": _("Final notification time is not passed"), "e": 15}
-    _messages["TK_MSG_ADMIN_CHK_FINALNOTIFTIME_INVALID"] = {"s": _("Final notification time \"%%s\" is not correct"), "e": 15}
-    _messages["TK_MSG_ADMIN_CHK_FINALNOTIFTIME_INVALID_SET"] = {"s": _("Final notification time \"%%s\" is not correct and cannot be set"), "e": 15}
-    _messages["TK_MSG_ADMIN_CHK_TERMTIME_NONE"] = {"s": _("Termination time is not passed"), "e": 16}
-    _messages["TK_MSG_ADMIN_CHK_TERMTIME_INVALID"] = {"s": _("Termination time \"%%s\" is not correct"), "e": 16}
-    _messages["TK_MSG_ADMIN_CHK_TERMTIME_INVALID_SET"] = {"s": _("Termination time \"%%s\" is not correct and cannot be set"), "e": 16}
-    _messages["TK_MSG_ADMIN_CHK_TRACKINACTIVE_NONE"] = {"s": _("Track inactive is not passed"), "e": 17}
-    _messages["TK_MSG_ADMIN_CHK_TRACKINACTIVE_INVALID"] = {"s": _("Track inactive \"%%s\" is not correct"), "e": 17}
-    _messages["TK_MSG_ADMIN_CHK_TRACKINACTIVE_INVALID_SET"] = {"s": _("Track inactive \"%%s\" is not correct and cannot be set"), "e": 17}
-    _messages["TK_MSG_ADMIN_CHK_LOGLEVEL_NONE"] = {"s": _("Log level is not passed"), "e": 18}
-    _messages["TK_MSG_ADMIN_CHK_LOGLEVEL_INVALID"] = {"s": _("Log level \"%%s\" is not correct"), "e": 18}
-    _messages["TK_MSG_ADMIN_CHK_LOGLEVEL_INVALID_SET"] = {"s": _("Log level \"%%s\" is not correct and cannot be set"), "e": 18}
-    _messages["TK_MSG_ADMIN_CHK_POLLTIME_NONE"] = {"s": _("Poll time is not passed"), "e": 19}
-    _messages["TK_MSG_ADMIN_CHK_POLLTIME_INVALID"] = {"s": _("Poll time \"%%s\" is not correct"), "e": 19}
-    _messages["TK_MSG_ADMIN_CHK_POLLTIME_INVALID_SET"] = {"s": _("Poll time \"%%s\" is not correct and cannot be set"), "e": 19}
-    _messages["TK_MSG_ADMIN_CHK_SAVETIME_NONE"] = {"s": _("Save time is not passed"), "e": 20}
-    _messages["TK_MSG_ADMIN_CHK_SAVETIME_INVALID"] = {"s": _("Save time \"%%s\" is not correct"), "e": 20}
-    _messages["TK_MSG_ADMIN_CHK_SAVETIME_INVALID_SET"] = {"s": _("Save time \"%%s\" is not correct and cannot be set"), "e": 20}
-    _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_NONE"] = {"s": _("PlayTime flag is not passed"), "e": 21}
-    _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID"] = {"s": _("PlayTime flag \"%%s\" is not correct"), "e": 21}
-    _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID_SET"] = {"s": _("PlayTime flag \"%%s\" is not correct and cannot be set"), "e": 21}
-    _messages["TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_NONE"] = {"s": _("PlayTime enhanced activity monitor flag is not passed"), "e": 22}
-    _messages["TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_INVALID"] = {"s": _("PlayTime enhanced activity monitor flag \"%%s\" is not correct"), "e": 22}
-    _messages["TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_INVALID_SET"] = {"s": _("PlayTime enhanced activity monitor flag \"%%s\" is not correct and cannot be set"), "e": 22}
+    i = 10
+    _messages["TK_MSG_ADMIN_CHK_CTRLSESSIONS_NONE"] = {"s": _("Control sessions types are not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_CTRLSESSIONS_INVALID"] = {"s": _("Control sessions types list is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_CTRLSESSIONS_INVALID_SET"] = {"s": _("Control sessions types list is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_EXCLSESSIONS_NONE"] = {"s": _("Excluded session types are not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_EXCLSESSIONS_INVALID"] = {"s": _("Excluded session types list is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_EXCLSESSIONS_INVALID_SET"] = {"s": _("Excluded session types list is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_EXCLUSERS_NONE"] = {"s": _("Excluded user list is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID"] = {"s": _("Excluded user list is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID_SET"] = {"s": _("Excluded user list is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_FINALWARNTIME_NONE"] = {"s": _("Final warning time is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_FINALWARNTIME_INVALID"] = {"s": _("Final warning time \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_FINALWARNTIME_INVALID_SET"] = {"s": _("Final warning time \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_FINALNOTIFTIME_NONE"] = {"s": _("Final notification time is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_FINALNOTIFTIME_INVALID"] = {"s": _("Final notification time \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_FINALNOTIFTIME_INVALID_SET"] = {"s": _("Final notification time \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_TERMTIME_NONE"] = {"s": _("Termination time is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_TERMTIME_INVALID"] = {"s": _("Termination time \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_TERMTIME_INVALID_SET"] = {"s": _("Termination time \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_TRACKINACTIVE_NONE"] = {"s": _("Track inactive is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_TRACKINACTIVE_INVALID"] = {"s": _("Track inactive \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_TRACKINACTIVE_INVALID_SET"] = {"s": _("Track inactive \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_LOGLEVEL_NONE"] = {"s": _("Log level is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_LOGLEVEL_INVALID"] = {"s": _("Log level \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_LOGLEVEL_INVALID_SET"] = {"s": _("Log level \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_POLLTIME_NONE"] = {"s": _("Poll time is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_POLLTIME_INVALID"] = {"s": _("Poll time \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_POLLTIME_INVALID_SET"] = {"s": _("Poll time \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_SAVETIME_NONE"] = {"s": _("Save time is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_SAVETIME_INVALID"] = {"s": _("Save time \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_SAVETIME_INVALID_SET"] = {"s": _("Save time \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_LOCKEDHINT_NONE"] = {"s": _("LockedHint flag is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_LOCKEDHINT_INVALID"] = {"s": _("LockedHint flag \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_LOCKEDHINT_INVALID_SET"] = {"s": _("LockedHint flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_SWITCHTTY_NONE"] = {"s": _("SwitchTTY flag is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_SWITCHTTY_INVALID"] = {"s": _("SwitchTTY flag \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_SWITCHTTY_INVALID_SET"] = {"s": _("SwitchTTY flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_KILLLEFTOVERS_NONE"] = {"s": _("Kill leftover processes flag is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_KILLLEFTOVERS_INVALID"] = {"s": _("Kill leftover processes flag \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_KILLLEFTOVERS_INVALID_SET"] = {"s": _("Kill leftover processes flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_NONE"] = {"s": _("PlayTime flag is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID"] = {"s": _("PlayTime flag \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID_SET"] = {"s": _("PlayTime flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_NONE"] = {"s": _("PlayTime enhanced activity monitor flag is not passed"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_INVALID"] = {"s": _("PlayTime enhanced activity monitor flag \"%%s\" is not correct"), "e": i}
+    _messages["TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_INVALID_SET"] = {"s": _("PlayTime enhanced activity monitor flag \"%%s\" is not correct and cannot be set"), "e": i} ; i += 1
 
     # ## this defines messages for use in user configuration validation ##
-    _messages["TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_DAY_NONE"] = {"s": _("User's \"%%s\" day number must be present"), "e": 23}
-    _messages["TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_DAY_INVALID"] = {"s": _("User's \"%%s\" day number must be between 1 and 7"), "e": 23}
-    _messages["TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_INVALID_SET"] = {"s": _("User's \"%%s\" allowed hours are not correct and cannot be set"), "e": 23}
-    _messages["TK_MSG_USER_ADMIN_CHK_DAYLIST_NONE"] = {"s": _("User's \"%%s\" day list is not passed"), "e": 24}
-    _messages["TK_MSG_USER_ADMIN_CHK_DAYLIST_INVALID"] = {"s": _("User's \"%%s\" day list is not correct"), "e": 24}
-    _messages["TK_MSG_USER_ADMIN_CHK_DAYLIST_INVALID_SET"] = {"s": _("User's \"%%s\" day list is not correct and cannot be set"), "e": 24}
-    _messages["TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_NONE"] = {"s": _("User's \"%%s\" day limits list is not passed"), "e": 25}
-    _messages["TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_INVALID"] = {"s": _("User's \"%%s\" day limits list is not correct"), "e": 25}
-    _messages["TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_INVALID_SET"] = {"s": _("User's \"%%s\" day limits list is not correct and cannot be set"), "e": 25}
-    _messages["TK_MSG_USER_ADMIN_CHK_TIMELIMIT_OPERATION_INVALID"] = {"s": _("User's \"%%s\" time operation can be one of these: - + ="), "e": 26}
-    _messages["TK_MSG_USER_ADMIN_CHK_TIMELIMIT_INVALID"] = {"s": _("User's \"%%s\" time limit is not correct"), "e": 26}
-    _messages["TK_MSG_USER_ADMIN_CHK_TIMELIMIT_INVALID_SET"] = {"s": _("User's \"%%s\" time limit is not correct and cannot be set"), "e": 26}
-    _messages["TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_NONE"] = {"s": _("User's \"%%s\" monthly allowance is not passed"), "e": 27}
-    _messages["TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_INVALID"] = {"s": _("User's \"%%s\" monthly allowance is not correct"), "e": 27}
-    _messages["TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_INVALID_SET"] = {"s": _("User's \"%%s\" monthly allowance is not correct and cannot be set"), "e": 27}
-    _messages["TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_NONE"] = {"s": _("User's \"%%s\" track inactive flag is not passed"), "e": 28}
-    _messages["TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_INVALID"] = {"s": _("User's \"%%s\" track inactive flag is not correct"), "e": 28}
-    _messages["TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_INVALID_SET"] = {"s": _("User's \"%%s\" track inactive flag is not correct and cannot be set"), "e": 28}
-    _messages["TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_NONE"] = {"s": _("User's \"%%s\" hide tray icon flag is not passed"), "e": 29}
-    _messages["TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_INVALID"] = {"s": _("User's \"%%s\" hide tray icon flag is not correct"), "e": 29}
-    _messages["TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_INVALID_SET"] = {"s": _("User's \"%%s\" hide tray icon flag is not correct and cannot be set"), "e": 29}
-    _messages["TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_NONE"] = {"s": _("User's \"%%s\" restriction / lockout type is not passed"), "e": 30}
-    _messages["TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_INVALID"] = {"s": _("User's \"%%s\" restriction / lockout type is not correct"), "e": 30}
-    _messages["TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_INVALID_SET"] = {"s": _("User's \"%%s\" restriction / lockout type is not correct and cannot be set"), "e": 30}
-    _messages["TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_NONE"] = {"s": _("User's \"%%s\" weekly allowance is not passed"), "e": 31}
-    _messages["TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_INVALID"] = {"s": _("User's \"%%s\" weekly allowance is not correct"), "e": 31}
-    _messages["TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_INVALID_SET"] = {"s": _("User's \"%%s\" weekly allowance is not correct and cannot be set"), "e": 31}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_NONE"] = {"s": _("User's \"%%s\" PlayTime enable flag is not passed"), "e": 32}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_INVALID"] = {"s": _("User's \"%%s\" PlayTime enable flag is not correct"), "e": 32}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime enable flag is not correct and cannot be set"), "e": 32}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_NONE"] = {"s": _("User's \"%%s\" PlayTime override flag is not passed"), "e": 33}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_INVALID"] = {"s": _("User's \"%%s\" PlayTime override flag is not correct"), "e": 33}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime override flag is not correct and cannot be set"), "e": 33}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_NONE"] = {"s": _("User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not passed"), "e": 34}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_INVALID"] = {"s": _("User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not correct"), "e": 34}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not correct and cannot be set"), "e": 34}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_NONE"] = {"s": _("User's \"%%s\" PlayTime day list is not passed"), "e": 35}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_INVALID"] = {"s": _("User's \"%%s\" PlayTime day list is not correct"), "e": 35}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime day list is not correct and cannot be set"), "e": 35}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_NONE"] = {"s": _("User's \"%%s\" PlayTime day limits list is not passed"), "e": 36}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_INVALID"] = {"s": _("User's \"%%s\" PlayTime day limits list is not correct"), "e": 36}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime day limits list is not correct and cannot be set"), "e": 36}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_NONE"] = {"s": _("User's \"%%s\" PlayTime day limits list is not passed"), "e": 37}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_INVALID"] = {"s": _("User's \"%%s\" PlayTime day limits list is not correct"), "e": 37}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime day limits list is not correct and cannot be set"), "e": 37}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_OPERATION_INVALID"] = {"s": _("User's \"%%s\" PlayTime operation can be one of these: - + ="), "e": 38}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_INVALID"] = {"s": _("User's \"%%s\" set PlayTime limit is not correct"), "e": 38}
-    _messages["TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime time limit is not correct and cannot be set"), "e": 38}
+    _messages["TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_DAY_NONE"] = {"s": _("User's \"%%s\" day number must be present"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_DAY_INVALID"] = {"s": _("User's \"%%s\" day number must be between 1 and 7"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_INVALID_SET"] = {"s": _("User's \"%%s\" allowed hours are not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_DAYLIST_NONE"] = {"s": _("User's \"%%s\" day list is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_DAYLIST_INVALID"] = {"s": _("User's \"%%s\" day list is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_DAYLIST_INVALID_SET"] = {"s": _("User's \"%%s\" day list is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_NONE"] = {"s": _("User's \"%%s\" day limits list is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_INVALID"] = {"s": _("User's \"%%s\" day limits list is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_INVALID_SET"] = {"s": _("User's \"%%s\" day limits list is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_TIMELIMIT_OPERATION_INVALID"] = {"s": _("User's \"%%s\" time operation can be one of these: - + ="), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_TIMELIMIT_INVALID"] = {"s": _("User's \"%%s\" time limit is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_TIMELIMIT_INVALID_SET"] = {"s": _("User's \"%%s\" time limit is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_NONE"] = {"s": _("User's \"%%s\" monthly allowance is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_INVALID"] = {"s": _("User's \"%%s\" monthly allowance is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_INVALID_SET"] = {"s": _("User's \"%%s\" monthly allowance is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_NONE"] = {"s": _("User's \"%%s\" track inactive flag is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_INVALID"] = {"s": _("User's \"%%s\" track inactive flag is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_INVALID_SET"] = {"s": _("User's \"%%s\" track inactive flag is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_NONE"] = {"s": _("User's \"%%s\" hide tray icon flag is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_INVALID"] = {"s": _("User's \"%%s\" hide tray icon flag is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_INVALID_SET"] = {"s": _("User's \"%%s\" hide tray icon flag is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_NONE"] = {"s": _("User's \"%%s\" restriction / lockout type is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_INVALID"] = {"s": _("User's \"%%s\" restriction / lockout type is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_INVALID_SET"] = {"s": _("User's \"%%s\" restriction / lockout type is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_NONE"] = {"s": _("User's \"%%s\" weekly allowance is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_INVALID"] = {"s": _("User's \"%%s\" weekly allowance is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_INVALID_SET"] = {"s": _("User's \"%%s\" weekly allowance is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_NONE"] = {"s": _("User's \"%%s\" PlayTime enable flag is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_INVALID"] = {"s": _("User's \"%%s\" PlayTime enable flag is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime enable flag is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_NONE"] = {"s": _("User's \"%%s\" PlayTime override flag is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_INVALID"] = {"s": _("User's \"%%s\" PlayTime override flag is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime override flag is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_NONE"] = {"s": _("User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_INVALID"] = {"s": _("User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime allowed during unaccounted intervals flag is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_NONE"] = {"s": _("User's \"%%s\" PlayTime day list is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_INVALID"] = {"s": _("User's \"%%s\" PlayTime day list is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime day list is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_NONE"] = {"s": _("User's \"%%s\" PlayTime day limits list is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_INVALID"] = {"s": _("User's \"%%s\" PlayTime day limits list is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime day limits list is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_NONE"] = {"s": _("User's \"%%s\" PlayTime day limits list is not passed"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_INVALID"] = {"s": _("User's \"%%s\" PlayTime day limits list is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime day limits list is not correct and cannot be set"), "e": i} ; i += 1
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_OPERATION_INVALID"] = {"s": _("User's \"%%s\" PlayTime operation can be one of these: - + ="), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_INVALID"] = {"s": _("User's \"%%s\" set PlayTime limit is not correct"), "e": i}
+    _messages["TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_INVALID_SET"] = {"s": _("User's \"%%s\" PlayTime time limit is not correct and cannot be set"), "e": i} ; i += 1
 
     # ## this defines messages for use in configuration loader ##
     # TRANSLATORS: this message must be 80 symbols long at max

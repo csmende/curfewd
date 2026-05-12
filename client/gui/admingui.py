@@ -423,6 +423,9 @@ class timekprAdminGUI(object):
         self._tkSavedCfg["timekprTrackingSessions"] = []
         self._tkSavedCfg["timekprExcludedSessions"] = []
         self._tkSavedCfg["timekprExcludedUsers"] = []
+        self._tkSavedCfg["timekprUseLockedHintEnabled"] = False
+        self._tkSavedCfg["timekprSwitchTTYEnabled"] = False
+        self._tkSavedCfg["timekprKillLeftOverProcessesEnabled"] = False
         self._tkSavedCfg["timekprPlayTimeEnabled"] = False
         self._tkSavedCfg["timekprPlayTimeEnhancedActivityMonitorEnabled"] = False
 
@@ -1005,6 +1008,15 @@ class timekprAdminGUI(object):
                     for rUser in rValue:
                         # add config
                         self._tkSavedCfg["timekprExcludedUsers"].append(str(rUser))
+                elif rKey == "TIMEKPR_USE_LOCKED_HINT":
+                    # use of LockedHint is allowed
+                    self._tkSavedCfg["timekprUseLockedHintEnabled"] = bool(rValue)
+                elif rKey == "TIMEKPR_SWITCH_TTY_ENABLED":
+                    # switch tty is allowed
+                    self._tkSavedCfg["timekprSwitchTTYEnabled"] = bool(rValue)
+                elif rKey == "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED":
+                    # killing of leftover processes is allowed
+                    self._tkSavedCfg["timekprKillLeftOverProcessesEnabled"] = bool(rValue)
                 elif rKey == "TIMEKPR_PLAYTIME_ENABLED":
                     # PlayTime enabled
                     self._tkSavedCfg["timekprPlayTimeEnabled"] = bool(rValue)
@@ -1308,8 +1320,19 @@ class timekprAdminGUI(object):
             self._timekprAdminFormBuilder.get_object("TimekprExcludedUsersTreeView").set_cursor(0)
             self._timekprAdminFormBuilder.get_object("TimekprExcludedUsersTreeView").scroll_to_cell(0)
 
+        # ## Misc ##
+        # global use of LockedHint
+        self._timekprAdminFormBuilder.get_object("TimekprUseLockedHintCB").set_active(self._tkSavedCfg["timekprUseLockedHintEnabled"])
+        self._timekprAdminFormBuilder.get_object("TimekprUseLockedHintCB").set_sensitive(True)
+        # global switch tty option
+        self._timekprAdminFormBuilder.get_object("TimekprSwitchTTYCB").set_active(self._tkSavedCfg["timekprSwitchTTYEnabled"])
+        self._timekprAdminFormBuilder.get_object("TimekprSwitchTTYCB").set_sensitive(True)
+        # global kill leftover processes option
+        self._timekprAdminFormBuilder.get_object("TimekprKillLeftOverProcessesCB").set_active(self._tkSavedCfg["timekprKillLeftOverProcessesEnabled"])
+        self._timekprAdminFormBuilder.get_object("TimekprKillLeftOverProcessesCB").set_sensitive(True)
+
         # ## PlayTime ##
-        # global enabled switch
+        # global PT enabled switch
         self._timekprAdminFormBuilder.get_object("TimekprPlayTimeEnableGlobalCB").set_active(self._tkSavedCfg["timekprPlayTimeEnabled"])
         self._timekprAdminFormBuilder.get_object("TimekprPlayTimeEnableGlobalCB").set_sensitive(True)
         # global enhanced activity monitor
@@ -1538,12 +1561,27 @@ class timekprAdminGUI(object):
         control = "TimekprExcludedUsersLS"
         changeControl[control] = {"st": tmpArray != self._tkSavedCfg["timekprExcludedUsers"], "val": tmpArray.copy()}
 
+        # ## global use LockedHint option ##
+        control = "TimekprUseLockedHintCB"
+        value = self._timekprAdminFormBuilder.get_object(control).get_active()
+        changeControl[control] = {"st": value != self._tkSavedCfg["timekprUseLockedHintEnabled"], "val": value}
+
+        # ## global switch tty option ##
+        control = "TimekprSwitchTTYCB"
+        value = self._timekprAdminFormBuilder.get_object(control).get_active()
+        changeControl[control] = {"st": value != self._tkSavedCfg["timekprSwitchTTYEnabled"], "val": value}
+
+        # ## global kill leftover processes option ##
+        control = "TimekprKillLeftOverProcessesCB"
+        value = self._timekprAdminFormBuilder.get_object(control).get_active()
+        changeControl[control] = {"st": value != self._tkSavedCfg["timekprKillLeftOverProcessesEnabled"], "val": value}
+
         # ## global PlayTime switch ##
         control = "TimekprPlayTimeEnableGlobalCB"
         value = self._timekprAdminFormBuilder.get_object(control).get_active()
         changeControl[control] = {"st": value != self._tkSavedCfg["timekprPlayTimeEnabled"], "val": value}
 
-        # ## global PlayTime switch ##
+        # ## global PlayTime enhanced monitor switch ##
         control = "TimekprPlayTimeEnhancedActivityMonitorCB"
         value = self._timekprAdminFormBuilder.get_object(control).get_active()
         changeControl[control] = {"st": value != self._tkSavedCfg["timekprPlayTimeEnhancedActivityMonitorEnabled"], "val": value}
@@ -1871,6 +1909,30 @@ class timekprAdminGUI(object):
                     if result == 0:
                         # set internal state
                         self._tkSavedCfg["timekprExcludedUsers"] = rVal["val"].copy()
+                # ## use of LockedHint enabled ##
+                elif rKey == "TimekprUseLockedHintCB":
+                    # call server
+                    result, message = self._timekprAdminConnector.setTimekprUseLockedHintEnabled(rVal["val"])
+                    # successful call
+                    if result == 0:
+                        # set internal state
+                        self._tkSavedCfg["timekprUseLockedHintEnabled"] = rVal["val"]
+                # ## switch tty option ##
+                elif rKey == "TimekprSwitchTTYCB":
+                    # call server
+                    result, message = self._timekprAdminConnector.setTimekprSwitchTTYEnabled(rVal["val"])
+                    # successful call
+                    if result == 0:
+                        # set internal state
+                        self._tkSavedCfg["timekprSwitchTTYEnabled"] = rVal["val"]
+                # ## kill leftover processes option ##
+                elif rKey == "TimekprKillLeftOverProcessesCB":
+                    # call server
+                    result, message = self._timekprAdminConnector.setTimekprKillLeftOverProcessesEnabled(rVal["val"])
+                    # successful call
+                    if result == 0:
+                        # set internal state
+                        self._tkSavedCfg["timekprKillLeftOverProcessesEnabled"] = rVal["val"]
                 # ## PlayTime enabled ##
                 elif rKey == "TimekprPlayTimeEnableGlobalCB":
                     # call server

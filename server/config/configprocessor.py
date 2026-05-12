@@ -1160,6 +1160,12 @@ class timekprConfigurationProcessor(object):
             timekprConfigurationStore["TIMEKPR_SESSION_TYPES_EXCL"] = self._timekprConfig.getTimekprSessionsExcl()
             # users to exclude
             timekprConfigurationStore["TIMEKPR_USERS_EXCL"] = self._timekprConfig.getTimekprUsersExcl()
+            # is use of LockedHint enabled
+            timekprConfigurationStore["TIMEKPR_USE_LOCKED_HINT"] = self._timekprConfig.getTimekprUseLockedHintEnabled()
+            # is use of switch tty enabled
+            timekprConfigurationStore["TIMEKPR_SWITCH_TTY_ENABLED"] = self._timekprConfig.getTimekprSwitchTTYEnabled()
+            # is use of kill leftover processes enabled
+            timekprConfigurationStore["TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"] = self._timekprConfig.getTimekprKillLeftOverProcessesEnabled()
             # PlayTime enabled
             timekprConfigurationStore["TIMEKPR_PLAYTIME_ENABLED"] = self._timekprConfig.getTimekprPlayTimeEnabled()
             # PlayTime enhanced activity monitor enabled
@@ -1588,6 +1594,129 @@ class timekprConfigurationProcessor(object):
             except Exception:
                 # result
                 result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID_SET", e=True)
+
+            # if we are still fine
+            if result == 0:
+                # save config
+                self._timekprConfig.saveTimekprConfiguration()
+
+        # result
+        return result, message
+
+    def checkAndSetTimekprUseLockedHintEnabled(self, pUseLockedHint):
+        """Check and set the LockedHint option"""
+        # load config
+        result, message = self.loadTimekprConfiguration()
+
+        # if we are still fine
+        if result != 0:
+            # result
+            pass
+        elif pUseLockedHint is None:
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOCKEDHINT_ENABLED_NONE", e=True)
+        else:
+            # parse
+            try:
+                # try to convert
+                if bool(pUseLockedHint):
+                    pass
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOCKEDHINT_INVALID", e=True)
+                message %= (str(pUseLockedHint))
+
+        # if all is correct, we update the configuration
+        if result == 0:
+            # set up config
+            try:
+                self._timekprConfig.setTimekprUseLockedHintEnabled(pUseLockedHint)
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOCKEDHINT_INVALID_SET", e=True)
+                message %= (str(pUseLockedHint))
+
+            # if we are still fine
+            if result == 0:
+                # save config
+                self._timekprConfig.saveTimekprConfiguration()
+
+        # result
+        return result, message
+
+    def checkAndSetTimekprSwitchTTYEnabled(self, pSwitchTTYEnabled):
+        """Check and set the switch tty option"""
+        # load config
+        result, message = self.loadTimekprConfiguration()
+
+        # if we are still fine
+        if result != 0:
+            # result
+            pass
+        elif pSwitchTTYEnabled is None:
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SWITCHTTY_ENABLED_NONE", e=True)
+        else:
+            # parse
+            try:
+                # try to convert
+                if bool(pSwitchTTYEnabled):
+                    pass
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SWITCHTTY_INVALID", e=True)
+                message %= (str(pSwitchTTYEnabled))
+
+        # if all is correct, we update the configuration
+        if result == 0:
+            # set up config
+            try:
+                self._timekprConfig.setTimekprSwitchTTYEnabled(pSwitchTTYEnabled)
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SWITCHTTY_INVALID_SET", e=True)
+                message %= (str(pSwitchTTYEnabled))
+
+            # if we are still fine
+            if result == 0:
+                # save config
+                self._timekprConfig.saveTimekprConfiguration()
+
+        # result
+        return result, message
+
+    def checkAndSetTimekprKillLeftOverProcessesEnabled(self, pKillLeftOverProcessesEnabled):
+        """Check and set the switch tty option"""
+        # load config
+        result, message = self.loadTimekprConfiguration()
+
+        # if we are still fine
+        if result != 0:
+            # result
+            pass
+        elif pKillLeftOverProcessesEnabled is None:
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_KILLLEFTOVERS_ENABLED_NONE", e=True)
+        else:
+            # parse
+            try:
+                # try to convert
+                if bool(pKillLeftOverProcessesEnabled):
+                    pass
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_KILLLEFTOVERS_INVALID", e=True)
+                message %= (str(pKillLeftOverProcessesEnabled))
+
+        # if all is correct, we update the configuration
+        if result == 0:
+            # set up config
+            try:
+                self._timekprConfig.setTimekprKillLeftOverProcessesEnabled(pKillLeftOverProcessesEnabled)
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_KILLLEFTOVERS_INVALID_SET", e=True)
+                message %= (str(pKillLeftOverProcessesEnabled))
 
             # if we are still fine
             if result == 0:
