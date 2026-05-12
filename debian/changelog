@@ -1,13 +1,20 @@
-timekpr-next (0.5.10-2ubuntu1~ppa1) unstable; urgency=medium
+timekpr-next (0.5.10-3ubuntu1~ppa1) unstable; urgency=medium
 
   * timekpra will now exit with non zero exit code when there are errors processing
       user request
   * added Lao translation (thanks to boneni)
-  * disable previously implemented workarounds
+  * add login1 LockedHint status as optional for determining the locked stated of the session
+      as LockedHint seems to be buggy, there will be a non-GUI option to disable it
+      they are wired up to the GUI (but not visible at this time), but as it was in this state for good 5 years
+      I am not changing the defaults, they still remain, so by default this is still ON
+  * "switch to login manager tty" and "killing leftover processes" are now hidden optional options
       TTY switch which was needed for older GDM login screen which got lost and did not show user the login screen
       after terminating sessions timekpr was killing leftover processes which should be terminated along the session
+      but weren't so ppls time was still ticking away
+      they are wired up to the GUI (but not visible at this time)
+      these are now hidden options found in /etc/timekpr/timekpr.conf and disabled by default
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Wed, 11 Mar 2026 08:21:41 +0200
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Mon, 11 May 2026 15:02:26 +0200
 
 timekpr-next (0.5.9-5ubuntu6~ppa1) unstable; urgency=medium
 
