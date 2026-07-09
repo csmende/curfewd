@@ -19,14 +19,14 @@ from timekpr.common.utils.misc import splitConfigValueNameParam as splitConfigVa
 
 # ## GLOBAL ##
 # key pattern search
-RE_SECTIONFINDER = re.compile(r"^\[([a-zA-Z0-9_\.@-]+)\]$")
-RE_KEYVALUEFINDER = re.compile(r"^ *([A-Z]+[A-Z_]+[0-9]*) *= *(.*)$")
-RE_ARRAYKEYFINDER = re.compile(r"^##([A-Z]+[A-Z_]+)##.*$")
+_RE_SECTIONFINDER = re.compile(r"^\[([a-zA-Z0-9_\.@-]+)\]$")
+_RE_KEYVALUEFINDER = re.compile(r"^ *([A-Z]+[A-Z_]+[0-9]*) *= *(.*)$")
+_RE_ARRAYKEYFINDER = re.compile(r"^##([A-Z]+[A-Z_]+)##.*$")
 
 
 def _saveConfigFile(pConfigFile, pKeyValuePairs):
     """Save the config file using custom helper function"""
-    global RE_KEYVALUEFINDER, RE_ARRAYKEYFINDER
+    global _RE_KEYVALUEFINDER, _RE_ARRAYKEYFINDER
     # edit control file (using custom file rewrite method)
     # make a backup of the file
     shutil.copy(pConfigFile, pConfigFile + cons.TK_BAK_EXT)
@@ -39,9 +39,9 @@ def _saveConfigFile(pConfigFile, pKeyValuePairs):
             # def line
             line = rLine
             # if line matches parameter pattern, we look up for that key in our value list
-            if RE_KEYVALUEFINDER.match(rLine):
+            if _RE_KEYVALUEFINDER.match(rLine):
                 # check whether we can find the value for it
-                key = RE_KEYVALUEFINDER.sub(r"\1", rLine.rstrip())
+                key = _RE_KEYVALUEFINDER.sub(r"\1", rLine.rstrip())
                 # if key exists
                 if key in pKeyValuePairs:
                     # in case of placeholder (value = None), just keep the line, else replace it
@@ -54,9 +54,9 @@ def _saveConfigFile(pConfigFile, pKeyValuePairs):
                     # do not add unknown options
                     line = None
             # search for variable options
-            elif RE_ARRAYKEYFINDER.match(rLine):
+            elif _RE_ARRAYKEYFINDER.match(rLine):
                 # check whether we can find the value for it
-                key = RE_ARRAYKEYFINDER.sub(r"\1", rLine.rstrip())
+                key = _RE_ARRAYKEYFINDER.sub(r"\1", rLine.rstrip())
                 # now get the value
                 dstLines.append("%s" % (rLine))
                 # if key exists
@@ -79,7 +79,7 @@ def _saveConfigFile(pConfigFile, pKeyValuePairs):
 
 def _loadAndPrepareConfigFile(pTimekprConfig, pConfigFile, pLoadOnly=False):
     """Try to load config file, if that fails, try to read backup file"""
-    global RE_KEYVALUEFINDER, RE_SECTIONFINDER
+    global _RE_KEYVALUEFINDER, _RE_SECTIONFINDER
     # by default fail
     result = False
     # process primary and backup files
@@ -97,16 +97,16 @@ def _loadAndPrepareConfigFile(pTimekprConfig, pConfigFile, pLoadOnly=False):
                 # read line
                 for rLine in srcFile:
                     # if line matches parameter pattern, we look up for that key in our value list
-                    if RE_SECTIONFINDER.match(rLine):
+                    if _RE_SECTIONFINDER.match(rLine):
                         # set up current section
-                        currSect = RE_SECTIONFINDER.sub(r"\1", rLine.rstrip())
+                        currSect = _RE_SECTIONFINDER.sub(r"\1", rLine.rstrip())
                         # found
                         if currSect != "":
                             # section found
                             pTimekprConfig["CONFIGLOADER"][currSect] = {}
-                    elif currSect != "" and RE_KEYVALUEFINDER.match(rLine):
+                    elif currSect != "" and _RE_KEYVALUEFINDER.match(rLine):
                         # value found
-                        pTimekprConfig["CONFIGLOADER"][currSect][RE_KEYVALUEFINDER.sub(r"\1", rLine.rstrip())] = RE_KEYVALUEFINDER.sub(r"\2", rLine.rstrip())
+                        pTimekprConfig["CONFIGLOADER"][currSect][_RE_KEYVALUEFINDER.sub(r"\1", rLine.rstrip())] = _RE_KEYVALUEFINDER.sub(r"\2", rLine.rstrip())
                         # some values were read
                         result = True
             # we found smth
