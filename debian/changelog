@@ -1,4 +1,4 @@
-timekpr-next (0.5.10-3ubuntu1~ppa1) unstable; urgency=medium
+timekpr-next (0.5.10-4ubuntu1~ppa1) unstable; urgency=medium
 
   * timekpra will now exit with non zero exit code when there are errors processing
       user request
@@ -13,8 +13,11 @@ timekpr-next (0.5.10-3ubuntu1~ppa1) unstable; urgency=medium
       but weren't so ppls time was still ticking away
       they are wired up to the GUI (but not visible at this time)
       these are now hidden options found in /etc/timekpr/timekpr.conf and disabled by default
+  * fix DBUS names which are derived from usernames and contain non-dbus compatible characters
+      example: @ and . which is commonly found in enterprises, like firstname.lastname@corporation.domain
+      fixes #2160176
 
- -- Eduards Bezverhijs <edzis@inbox.lv>  Mon, 11 May 2026 15:02:26 +0200
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Thu, 9 Jul 2026 10:22:15 +0300
 
 timekpr-next (0.5.9-5ubuntu6~ppa1) unstable; urgency=medium
 
