@@ -32,7 +32,9 @@ from timekpr.common.constants import constants as cons
 from timekpr.common.log import log
 
 # regular expression to match time formats (days or hours or minutes or seconds or seconds w/o suffix)
-_TIMESTR_PATTERN = re.compile(r"^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?(?:(\d+))?$")
+_TIMESTR_MATCH_PATTERN = re.compile(r"^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?(?:(\d+))?$")
+_DBUSNAME_REPLACE_PATTERN = re.compile(r'[^a-zA-Z0-9_]')
+
 
 def whoami():
     """Return callers name from the call stack, the 0 is this function, prev is the one needed"""
@@ -73,6 +75,13 @@ def getNormalizedUserNames(pUID=None, pUser=None):
 
     # full username
     return userName, userNameFull
+
+
+def getNormalizedDBUSName(pStr):
+    """Get normalized username as dbus name (allowed chars only)"""
+    global _DBUSNAME_REPLACE_PATTERN
+    # full username
+    return _DBUSNAME_REPLACE_PATTERN.sub("_", pStr)
 
 
 def measureTimeElapsed(pStart=False, pStop=False, pResult=False):
@@ -336,7 +345,7 @@ def splitConfigValueNameParam(pStr):
 
 def getSecondsFromTimeStr(pTimeStr):
     # glo
-    global _TIMESTR_PATTERN
+    global _TIMESTR_MATCH_PATTERN
     # def
     secs = None
 
@@ -347,7 +356,7 @@ def getSecondsFromTimeStr(pTimeStr):
         # nothing?
         if not pTimeStr == "":
             # find matches
-            match = _TIMESTR_PATTERN.match(pTimeStr)
+            match = _TIMESTR_MATCH_PATTERN.match(pTimeStr)
             # no match - time format is wrong
             if match:
                 # extract matched values
