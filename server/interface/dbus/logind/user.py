@@ -143,7 +143,7 @@ class timekprUserManager(object):
         #   "closing" (user not logged in, and not lingering, but some processes are still around)
 
         # init active accounting (the status is determined by sessions, not by user state)
-        userActive = userScreenLocked = False
+        userActive = False
 
         # get locked state, only if it's available
         if self._sessionLockedStateAvailable is None:
@@ -172,6 +172,9 @@ class timekprUserManager(object):
                 self._sessionLockedStateAvailable = False
                 log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is NOT available for user \"%s\", will rely on client screensaver state (if it works)" % (self._userName))
 
+        # not locked
+        sessionLockedState = "False"
+
         # if user locked the computer
         if pIsScreenLocked and not pTimekprUserConfig.getUserTrackInactive():
             # user is not active
@@ -179,9 +182,6 @@ class timekprUserManager(object):
         else:
             # go through all user sessions
             for rSessionId in self._timekprUserSessions:
-                # not locked
-                sessionLockedState = None
-
                 # dbus performance measurement
                 misc.measureDBUSTimeElapsed(pStart=True)
                 # get needed static properties
@@ -233,13 +233,10 @@ class timekprUserManager(object):
                     # session is not on the list of session types we track
                     log.log(cons.TK_LOG_LEVEL_DEBUG, "session %s is inactive and not tracked" % (rSessionId))
 
-        # screen lock state
-        userScreenLocked = (pIsScreenLocked or sessionLockedState == "True")
-
         log.log(cons.TK_LOG_LEVEL_DEBUG, "---=== finish isUserActive for \"%s\": %s ===---" % (self._userName, str(userActive)))
 
-        # return whether user is active
-        return userActive, userScreenLocked
+        # return whether user is active and whether screen is locked
+        return userActive, (pIsScreenLocked or sessionLockedState == "True")
 
     def lockUserSessions(self):
         """Ask login manager to lock user sessions (from users perspective)"""
