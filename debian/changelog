@@ -1,4 +1,4 @@
-timekpr-next (0.5.10-4ubuntu1~ppa1) unstable; urgency=medium
+timekpr-next (0.5.10-5ubuntu1~ppa1) unstable; urgency=medium
 
   * timekpra will now exit with non zero exit code when there are errors processing
       user request
