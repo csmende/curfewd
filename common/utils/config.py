@@ -19,14 +19,14 @@ from timekpr.common.utils.misc import splitConfigValueNameParam as splitConfigVa
 
 # ## GLOBAL ##
 # key pattern search
-RE_SECTIONFINDER = re.compile(r"^\[([a-zA-Z0-9_\.@-]+)\]$")
-RE_KEYVALUEFINDER = re.compile(r"^ *([A-Z]+[A-Z_]+[0-9]*) *= *(.*)$")
-RE_ARRAYKEYFINDER = re.compile(r"^##([A-Z]+[A-Z_]+)##.*$")
+_RE_SECTIONFINDER = re.compile(r"^\[([a-zA-Z0-9_\.@-]+)\]$")
+_RE_KEYVALUEFINDER = re.compile(r"^ *([A-Z]+[A-Z_]+[0-9]*) *= *(.*)$")
+_RE_ARRAYKEYFINDER = re.compile(r"^##([A-Z]+[A-Z_]+)##.*$")
 
 
 def _saveConfigFile(pConfigFile, pKeyValuePairs):
     """Save the config file using custom helper function"""
-    global RE_KEYVALUEFINDER, RE_ARRAYKEYFINDER
+    global _RE_KEYVALUEFINDER, _RE_ARRAYKEYFINDER
     # edit control file (using custom file rewrite method)
     # make a backup of the file
     shutil.copy(pConfigFile, pConfigFile + cons.TK_BAK_EXT)
@@ -39,9 +39,9 @@ def _saveConfigFile(pConfigFile, pKeyValuePairs):
             # def line
             line = rLine
             # if line matches parameter pattern, we look up for that key in our value list
-            if RE_KEYVALUEFINDER.match(rLine):
+            if _RE_KEYVALUEFINDER.match(rLine):
                 # check whether we can find the value for it
-                key = RE_KEYVALUEFINDER.sub(r"\1", rLine.rstrip())
+                key = _RE_KEYVALUEFINDER.sub(r"\1", rLine.rstrip())
                 # if key exists
                 if key in pKeyValuePairs:
                     # in case of placeholder (value = None), just keep the line, else replace it
@@ -54,9 +54,9 @@ def _saveConfigFile(pConfigFile, pKeyValuePairs):
                     # do not add unknown options
                     line = None
             # search for variable options
-            elif RE_ARRAYKEYFINDER.match(rLine):
+            elif _RE_ARRAYKEYFINDER.match(rLine):
                 # check whether we can find the value for it
-                key = RE_ARRAYKEYFINDER.sub(r"\1", rLine.rstrip())
+                key = _RE_ARRAYKEYFINDER.sub(r"\1", rLine.rstrip())
                 # now get the value
                 dstLines.append("%s" % (rLine))
                 # if key exists
@@ -79,7 +79,7 @@ def _saveConfigFile(pConfigFile, pKeyValuePairs):
 
 def _loadAndPrepareConfigFile(pTimekprConfig, pConfigFile, pLoadOnly=False):
     """Try to load config file, if that fails, try to read backup file"""
-    global RE_KEYVALUEFINDER, RE_SECTIONFINDER
+    global _RE_KEYVALUEFINDER, _RE_SECTIONFINDER
     # by default fail
     result = False
     # process primary and backup files
@@ -97,16 +97,16 @@ def _loadAndPrepareConfigFile(pTimekprConfig, pConfigFile, pLoadOnly=False):
                 # read line
                 for rLine in srcFile:
                     # if line matches parameter pattern, we look up for that key in our value list
-                    if RE_SECTIONFINDER.match(rLine):
+                    if _RE_SECTIONFINDER.match(rLine):
                         # set up current section
-                        currSect = RE_SECTIONFINDER.sub(r"\1", rLine.rstrip())
+                        currSect = _RE_SECTIONFINDER.sub(r"\1", rLine.rstrip())
                         # found
                         if currSect != "":
                             # section found
                             pTimekprConfig["CONFIGLOADER"][currSect] = {}
-                    elif currSect != "" and RE_KEYVALUEFINDER.match(rLine):
+                    elif currSect != "" and _RE_KEYVALUEFINDER.match(rLine):
                         # value found
-                        pTimekprConfig["CONFIGLOADER"][currSect][RE_KEYVALUEFINDER.sub(r"\1", rLine.rstrip())] = RE_KEYVALUEFINDER.sub(r"\2", rLine.rstrip())
+                        pTimekprConfig["CONFIGLOADER"][currSect][_RE_KEYVALUEFINDER.sub(r"\1", rLine.rstrip())] = _RE_KEYVALUEFINDER.sub(r"\2", rLine.rstrip())
                         # some values were read
                         result = True
             # we found smth
@@ -271,6 +271,18 @@ class timekprConfig(object):
         param = "TIMEKPR_PLAYTIME_ENHANCED_ACTIVITY_MONITOR_ENABLED"
         resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=cons.TK_PLAYTIME_ENABLED, pCheckValue=None, pOverallSuccess=resultValue)
 
+        # global misc config section
+        section = "MISC"
+        # read
+        param = "TIMEKPR_USE_LOCKED_HINT"
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=True, pCheckValue=None, pOverallSuccess=resultValue)
+        # read
+        param = "TIMEKPR_SWITCH_TTY_ENABLED"
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=False, pCheckValue=None, pOverallSuccess=resultValue)
+        # read
+        param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=False, pCheckValue=None, pOverallSuccess=resultValue)
+
         # if we could not read some values, save what we could + defaults
         if not resultValue:
             # logging
@@ -384,6 +396,24 @@ class timekprConfig(object):
         dstLines += [ "%s = %s\n" % (param, self._timekprConfig[param] if pReuseValues else cons.TK_LOGFILE_DIR)]
 
         # section
+        section = "MISC"
+        # values / comments
+        dstLines += ["\n[%s]\n" % section]
+        dstLines += ["%s\n" % "#### this section contains global misc configuration"]
+        # set up param
+        param = "TIMEKPR_USE_LOCKED_HINT"
+        dstLines += ["%s\n" % "# whether timekpr should use LockedHint for screen locking detection from login1 (it is/was quite buggy)"]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(True))]
+        # set up param
+        param = "TIMEKPR_SWITCH_TTY_ENABLED"
+        dstLines += ["%s\n" % "# whether timekpr should try to switch to login manager after terminating sessions (system should take care of it theoretically)"]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(False))]
+        # set up param
+        param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+        dstLines += ["%s\n" % "# whether timekpr should try to kill all leftover processes related to session after terminating it (system should take care of it theoretically)"]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(False))]
+
+        # section
         section = "PLAYTIME"
         # values / comments
         dstLines += ["\n[%s]\n" % section]
@@ -444,12 +474,24 @@ class timekprConfig(object):
         # which users to exclude from time accounting
         param = "TIMEKPR_USERS_EXCL"
         values[param] = str(self._timekprConfig[param])
+
+        # whether use of LockedHint is enabled
+        param = "TIMEKPR_USE_LOCKED_HINT"
+        values[param] = str(self._timekprConfig[param])
+        # whether switch TTY is enabled
+        param = "TIMEKPR_SWITCH_TTY_ENABLED"
+        values[param] = str(self._timekprConfig[param])
+        # whether kill leftover processes is enabled
+        param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+        values[param] = str(self._timekprConfig[param])
+
         # whether PlayTime is enabled
         param = "TIMEKPR_PLAYTIME_ENABLED"
         values[param] = str(self._timekprConfig[param])
         # whether PlayTime enhanced activity monitor is enabled
         param = "TIMEKPR_PLAYTIME_ENHANCED_ACTIVITY_MONITOR_ENABLED"
         values[param] = str(self._timekprConfig[param])
+
         # ## pass placeholders for directories ##
         # config dir
         param = "TIMEKPR_CONFIG_DIR"
@@ -506,6 +548,16 @@ class timekprConfig(object):
             log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
             # log
             param = "TIMEKPR_USERS_EXCL"
+            log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
+
+            # log
+            param = "TIMEKPR_USE_LOCKED_HINT"
+            log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
+            # log
+            param = "TIMEKPR_SWITCH_TTY_ENABLED"
+            log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
+            # log
+            param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
             log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
 
             # log
@@ -624,6 +676,27 @@ class timekprConfig(object):
         # result
         return cons.TK_LOGFILE_DIR_DEV if cons.TK_DEV_ACTIVE else self._timekprConfig[param]
 
+    def getTimekprUseLockedHintEnabled(self):
+        """Return whether we can use buggy LockedHint from login1 to detect inactivity"""
+        # param
+        param = "TIMEKPR_USE_LOCKED_HINT"
+        # result
+        return self._timekprConfig[param]
+
+    def getTimekprSwitchTTYEnabled(self):
+        """Get switch TTY enable flag"""
+        # param
+        param = "TIMEKPR_SWITCH_TTY_ENABLED"
+        # result
+        return self._timekprConfig[param]
+
+    def getTimekprKillLeftOverProcessesEnabled(self):
+        """Get kill leftover processes enable flag"""
+        # param
+        param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+        # result
+        return self._timekprConfig[param]
+
     def getTimekprPlayTimeEnabled(self):
         """Return whether we have PlayTime enabled"""
         # param
@@ -692,6 +765,21 @@ class timekprConfig(object):
         """Set sessions to exclude"""
         # set
         self._timekprConfig["TIMEKPR_USERS_EXCL"] = ";".join(pUsersExcl)
+
+    def setTimekprUseLockedHintEnabled(self, pUseLockedHint):
+        """Set use LockedHint enable flag"""
+        # set
+        self._timekprConfig["TIMEKPR_USE_LOCKED_HINT"] = pUseLockedHint
+
+    def setTimekprSwitchTTYEnabled(self, pSwitchTTYEnabled):
+        """Set switch TTY enable flag"""
+        # set
+        self._timekprConfig["TIMEKPR_SWITCH_TTY_ENABLED"] = pSwitchTTYEnabled
+
+    def setTimekprKillLeftOverProcessesEnabled(self, pKillLeftOverProcessesEnabled):
+        """Set kill leftover processes enable flag"""
+        # set
+        self._timekprConfig["TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"] = pKillLeftOverProcessesEnabled
 
     def setTimekprPlayTimeEnabled(self, pPlayTimeEnabled):
         """Set PlayTime enable flag"""

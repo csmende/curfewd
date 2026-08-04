@@ -2,7 +2,7 @@
 %define _sitelib %( echo %{python3_sitelib} | cut -c 10- )
 
 Name:             timekpr-next
-Version:          0.5.9
+Version:          0.5.10
 Release:          1.0%{?dist}
 Summary:          Keep control of computer usage
 Group:            System Environment/Daemons
@@ -115,6 +115,7 @@ update-desktop-database &> /dev/null || :
 %{_datadir}/locale/fr_CA/LC_MESSAGES/*
 #%%{_datadir}/locale/hu/LC_MESSAGES/*
 %{_datadir}/locale/it/LC_MESSAGES/*
+%{_datadir}/locale/lo/LC_MESSAGES/*
 %{_datadir}/locale/lv/LC_MESSAGES/*
 %{_datadir}/locale/nl/LC_MESSAGES/*
 %{_datadir}/locale/pt/LC_MESSAGES/*
@@ -131,6 +132,16 @@ update-desktop-database &> /dev/null || :
 %{_sysconfdir}/xdg/autostart/*
 
 %changelog
+* Tue Aug 4 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.10-1.0
+- Updated spec file for version 0.5.10, release 1.0 (STABLE)
+* Thu Jul 9 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.10-0.4
+- Updated spec file for version 0.5.10, release 0.4 (BETA)
+* Mon May 11 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.10-0.3
+- Updated spec file for version 0.5.10, release 0.3 (BETA)
+* Thu Mar 11 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.10-0.2
+- Updated spec file for version 0.5.10, release 0.2 (BETA)
+* Thu Jan 29 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.10-0.1
+- Updated spec file for version 0.5.10, release 0.1 (BETA)
 * Mon Dec 22 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-1.0
 - Updated spec file for version 0.5.9, release 1.0 (STABLE)
 * Mon Nov 24 2025 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.9-0.2

@@ -31,7 +31,7 @@ _limitsConfig["UID_MAX"] = 60000
 #   all users, max 101 chars
 #   linux users, extended with uppercase characters and first numeric or "." character
 #   domain users, extended with uppercase characters and first numeric or ".", and "@" symbol
-_userNameRegexp = re.compile(r"^[a-zA-Z0-9_\.]([a-zA-Z0-9_\.@-]{0,101}|[a-zA-Z0-9_\.@-]{0,100}\$)$")
+_USERNAME_MATCH_REGEXP = re.compile(r"^[a-zA-Z0-9_\.]([a-zA-Z0-9_\.@-]{0,101}|[a-zA-Z0-9_\.@-]{0,100}\$)$")
 
 
 # some distros are "different", login.defs may be in different dir, config reflects multiple dirs to check for the file
@@ -56,7 +56,7 @@ def isUserValid(pUserId, pValidateUIDOnly=False, pUserName=None, pUserShell=None
     """Validate user ID, name and shell"""
     # vars
     global _limitsConfig
-    global _userNameRegexp
+    global _USERNAME_MATCH_REGEXP
     isUIDOK = False
 
     # now, find info on users, if that is needed
@@ -84,7 +84,7 @@ def isUserValid(pUserId, pValidateUIDOnly=False, pUserName=None, pUserShell=None
         # check if username is ok
         if isUIDOK and pUserName is not None:
             # uid is ok and name is passed
-            if not _userNameRegexp.match(pUserName):
+            if not _USERNAME_MATCH_REGEXP.match(pUserName):
                 # user is not ours
                 isUIDOK = False
     # fin

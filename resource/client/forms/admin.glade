@@ -3705,7 +3705,7 @@ Please specify actual usernames, not real names here. For example, "jsmith", not
                           </packing>
                         </child>
                         <child>
-                          <!-- n-columns=2 n-rows=2 -->
+                          <!-- n-columns=2 n-rows=5 -->
                           <object class="GtkGrid" id="TimekprAdditionalOptionsMainGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -3783,6 +3783,102 @@ This is a PlayTime master switch, if it's turned off, it's turned off for everyo
                               <packing>
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="TimekprUseLockedHintCB">
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">This setting controls whether to use "LockedHint" status for lock status detection.
+
+As "LockedHint" is somewhat buggy, this option allows to control whether to use the option or not.</property>
+                                <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="configControlSwitchesChanged" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="TimekprUseLockedHintCBLabel">
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">This setting controls whether to use "LockedHint" status for lock status detection.
+
+As "LockedHint" is somewhat buggy, this option allows to control whether to use the option or not.</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Use "LockedHint":</property>
+                                <property name="justify">right</property>
+                                <property name="wrap">True</property>
+                                <property name="max-width-chars">20</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="TimekprSwitchTTYCBLabel">
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">This setting controls whether to use a workaround which tries to switch to login manager after terminating sessions.
+
+This is needed in rare cases when system does not switch to login manager after terminating user sessions, this tries to remedy the situation.</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Enable switch TTY:</property>
+                                <property name="justify">right</property>
+                                <property name="wrap">True</property>
+                                <property name="max-width-chars">20</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="TimekprSwitchTTYCB">
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">This setting controls whether to use a workaround which tries to switch to login manager after terminating sessions.
+
+This is needed in rare cases when system does not switch to login manager after terminating user sessions, this tries to remedy the situation.</property>
+                                <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="configControlSwitchesChanged" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="TimekprKillLeftOverProcessesCBLabel">
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">This setting controls whether leftover processes are killed after terminating user sessions.
+
+System should take care of terminating all user processes after terminating the session. In case that does not happen and as a result time still ticks as user session is active. Enabling this option will forcefully kill all those processes which are related to user session.</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Kill leftover processes:</property>
+                                <property name="justify">right</property>
+                                <property name="wrap">True</property>
+                                <property name="max-width-chars">20</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">4</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="TimekprKillLeftOverProcessesCB">
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">This setting controls whether leftover processes are killed after terminating user sessions.
+
+System should take care of terminating all user processes after terminating the session. In case that does not happen and as a result time still ticks as user session is active. Enabling this option will forcefully kill all those processes which are related to user session.</property>
+                                <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="configControlSwitchesChanged" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">4</property>
                               </packing>
                             </child>
                           </object>

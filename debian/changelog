@@ -1,3 +1,24 @@
+timekpr-next (0.5.10-1ubuntu1~ppa1) stable; urgency=medium
+
+  * timekpra will now exit with non zero exit code when there are errors processing
+      user request
+  * added Lao translation (thanks to boneni)
+  * add login1 LockedHint status as optional for determining the locked stated of the session
+      as LockedHint seems to be buggy, there will be a non-GUI option to disable it
+      they are wired up to the GUI (but not visible at this time), but as it was in this state for good 5 years
+      I am not changing the defaults, they still remain, so by default this is still ON
+  * "switch to login manager tty" and "killing leftover processes" are now hidden optional options
+      TTY switch which was needed for older GDM login screen which got lost and did not show user the login screen
+      after terminating sessions timekpr was killing leftover processes which should be terminated along the session
+      but weren't so ppls time was still ticking away
+      they are wired up to the GUI (but not visible at this time)
+      these are now hidden options found in /etc/timekpr/timekpr.conf and disabled by default
+  * fix DBUS names which are derived from usernames and contain non-dbus compatible characters
+      example: @ and . which is commonly found in enterprises, like firstname.lastname@corporation.domain
+      fixes #2160176
+
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Tue, 04 Aug 2026 11:26:17 +0300
+
 timekpr-next (0.5.9-1ubuntu1~ppa1) unstable; urgency=medium
 
   * fixed a bug in notifications when time is not limited was shown even the time was limited

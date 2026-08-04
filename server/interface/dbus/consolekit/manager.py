@@ -23,12 +23,12 @@ class timekprUserLoginManager(object):
         # NOT IMPLEMENTED
         raise NotImplementedError("ConsoleKit support is not implemented")
 
-    def determineLoginManagerVT(self, pUserName, pUserPath):
+    def determineLoginManagerVT(self, pUserName, pUserPath, pTimekprConfig):
         """Get login manager session VTNr"""
         # NOT IMPLEMENTED
         raise NotImplementedError("ConsoleKit support is not implemented")
 
-    def switchTTY(self, pSeatId, pSessionTTY):
+    def switchTTY(self, pSeatId, pForce):
         """Swith TTY for login screen"""
         # NOT IMPLEMENTED
         raise NotImplementedError("ConsoleKit support is not implemented")

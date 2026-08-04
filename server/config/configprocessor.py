@@ -40,8 +40,8 @@ class timekprUserConfigurationProcessor(object):
         # result
         if not self._timekprUserConfig.loadUserConfiguration(True):
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_USERCONFIG_NOTFOUND") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_USERCONFIG_NOTFOUND", e=True)
+            message %= (self._userName)
 
         # result
         return result, message
@@ -58,8 +58,8 @@ class timekprUserConfigurationProcessor(object):
         # result
         if not self._timekprUserControl.loadUserControl(True):
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_USERCONTROL_NOTFOUND") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_USERCONTROL_NOTFOUND", e=True)
+            message %= (self._userName)
 
         # result
         return result, message
@@ -280,8 +280,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pDayList is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_DAYLIST_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_DAYLIST_NONE", e=True)
+            message %= (self._userName)
         else:
             # days
             days = []
@@ -300,8 +300,8 @@ class timekprUserConfigurationProcessor(object):
                             days.append(tmp)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_DAYLIST_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_DAYLIST_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -310,8 +310,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserAllowedWeekdays(days)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_DAYLIST_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_DAYLIST_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -348,13 +348,13 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pDayNumber is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_DAY_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_DAY_NONE", e=True)
+            message %= (self._userName)
         # if days are crazy
         elif pDayNumber != "ALL" and not isDayNumberValid:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_DAY_INVALID") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_DAY_INVALID", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -389,8 +389,8 @@ class timekprUserConfigurationProcessor(object):
 
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_ALLOWEDHOURS_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -415,8 +415,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pDayLimits is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_NONE", e=True)
+            message %= (self._userName)
         else:
             # limits
             limits = []
@@ -430,8 +430,8 @@ class timekprUserConfigurationProcessor(object):
                         limits.append(max(min(int(rLimit), cons.TK_LIMIT_PER_DAY), 0))
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -440,8 +440,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserLimitsPerWeekdays(limits)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_DAILYLIMITS_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -467,8 +467,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pTrackInactive is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_NONE") % (self._userName)
+            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_NONE")
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -476,8 +476,8 @@ class timekprUserConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -486,8 +486,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserTrackInactive(pTrackInactive)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_TRACKINACTIVE_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -513,8 +513,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pHideTrayIcon is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_NONE", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -522,8 +522,8 @@ class timekprUserConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -532,8 +532,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserHideTrayIcon(pHideTrayIcon)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_HIDETRAYICON_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -562,13 +562,13 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pLockoutType is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_NONE", e=True)
+            message %= (self._userName)
         # parse config
         elif pLockoutType not in (cons.TK_CTRL_RES_L, cons.TK_CTRL_RES_S, cons.TK_CTRL_RES_W, cons.TK_CTRL_RES_T, cons.TK_CTRL_RES_K, cons.TK_CTRL_RES_D) or not (pWakeFrom.isnumeric() if pWakeFrom is not None else True) or not (pWakeTo.isnumeric() if pWakeTo is not None else True):
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_INVALID") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_INVALID", e=True)
+            message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -579,8 +579,8 @@ class timekprUserConfigurationProcessor(object):
                     self._timekprUserConfig.setUserWakeupHourInterval([pWakeFrom, pWakeTo])
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_LOCKOUTTYPE_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -602,8 +602,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pTimeLimitWeek is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_NONE", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -611,8 +611,8 @@ class timekprUserConfigurationProcessor(object):
                 weekLimit = max(min(int(pTimeLimitWeek), cons.TK_LIMIT_PER_WEEK), 0)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -621,8 +621,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserWeekLimit(weekLimit)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_WEEKLYALLOWANCE_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -644,8 +644,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pTimeLimitMonth is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_NONE", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -653,8 +653,8 @@ class timekprUserConfigurationProcessor(object):
                 monthLimit = max(min(int(pTimeLimitMonth), cons.TK_LIMIT_PER_MONTH), 0)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -663,8 +663,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserMonthLimit(monthLimit)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_MONTHLYALLOWANCE_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -696,8 +696,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pOperation not in ("+", "-", "="):
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_TIMELIMIT_OPERATION_INVALID") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_TIMELIMIT_OPERATION_INVALID", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -705,8 +705,8 @@ class timekprUserConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_TIMELIMIT_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_TIMELIMIT_INVALID", e=True)
+                message %= (self._userName)
 
             # if all is correct, we update the configuration
             if result == 0:
@@ -729,8 +729,8 @@ class timekprUserConfigurationProcessor(object):
                     self._timekprUserControl.setUserTimeSpentBalance(setLimit)
                 except Exception:
                     # result
-                    result = -1
-                    message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_TIMELIMIT_INVALID_SET") % (self._userName)
+                    result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_TIMELIMIT_INVALID_SET", e=True)
+                    message %= (self._userName)
 
                 # if we are still fine
                 if result == 0:
@@ -758,8 +758,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pPlayTimeEnabled is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_NONE", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -767,8 +767,8 @@ class timekprUserConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -777,8 +777,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserPlayTimeEnabled(pPlayTimeEnabled)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_ENABLE_FLAG_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -804,8 +804,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pPlayTimeLimitOverride is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_NONE", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -813,8 +813,8 @@ class timekprUserConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -823,8 +823,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserPlayTimeOverrideEnabled(pPlayTimeLimitOverride)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_OVERRIDE_FLAG_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -850,8 +850,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pPlayTimeUnaccountedIntervalsEnabled is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_NONE", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -859,8 +859,8 @@ class timekprUserConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -869,8 +869,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserPlayTimeUnaccountedIntervalsEnabled(pPlayTimeUnaccountedIntervalsEnabled)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_UNACC_INT_FLAG_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -895,8 +895,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pPlayTimeAllowedDays is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_NONE", e=True)
+            message %= (self._userName)
         else:
             # days
             days = []
@@ -915,8 +915,8 @@ class timekprUserConfigurationProcessor(object):
                             days.append(tmp)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -925,8 +925,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserPlayTimeAllowedWeekdays(days)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_DAYLIST_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -951,8 +951,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pPlayTimeLimits is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_NONE", e=True)
+            message %= (self._userName)
         else:
             # limits
             limits = []
@@ -966,8 +966,8 @@ class timekprUserConfigurationProcessor(object):
                         limits.append(max(min(int(rLimit), cons.TK_LIMIT_PER_DAY), 0))
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -976,8 +976,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserPlayTimeLimitsPerWeekdays(limits)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_DAYLIMITS_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -1002,8 +1002,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pPlayTimeActivities is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_NONE") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_NONE", e=True)
+            message %= (self._userName)
         else:
             # days
             activities = []
@@ -1017,8 +1017,8 @@ class timekprUserConfigurationProcessor(object):
                     activities.append(act)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_INVALID", e=True)
+                message %= (self._userName)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1027,8 +1027,8 @@ class timekprUserConfigurationProcessor(object):
                 self._timekprUserConfig.setUserPlayTimeAcitivityList(activities)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_INVALID_SET") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_ACTIVITIES_INVALID_SET", e=True)
+                message %= (self._userName)
 
             # if we are still fine
             if result == 0:
@@ -1060,8 +1060,8 @@ class timekprUserConfigurationProcessor(object):
         # if we have no days
         elif pOperation not in ("+", "-", "="):
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_OPERATION_INVALID") % (self._userName)
+            result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_OPERATION_INVALID", e=True)
+            message %= (self._userName)
         else:
             # parse config
             try:
@@ -1069,8 +1069,8 @@ class timekprUserConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_INVALID") % (self._userName)
+                result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_INVALID", e=True)
+                message %= (self._userName)
 
             # if all is correct, we update the configuration
             if result == 0:
@@ -1093,8 +1093,8 @@ class timekprUserConfigurationProcessor(object):
                     self._timekprUserControl.setUserPlayTimeSpentBalance(setLimit)
                 except Exception:
                     # result
-                    result = -1
-                    message = msg.getTranslation("TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_INVALID_SET") % (self._userName)
+                    result, message = msg.getTranslation(s="TK_MSG_USER_ADMIN_CHK_PT_TIMELIMIT_INVALID_SET", e=True)
+                    message %= (self._userName)
 
                 # if we are still fine
                 if result == 0:
@@ -1119,8 +1119,7 @@ class timekprConfigurationProcessor(object):
         self._configLoaded = self._timekprConfig.loadMainConfiguration()
         # if fail
         if not self._configLoaded:
-            result = -1
-            message = msg.getTranslation("TK_MSG_CONFIG_LOADER_ERROR_GENERIC")
+            result, message = msg.getTranslation(s="TK_MSG_CONFIG_LOADER_ERROR_GENERIC", e=True)
         else:
             result = 0
             message = ""
@@ -1161,6 +1160,12 @@ class timekprConfigurationProcessor(object):
             timekprConfigurationStore["TIMEKPR_SESSION_TYPES_EXCL"] = self._timekprConfig.getTimekprSessionsExcl()
             # users to exclude
             timekprConfigurationStore["TIMEKPR_USERS_EXCL"] = self._timekprConfig.getTimekprUsersExcl()
+            # is use of LockedHint enabled
+            timekprConfigurationStore["TIMEKPR_USE_LOCKED_HINT"] = self._timekprConfig.getTimekprUseLockedHintEnabled()
+            # is use of switch tty enabled
+            timekprConfigurationStore["TIMEKPR_SWITCH_TTY_ENABLED"] = self._timekprConfig.getTimekprSwitchTTYEnabled()
+            # is use of kill leftover processes enabled
+            timekprConfigurationStore["TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"] = self._timekprConfig.getTimekprKillLeftOverProcessesEnabled()
             # PlayTime enabled
             timekprConfigurationStore["TIMEKPR_PLAYTIME_ENABLED"] = self._timekprConfig.getTimekprPlayTimeEnabled()
             # PlayTime enhanced activity monitor enabled
@@ -1182,8 +1187,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pLogLevel is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_LOGLEVEL_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOGLEVEL_NONE", e=True)
         else:
             # parse
             try:
@@ -1192,8 +1196,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_LOGLEVEL_INVALID") % (str(pLogLevel))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOGLEVEL_INVALID", e=True)
+                message %= (str(pLogLevel))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1202,8 +1206,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprLogLevel(pLogLevel)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_LOGLEVEL_INVALID_SET") % (str(pLogLevel))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOGLEVEL_INVALID_SET", e=True)
+                message %= (str(pLogLevel))
 
             # if we are still fine
             if result == 0:
@@ -1225,8 +1229,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pPollTimeSecs is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_POLLTIME_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_POLLTIME_NONE", e=True)
         else:
             # parse
             try:
@@ -1235,8 +1238,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_POLLTIME_INVALID") % (str(pPollTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_POLLTIME_INVALID", e=True)
+                message %= (str(pPollTimeSecs))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1245,8 +1248,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprPollTime(pPollTimeSecs)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_POLLTIME_INVALID_SET") % (str(pPollTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_POLLTIME_INVALID_SET", e=True)
+                message %= (str(pPollTimeSecs))
 
             # if we are still fine
             if result == 0:
@@ -1268,8 +1271,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pSaveTimeSecs is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_SAVETIME_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SAVETIME_NONE", e=True)
         else:
             # parse
             try:
@@ -1278,8 +1280,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_SAVETIME_INVALID") % (str(pSaveTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SAVETIME_INVALID", e=True)
+                message %= (str(pSaveTimeSecs))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1288,8 +1290,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprSaveTime(pSaveTimeSecs)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_SAVETIME_INVALID_SET") % (str(pSaveTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SAVETIME_INVALID_SET", e=True)
+                message %= (str(pSaveTimeSecs))
 
             # if we are still fine
             if result == 0:
@@ -1311,8 +1313,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pTrackInactive is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_TRACKINACTIVE_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_TRACKINACTIVE_NONE", e=True)
         else:
             # parse
             try:
@@ -1321,8 +1322,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_TRACKINACTIVE_INVALID") % (str(pTrackInactive))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_TRACKINACTIVE_INVALID", e=True)
+                message %= (str(pTrackInactive))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1331,8 +1332,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprTrackInactive(pTrackInactive)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_TRACKINACTIVE_INVALID_SET") % (str(pTrackInactive))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_TRACKINACTIVE_INVALID_SET", e=True)
+                message %= (str(pTrackInactive))
 
             # if we are still fine
             if result == 0:
@@ -1356,8 +1357,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pTerminationTimeSecs is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_TERMTIME_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_TERMTIME_NONE", e=True)
         else:
             # parse
             try:
@@ -1366,8 +1366,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_TERMTIME_INVALID") % (str(pTerminationTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_TERMTIME_INVALID", e=True)
+                message %= (str(pTerminationTimeSecs))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1376,8 +1376,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprTerminationTime(pTerminationTimeSecs)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_TERMTIME_INVALID_SET") % (str(pTerminationTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_TERMTIME_INVALID_SET", e=True)
+                message %= (str(pTerminationTimeSecs))
 
             # if we are still fine
             if result == 0:
@@ -1399,8 +1399,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pFinalWarningTimeSecs is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_FINALWARNTIME_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_FINALWARNTIME_NONE", e=True)
         else:
             # parse
             try:
@@ -1409,8 +1408,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_FINALWARNTIME_INVALID") % (str(pFinalWarningTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_FINALWARNTIME_INVALID", e=True)
+                message %= (str(pFinalWarningTimeSecs))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1419,8 +1418,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprFinalWarningTime(pFinalWarningTimeSecs)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_FINALWARNTIME_INVALID_SET") % (str(pFinalWarningTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_FINALWARNTIME_INVALID_SET", e=True)
+                message %= (str(pFinalWarningTimeSecs))
 
             # if we are still fine
             if result == 0:
@@ -1442,8 +1441,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pFinalNotificationTimeSecs is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_FINALNOTIFTIME_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_FINALNOTIFTIME_NONE", e=True)
         else:
             # parse
             try:
@@ -1452,8 +1450,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_FINALNOTIFTIME_INVALID") % (str(pFinalNotificationTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_FINALNOTIFTIME_INVALID", e=True)
+                message %= (str(pFinalNotificationTimeSecs))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1462,8 +1460,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprFinalNotificationTime(pFinalNotificationTimeSecs)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_FINALNOTIFTIME_INVALID_SET") % (str(pFinalNotificationTimeSecs))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_FINALNOTIFTIME_INVALID_SET", e=True)
+                message %= (str(pFinalNotificationTimeSecs))
 
             # if we are still fine
             if result == 0:
@@ -1485,8 +1483,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pSessionsCtrl is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_CTRLSESSIONS_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_CTRLSESSIONS_NONE", e=True)
         else:
             # limits
             sessionsCtrl = []
@@ -1498,8 +1495,7 @@ class timekprConfigurationProcessor(object):
                     sessionsCtrl.append(rSession)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_CTRLSESSIONS_INVALID")
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_CTRLSESSIONS_INVALID", e=True)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1508,8 +1504,7 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprSessionsCtrl(sessionsCtrl)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_CTRLSESSIONS_INVALID_SET")
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_CTRLSESSIONS_INVALID_SET", e=True)
 
             # if we are still fine
             if result == 0:
@@ -1531,8 +1526,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pSessionsExcl is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_EXCLSESSIONW_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_EXCLSESSIONS_NONE", e=True)
         else:
             # limits
             sessionsExcl = []
@@ -1544,8 +1538,7 @@ class timekprConfigurationProcessor(object):
                     sessionsExcl.append(rSession)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_EXCLSESSIONS_INVALID")
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_EXCLSESSIONS_INVALID", e=True)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1554,8 +1547,7 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprSessionsExcl(sessionsExcl)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_EXCLSESSIONS_INVALID_SET")
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_EXCLSESSIONS_INVALID_SET", e=True)
 
             # if we are still fine
             if result == 0:
@@ -1580,8 +1572,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pUsersExcl is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_EXCLUSERS_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_EXCLUSERS_NONE", e=True)
         else:
             # limits
             usersExcl = []
@@ -1593,8 +1584,7 @@ class timekprConfigurationProcessor(object):
                     usersExcl.append(rUser)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID")
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID", e=True)
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1603,8 +1593,130 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprUsersExcl(usersExcl)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID_SET")
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_EXCLUSERS_INVALID_SET", e=True)
+
+            # if we are still fine
+            if result == 0:
+                # save config
+                self._timekprConfig.saveTimekprConfiguration()
+
+        # result
+        return result, message
+
+    def checkAndSetTimekprUseLockedHintEnabled(self, pUseLockedHint):
+        """Check and set the LockedHint option"""
+        # load config
+        result, message = self.loadTimekprConfiguration()
+
+        # if we are still fine
+        if result != 0:
+            # result
+            pass
+        elif pUseLockedHint is None:
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOCKEDHINT_ENABLED_NONE", e=True)
+        else:
+            # parse
+            try:
+                # try to convert
+                if bool(pUseLockedHint):
+                    pass
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOCKEDHINT_INVALID", e=True)
+                message %= (str(pUseLockedHint))
+
+        # if all is correct, we update the configuration
+        if result == 0:
+            # set up config
+            try:
+                self._timekprConfig.setTimekprUseLockedHintEnabled(pUseLockedHint)
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_LOCKEDHINT_INVALID_SET", e=True)
+                message %= (str(pUseLockedHint))
+
+            # if we are still fine
+            if result == 0:
+                # save config
+                self._timekprConfig.saveTimekprConfiguration()
+
+        # result
+        return result, message
+
+    def checkAndSetTimekprSwitchTTYEnabled(self, pSwitchTTYEnabled):
+        """Check and set the switch tty option"""
+        # load config
+        result, message = self.loadTimekprConfiguration()
+
+        # if we are still fine
+        if result != 0:
+            # result
+            pass
+        elif pSwitchTTYEnabled is None:
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SWITCHTTY_ENABLED_NONE", e=True)
+        else:
+            # parse
+            try:
+                # try to convert
+                if bool(pSwitchTTYEnabled):
+                    pass
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SWITCHTTY_INVALID", e=True)
+                message %= (str(pSwitchTTYEnabled))
+
+        # if all is correct, we update the configuration
+        if result == 0:
+            # set up config
+            try:
+                self._timekprConfig.setTimekprSwitchTTYEnabled(pSwitchTTYEnabled)
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_SWITCHTTY_INVALID_SET", e=True)
+                message %= (str(pSwitchTTYEnabled))
+
+            # if we are still fine
+            if result == 0:
+                # save config
+                self._timekprConfig.saveTimekprConfiguration()
+
+        # result
+        return result, message
+
+    def checkAndSetTimekprKillLeftOverProcessesEnabled(self, pKillLeftOverProcessesEnabled):
+        """Check and set the switch tty option"""
+        # load config
+        result, message = self.loadTimekprConfiguration()
+
+        # if we are still fine
+        if result != 0:
+            # result
+            pass
+        elif pKillLeftOverProcessesEnabled is None:
+            # result
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_KILLLEFTOVERS_ENABLED_NONE", e=True)
+        else:
+            # parse
+            try:
+                # try to convert
+                if bool(pKillLeftOverProcessesEnabled):
+                    pass
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_KILLLEFTOVERS_INVALID", e=True)
+                message %= (str(pKillLeftOverProcessesEnabled))
+
+        # if all is correct, we update the configuration
+        if result == 0:
+            # set up config
+            try:
+                self._timekprConfig.setTimekprKillLeftOverProcessesEnabled(pKillLeftOverProcessesEnabled)
+            except Exception:
+                # result
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_KILLLEFTOVERS_INVALID_SET", e=True)
+                message %= (str(pKillLeftOverProcessesEnabled))
 
             # if we are still fine
             if result == 0:
@@ -1625,8 +1737,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pPlayTimeEnabled is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_NONE", e=True)
         else:
             # parse
             try:
@@ -1635,8 +1746,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID") % (str(pPlayTimeEnabled))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID", e=True)
+                message %= (str(pPlayTimeEnabled))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1645,8 +1756,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprPlayTimeEnabled(pPlayTimeEnabled)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID_SET") % (str(pPlayTimeEnabled))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_PLAYTIMEENABLED_INVALID_SET", e=True)
+                message %= (str(pPlayTimeEnabled))
 
             # if we are still fine
             if result == 0:
@@ -1667,8 +1778,7 @@ class timekprConfigurationProcessor(object):
             pass
         elif pPlayTimeAdvancedSearchEnabled is None:
             # result
-            result = -1
-            message = msg.getTranslation("TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_NONE")
+            result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_NONE", e=True)
         else:
             # parse
             try:
@@ -1677,8 +1787,8 @@ class timekprConfigurationProcessor(object):
                     pass
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_INVALID") % (str(pPlayTimeAdvancedSearchEnabled))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_INVALID", e=True)
+                message %= (str(pPlayTimeAdvancedSearchEnabled))
 
         # if all is correct, we update the configuration
         if result == 0:
@@ -1687,8 +1797,8 @@ class timekprConfigurationProcessor(object):
                 self._timekprConfig.setTimekprPlayTimeEnhancedActivityMonitorEnabled(pPlayTimeAdvancedSearchEnabled)
             except Exception:
                 # result
-                result = -1
-                message = msg.getTranslation("TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_INVALID_SET") % (str(pPlayTimeAdvancedSearchEnabled))
+                result, message = msg.getTranslation(s="TK_MSG_ADMIN_CHK_PLAYTIME_ENH_ACT_MON_ENABLED_INVALID_SET", e=True)
+                message %= (str(pPlayTimeAdvancedSearchEnabled))
 
             # if we are still fine
             if result == 0:
