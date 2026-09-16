@@ -1,3 +1,11 @@
+timekpr-next-beta (0.5.10-6ubuntu1~ppa1) unstable; urgency=medium
+
+  * a fix for leftover process killer
+      when enabled it should handle the case when process disapear while system walks through all processes
+      fixes #2167185
+
+ -- Eduards Bezverhijs <edzis@inbox.lv>  Mon, 14 Sep 2026 12:34:46 +0300
+
 timekpr-next-beta (0.5.10-5ubuntu1~ppa1) unstable; urgency=medium
 
   * timekpra will now exit with non zero exit code when there are errors processing

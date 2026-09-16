@@ -216,7 +216,11 @@ def killLeftoverUserProcesses(pUserName, pTimekprConfig):
     # get all processes for this user
     for userProc in psutil.process_iter():
         # process info
-        procInfo = userProc.as_dict(attrs=["pid", "ppid", "name", "username", "terminal"])
+        try:
+            procInfo = userProc.as_dict(attrs=["pid", "ppid", "name", "username", "terminal"])
+        except psutil.NoSuchProcess as psErr:
+            continue
+
         # check for username and for processes that originates from init (the rest should be terminated along with the session)
         if procInfo["username"] == pUserName:
             # if originates from init
@@ -236,6 +240,8 @@ def killLeftoverUserProcesses(pUserName, pTimekprConfig):
                         else:
                             # asking process to terminate
                             userPrc.terminate()
+                    except psutil.NoSuchProcess as psErr:
+                        pass
                     except psutil.Error as psErr:
                         log.log(cons.TK_LOG_LEVEL_ERR, "ERROR: killing %s failed (%s)" % (procInfo["pid"], str(psErr)))
                         pass
