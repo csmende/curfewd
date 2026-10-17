@@ -2,7 +2,7 @@
 %define _sitelib %( echo %{python3_sitelib} | cut -c 10- )
 
 Name:             timekpr-next
-Version:          0.5.10
+Version:          0.5.11
 Release:          1.0%{?dist}
 Summary:          Keep control of computer usage
 Group:            System Environment/Daemons
@@ -132,6 +132,10 @@ update-desktop-database &> /dev/null || :
 %{_sysconfdir}/xdg/autostart/*
 
 %changelog
+* Sat Oct 17 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.11-1.0
+- Updated spec file for version 0.5.11, release 1.0 (STABLE)
+* Sat Oct 17 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.11-0.1
+- Updated spec file for version 0.5.11, release 0.1 (BETA)
 * Tue Aug 4 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.10-1.0
 - Updated spec file for version 0.5.10, release 1.0 (STABLE)
 * Thu Jul 9 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.10-0.4
