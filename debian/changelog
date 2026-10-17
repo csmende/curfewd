@@ -1,4 +1,4 @@
-timekpr-next (0.5.11-1ubuntu1~ppa1) unstable; urgency=medium
+timekpr-next (0.5.11-1ubuntu2~ppa1) unstable; urgency=medium
 
   * a fix for leftover process killer
       when enabled it should handle the case when process disapear while system walks through all processes
