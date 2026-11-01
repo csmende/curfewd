@@ -40,9 +40,13 @@ class timekprAdminGUI(object):
         self._resourcePath = pResourcePath
         self._timekprAdminConnector = None
         self._isConnected = False
-        self._ROWCOL_OK = "#FFFFFF"
+        # OK colors
+        self._ROWCOLOR_OK = "#FFFFFF"
+        self._BTLCOLOR_OK = None
         self._ROWSTYLE_OK = False
-        self._ROWCOL_NOK = "Yellow"
+        # NOK colors
+        self._ROWCOLOR_NOK = "Yellow"
+        self._BTLCOLOR_NOK = None
         self._ROWSTYLE_NOK = True
 
         # ## forms builders ##
@@ -153,6 +157,16 @@ class timekprAdminGUI(object):
 
     def initGUIElements(self):
         """Initialize all GUI elements for stores"""
+
+        # ## get actual colors for norm and error display ##
+        ctx = self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsTreeView").get_style_context();
+        tmps, baseBG = ctx.lookup_color("theme_base_color")
+        tmps, errBG = ctx.lookup_color("error_color")
+        self._ROWCOLOR_OK = baseBG.to_string()
+        self._ROWCOLOR_NOK = errBG.to_string()
+        self._BTLCOLOR_OK = None
+        self._BTLCOLOR_NOK = Gdk.color_parse("red")
+
         # ## tracked session types ##
         rend = Gtk.CellRendererText()
         rend.set_property("editable", True)
@@ -576,10 +590,10 @@ class timekprAdminGUI(object):
             # if there is date, no need to add one
             if len(self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS")) == 0:
                 # standard time intervals
-                self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([0, "08:00", "13:00", "1", 0, 0, self._ROWCOL_NOK, self._ROWSTYLE_NOK])
-                self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([0, "15:00", "18:00", "1", 0, 0, self._ROWCOL_OK, self._ROWSTYLE_OK])
-                self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([0, "18:30", "22:00", "1", 0, 0, self._ROWCOL_OK, self._ROWSTYLE_OK])
-                self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([0, "22:30", "23:00", "1", 0, 0, self._ROWCOL_NOK, self._ROWSTYLE_NOK])
+                self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([0, "08:00", "13:00", "1", 0, 0, self._ROWCOLOR_NOK, self._ROWSTYLE_NOK])
+                self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([0, "15:00", "18:00", "1", 0, 0, self._ROWCOLOR_OK, self._ROWSTYLE_OK])
+                self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([0, "18:30", "22:00", "1", 0, 0, self._ROWCOLOR_OK, self._ROWSTYLE_OK])
+                self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([0, "22:30", "23:00", "1", 0, 0, self._ROWCOLOR_NOK, self._ROWSTYLE_NOK])
                 self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsTreeView").set_sensitive(True)
             # if there is date, no need to add one
             if len(self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeProcessesLS")) == 0:
@@ -1601,10 +1615,10 @@ class timekprAdminGUI(object):
             self._timekprAdminFormBuilder.get_object("TimekprConfigurationApplyBT").set_sensitive(enable)
 
             # color the buttons for ppl to see them better
-            self._timekprAdminFormBuilder.get_object("TimekprConfigurationApplyBT").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enable else None)
+            self._timekprAdminFormBuilder.get_object("TimekprConfigurationApplyBT").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enable else self._BTLCOLOR_OK)
 
             # tab color
-            self._timekprAdminFormBuilder.get_object("TimekprConfigurationTabLabel").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enable else None)
+            self._timekprAdminFormBuilder.get_object("TimekprConfigurationTabLabel").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enable else self._BTLCOLOR_OK)
 
         # return
         return changeControl
@@ -1621,12 +1635,12 @@ class timekprAdminGUI(object):
             self._timekprAdminFormBuilder.get_object(rCtrl).set_sensitive(enabled)
 
         # color the buttons for ppl to see them better
-        self._timekprAdminFormBuilder.get_object("TimekprUserConfTodaySettingsSetAddBT").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enabled else None)
-        self._timekprAdminFormBuilder.get_object("TimekprUserConfTodaySettingsSetSubractBT").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enabled else None)
-        self._timekprAdminFormBuilder.get_object("TimekprUserConfTodaySettingsSetSetBT").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enabled else None)
+        self._timekprAdminFormBuilder.get_object("TimekprUserConfTodaySettingsSetAddBT").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enabled else self._BTLCOLOR_OK)
+        self._timekprAdminFormBuilder.get_object("TimekprUserConfTodaySettingsSetSubractBT").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enabled else self._BTLCOLOR_OK)
+        self._timekprAdminFormBuilder.get_object("TimekprUserConfTodaySettingsSetSetBT").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enabled else self._BTLCOLOR_OK)
 
         # tab color
-        self._timekprAdminFormBuilder.get_object("TimekprUserConfTodayLabel").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enabled else None)
+        self._timekprAdminFormBuilder.get_object("TimekprUserConfTodayLabel").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enabled else self._BTLCOLOR_OK)
 
     def calculateUserConfigControlAvailability(self, pApplyControls=True):
         """Calculate user config control availability"""
@@ -1681,16 +1695,16 @@ class timekprAdminGUI(object):
             self._timekprAdminFormBuilder.get_object("TimekprUserConfDaySettingsApplyBT").set_sensitive(configChanged and areIntervalsVerified)
 
             # color the buttons for ppl to see them better
-            self._timekprAdminFormBuilder.get_object("TimekprUserConfDaySettingsApplyBT").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if configChanged else None)
+            self._timekprAdminFormBuilder.get_object("TimekprUserConfDaySettingsApplyBT").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if configChanged else self._BTLCOLOR_OK)
 
         # enable / disable verify
         self._timekprAdminFormBuilder.get_object("TimekprUserConfDaySettingsSetDaysIntervalsVerifyBT").set_sensitive(not areIntervalsVerified)
 
         # color the buttons for ppl to see them better
-        self._timekprAdminFormBuilder.get_object("TimekprUserConfDaySettingsSetDaysIntervalsVerifyBT").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if not areIntervalsVerified else None)
+        self._timekprAdminFormBuilder.get_object("TimekprUserConfDaySettingsSetDaysIntervalsVerifyBT").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if not areIntervalsVerified else self._BTLCOLOR_OK)
 
         # tab color
-        self._timekprAdminFormBuilder.get_object("TimekprUserConfDailyLabel").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if (configChanged or not areIntervalsVerified) else None)
+        self._timekprAdminFormBuilder.get_object("TimekprUserConfDailyLabel").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if (configChanged or not areIntervalsVerified) else self._BTLCOLOR_OK)
 
         # return
         return changeControl
@@ -1762,10 +1776,10 @@ class timekprAdminGUI(object):
             self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeProcessesApplyBT").set_sensitive(enable)
 
             # color the buttons for ppl to see them better
-            self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeProcessesApplyBT").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enable else None)
+            self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeProcessesApplyBT").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enable else self._BTLCOLOR_OK)
 
             # tab color
-            self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeLabel").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enable else None)
+            self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeLabel").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enable else self._BTLCOLOR_OK)
 
         # return
         return changeControl
@@ -1813,10 +1827,10 @@ class timekprAdminGUI(object):
             self._timekprAdminFormBuilder.get_object("TimekprUserConfAddOptsApplyBT").set_sensitive(enable)
 
             # color the buttons for ppl to see them better
-            self._timekprAdminFormBuilder.get_object("TimekprUserConfAddOptsApplyBT").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enable else None)
+            self._timekprAdminFormBuilder.get_object("TimekprUserConfAddOptsApplyBT").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enable else self._BTLCOLOR_OK)
 
             # tab color
-            self._timekprAdminFormBuilder.get_object("TimekprUserConfAddOptsLabel").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if enable else None)
+            self._timekprAdminFormBuilder.get_object("TimekprUserConfAddOptsLabel").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if enable else self._BTLCOLOR_OK)
 
         # return
         return changeControl
@@ -2416,7 +2430,7 @@ class timekprAdminGUI(object):
         self._timekprAdminFormBuilder.get_object("TimekprConfigurationApplyBT").modify_fg(Gtk.StateFlags.NORMAL, None)
 
         # tab color
-        self._timekprAdminFormBuilder.get_object("TimekprConfigurationTabLabel").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if self._timekprAdminFormBuilder.get_object("TimekprConfigurationApplyBT").get_sensitive() else None)
+        self._timekprAdminFormBuilder.get_object("TimekprConfigurationTabLabel").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if self._timekprAdminFormBuilder.get_object("TimekprConfigurationApplyBT").get_sensitive() else self._BTLCOLOR_OK)
 
         # process setting
         self.applyTimekprConfigurationChanges()
@@ -2638,7 +2652,7 @@ class timekprAdminGUI(object):
                     # determine which is the current hour
                     selIdx = idx if rInterval[2] <= dts <= rInterval[3] and dtd == dayNum else selIdx
                     # fill in the intervals
-                    self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([idx, rInterval[0], rInterval[1], dayNum, rInterval[2], rInterval[3], self._ROWCOL_OK, self._ROWSTYLE_OK, rInterval[4]])
+                    self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsLS").append([idx, rInterval[0], rInterval[1], dayNum, rInterval[2], rInterval[3], self._ROWCOLOR_OK, self._ROWSTYLE_OK, rInterval[4]])
                     idx += 1
                 # found
                 if found:
@@ -2742,7 +2756,7 @@ class timekprAdminGUI(object):
                 # normalize day
                 calcDay = days[len(days)-1]["nr"]
                 # add
-                limitsSt.append([-1, "", "", calcDay, 0, 0, self._ROWCOL_OK, self._ROWSTYLE_OK, False])
+                limitsSt.append([-1, "", "", calcDay, 0, 0, self._ROWCOLOR_OK, self._ROWSTYLE_OK, False])
                 # scroll to end
                 limitsTw.set_cursor(limitsLen)
                 limitsTw.scroll_to_cell(limitsLen)
@@ -2901,7 +2915,7 @@ class timekprAdminGUI(object):
         self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeProcessesApplyBT").modify_fg(Gtk.StateFlags.NORMAL, None)
 
         # tab color
-        self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeLabel").modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("red") if self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeProcessesApplyBT").get_sensitive() else None)
+        self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeLabel").modify_fg(Gtk.StateFlags.NORMAL, self._BTLCOLOR_NOK if self._timekprAdminFormBuilder.get_object("TimekprUserPlayTimeProcessesApplyBT").get_sensitive() else self._BTLCOLOR_OK)
 
         # process setting
         self.applyUserPlayTimeConfigurationChanges()
@@ -3133,10 +3147,10 @@ class timekprAdminGUI(object):
                 # if we have errors
                 if intervalsSt[rIdx][7] != result or result:
                     # mark offending row
-                    intervalsSt[rIdx][6] = self._ROWCOL_NOK if result else self._ROWCOL_OK
+                    intervalsSt[rIdx][6] = self._ROWCOLOR_NOK if result else self._ROWCOLOR_OK
                     intervalsSt[rIdx][7] = self._ROWSTYLE_NOK if result else self._ROWSTYLE_OK
                     # mark checked row too
-                    intervalsSt[intervalIdx][6] = self._ROWCOL_NOK if result else self._ROWCOL_OK
+                    intervalsSt[intervalIdx][6] = self._ROWCOLOR_NOK if result else self._ROWCOLOR_OK
                     intervalsSt[intervalIdx][7] = self._ROWSTYLE_NOK if result else self._ROWSTYLE_OK
                 # we have a problem
                 if result:
