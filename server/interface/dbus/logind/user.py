@@ -152,9 +152,9 @@ class timekprUserManager(object):
                 try:
                     # get locked state
                     rSessionId = next(iter(self._timekprUserSessions))
-                    sessionLockedState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "LockedHint")))
+                    sessionLockedState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "LockedHint"))).lower()
                     # locked state available
-                    if sessionLockedState in ("True", "False"):
+                    if sessionLockedState in ("true", "false"):
                         # state used
                         self._sessionLockedStateAvailable = True
                         log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is available for user \"%s\" and will be used for idle state detection (if it works correctly)" % (self._userName))
@@ -173,7 +173,7 @@ class timekprUserManager(object):
                 log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is NOT available for user \"%s\", will rely on client screensaver state (if it works)" % (self._userName))
 
         # not locked
-        sessionLockedState = "False"
+        sessionLockedState = "false"
 
         # if user locked the computer
         if pIsScreenLocked and not pTimekprUserConfig.getUserTrackInactive():
@@ -189,11 +189,11 @@ class timekprUserManager(object):
                 # get needed properties
                 sessionType = str(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "Type"))
                 sessionState = str(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "State"))
-                sessionIdleState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "IdleHint")))
+                sessionIdleState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "IdleHint"))).lower()
                 # get locked state, only if it's available
                 if self._sessionLockedStateAvailable is True:
                     # get locked state
-                    sessionLockedState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "LockedHint")))
+                    sessionLockedState = str(bool(self._timekprUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "LockedHint"))).lower()
                 # measurement logging
                 misc.measureDBUSTimeElapsed(pStop=True, pDbusIFName=rSessionId)
 
@@ -201,7 +201,7 @@ class timekprUserManager(object):
                 log.log(cons.TK_LOG_LEVEL_DEBUG, "session stats, styp: %s, sVTNr: %s, sl1St: %s, sl1idlst: %s, sl1lckst: %s" % (sessionType, sessionVTNr, sessionState, sessionIdleState, sessionLockedState))
 
                 # check if active
-                if sessionState == "active" and sessionIdleState == "False" and sessionLockedState != "True":
+                if sessionState == "active" and sessionIdleState == "false" and sessionLockedState != "true":
                     # validate against session types we specifically do not track
                     if sessionType in pTimekprConfig.getTimekprSessionsExcl():
                         # session is on the list of session types we specifically do not track
@@ -236,7 +236,7 @@ class timekprUserManager(object):
         log.log(cons.TK_LOG_LEVEL_DEBUG, "---=== finish isUserActive for \"%s\": %s ===---" % (self._userName, str(userActive)))
 
         # return whether user is active and whether screen is locked
-        return userActive, (pIsScreenLocked or sessionLockedState == "True")
+        return userActive, (pIsScreenLocked or sessionLockedState == "true")
 
     def lockUserSessions(self):
         """Ask login manager to lock user sessions (from users perspective)"""
