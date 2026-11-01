@@ -1,4 +1,3 @@
-%global debug_package %{nil}
 %define _sitelib %( echo %{python3_sitelib} | cut -c 10- )
 
 Name:             timekpr-next
@@ -11,7 +10,7 @@ URL:              https://launchpad.net/timekpr-next
 
 Source0:          https://launchpad.net/%{name}/stable/%{version}/+download/%{name}-%{version}.tar.gz
 
-BuildRoot:        %{_tmppath}/%{name}-%{version}-build
+BuildArch:        noarch
 
 BuildRequires:    ( python3 )
 BuildRequires:    ( desktop-file-utils )
@@ -62,7 +61,7 @@ rm -rf $RPM_BUILD_ROOT
 grep -v -e '^#' -e '^$' debian/install | sed -e 's|/$||' -e 's| lib/systemd/| usr/lib/systemd/|g' -e 's|^\(.\+/\)\(.*\) \(.*\)/\?$|mkdir -p %{buildroot}/\3 ; cp \1\2 %{buildroot}/\3|g' | sh -
 
 # install pre/post files
-mkdir mkdir -p %{buildroot}/%{_sharedstatedir}/timekpr
+mkdir -p %{buildroot}/%{_sharedstatedir}/timekpr
 %__cp debian/postinst  %{buildroot}/%{_sharedstatedir}/timekpr/%{name}.postinst
 %__cp debian/postrm  %{buildroot}/%{_sharedstatedir}/timekpr/%{name}.postrm
 
@@ -126,10 +125,10 @@ update-desktop-database &> /dev/null || :
 %{_prefix}/lib/%{_sitelib}/timekpr
 %{_prefix}/lib/systemd/system/*
 %{_sharedstatedir}/timekpr
-%{_sysconfdir}/dbus-1/system.d/*
-%{_sysconfdir}/logrotate.d/*
+%config(noreplace) %{_sysconfdir}/dbus-1/system.d/*
+%config(noreplace) %{_sysconfdir}/logrotate.d/*
 %{_sysconfdir}/timekpr
-%{_sysconfdir}/xdg/autostart/*
+%config(noreplace) %{_sysconfdir}/xdg/autostart/*
 
 %changelog
 * Sat Oct 17 2026 Eduards Bezverhijs <edzis@inbox.lv> - 0.5.11-1.0

@@ -27,7 +27,7 @@ TK_UNIT="${TK_UNIT_DIR}/${TK_UNIT_NAME}"
 
 # add timekpr group (for accessing administration functionality without sudo)
 echo "Checking and/or adding timekpr group to access functionality without superuser privileges"
-groupadd -g 2000 timekpr 2>/dev/null || true
+getent group timekpr >/dev/null || groupadd -r timekpr
 
 # remove compiled python units (may interfere with python versions)
 for R_DIR in ${TK_DIR};
