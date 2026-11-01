@@ -74,6 +74,9 @@ class timekprUserConfigurationProcessor(object):
             # balance and day must be changed
             self._timekprUserControl.setUserTimeSpentDay(0)
             self._timekprUserControl.setUserTimeSpentBalance(0)
+            # PlayTime too, otherwise the next login sees no day change and keeps yesterday's PlayTime
+            self._timekprUserControl.setUserPlayTimeSpentDay(0)
+            self._timekprUserControl.setUserPlayTimeSpentBalance(0)
         # set defaults in case week changed
         if weekChanged:
             # balance and day must be changed
@@ -689,6 +692,12 @@ class timekprUserConfigurationProcessor(object):
             # check if we have this user
             result, message = self.loadAndCheckUserControl()
 
+        # saved control may still be for an earlier day (user not logged in yet or not saved since login),
+        #   the change must not be applied to that day's balance, otherwise it is discarded on the next day check
+        if result == 0:
+            # calculate
+            self.calculateAdjustedDatesForUserControl(datetime.now().replace(microsecond=0))
+
         # if we are still fine
         if result != 0:
             # result
@@ -1052,6 +1061,12 @@ class timekprUserConfigurationProcessor(object):
         if result == 0:
             # check if we have this user
             result, message = self.loadAndCheckUserControl()
+
+        # saved control may still be for an earlier day (user not logged in yet or not saved since login),
+        #   the change must not be applied to that day's balance, otherwise it is discarded on the next day check
+        if result == 0:
+            # calculate
+            self.calculateAdjustedDatesForUserControl(datetime.now().replace(microsecond=0))
 
         # if we are still fine
         if result != 0:
