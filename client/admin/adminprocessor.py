@@ -406,7 +406,7 @@ class timekprAdminClient(object):
             # bools
             elif rUserKey in ("TRACK_INACTIVE", "HIDE_TRAY_ICON", "PLAYTIME_ENABLED", "PLAYTIME_LIMIT_OVERRIDE_ENABLED", "PLAYTIME_UNACCOUNTED_INTERVALS_ENABLED"):
                 # bools
-                result = True if str(rUserConfig).lower() == "true" else False
+                result = True if str(bool(rUserConfig)).lower() == "true" else False
             # strings
             elif rUserKey in ("PLAYTIME_ACTIVITIES"):
                 # loop thorhough activities
