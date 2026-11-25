@@ -282,6 +282,12 @@ class timekprConfig(object):
         # read
         param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
         resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=False, pCheckValue=None, pOverallSuccess=resultValue)
+        # read
+        param = "TIMEKPR_SESSION_LOCK_FALLBACK"
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=True, pCheckValue=None, pOverallSuccess=resultValue)
+        # read
+        param = "TIMEKPR_RELEASE_X11_GRAB_ON_LOCK"
+        resultValue, self._timekprConfig[param] = _readAndNormalizeValue(self._timekprConfig, section, param, pDefaultValue=True, pCheckValue=None, pOverallSuccess=resultValue)
 
         # if we could not read some values, save what we could + defaults
         if not resultValue:
@@ -412,6 +418,14 @@ class timekprConfig(object):
         param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
         dstLines += ["%s\n" % "# whether timekpr should try to kill all leftover processes related to session after terminating it (system should take care of it theoretically)"]
         dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(False))]
+        # set up param
+        param = "TIMEKPR_SESSION_LOCK_FALLBACK"
+        dstLines += ["%s\n" % "# whether curfewd should invoke the desktop screensaver directly over session D-Bus/CLI when logind LockSession is ignored (fixes Cinnamon, XFCE, MATE)"]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(True))]
+        # set up param
+        param = "TIMEKPR_RELEASE_X11_GRAB_ON_LOCK"
+        dstLines += ["%s\n" % "# whether curfewd should release fullscreen X11 input grabs (XF86Ungrab / unfullscreen) and retry locking if a game blocks screen lock"]
+        dstLines += [ "%s = %s\n" % (param, str(self._timekprConfig[param]) if pReuseValues else str(True))]
 
         # section
         section = "PLAYTIME"
@@ -483,6 +497,12 @@ class timekprConfig(object):
         values[param] = str(self._timekprConfig[param])
         # whether kill leftover processes is enabled
         param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+        values[param] = str(self._timekprConfig[param])
+        # whether direct DE session lock fallback is enabled
+        param = "TIMEKPR_SESSION_LOCK_FALLBACK"
+        values[param] = str(self._timekprConfig[param])
+        # whether X11 grab release on lock is enabled
+        param = "TIMEKPR_RELEASE_X11_GRAB_ON_LOCK"
         values[param] = str(self._timekprConfig[param])
 
         # whether PlayTime is enabled
@@ -558,6 +578,12 @@ class timekprConfig(object):
             log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
             # log
             param = "TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"
+            log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
+            # log
+            param = "TIMEKPR_SESSION_LOCK_FALLBACK"
+            log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
+            # log
+            param = "TIMEKPR_RELEASE_X11_GRAB_ON_LOCK"
             log.log(cons.TK_LOG_LEVEL_INFO, "  %s=%s" % (param, str(self._timekprConfig[param])))
 
             # log
@@ -697,6 +723,20 @@ class timekprConfig(object):
         # result
         return self._timekprConfig[param]
 
+    def getTimekprSessionLockFallbackEnabled(self):
+        """Get direct DE session lock fallback enable flag"""
+        # param
+        param = "TIMEKPR_SESSION_LOCK_FALLBACK"
+        # result
+        return self._timekprConfig.get(param, True)
+
+    def getTimekprReleaseX11GrabOnLockEnabled(self):
+        """Get X11 fullscreen grab release on lock enable flag"""
+        # param
+        param = "TIMEKPR_RELEASE_X11_GRAB_ON_LOCK"
+        # result
+        return self._timekprConfig.get(param, True)
+
     def getTimekprPlayTimeEnabled(self):
         """Return whether we have PlayTime enabled"""
         # param
@@ -780,6 +820,16 @@ class timekprConfig(object):
         """Set kill leftover processes enable flag"""
         # set
         self._timekprConfig["TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"] = pKillLeftOverProcessesEnabled
+
+    def setTimekprSessionLockFallbackEnabled(self, pSessionLockFallbackEnabled):
+        """Set direct DE session lock fallback enable flag"""
+        # set
+        self._timekprConfig["TIMEKPR_SESSION_LOCK_FALLBACK"] = pSessionLockFallbackEnabled
+
+    def setTimekprReleaseX11GrabOnLockEnabled(self, pReleaseX11GrabOnLockEnabled):
+        """Set X11 fullscreen grab release on lock enable flag"""
+        # set
+        self._timekprConfig["TIMEKPR_RELEASE_X11_GRAB_ON_LOCK"] = pReleaseX11GrabOnLockEnabled
 
     def setTimekprPlayTimeEnabled(self, pPlayTimeEnabled):
         """Set PlayTime enable flag"""

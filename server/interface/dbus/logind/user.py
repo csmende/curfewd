@@ -102,6 +102,19 @@ class timekprUserManager(object):
                 # add static properties
                 self._timekprUserSessions[sessionId][cons.TK_CTRL_DBUS_SESS_PROP]["VTNr"] = str(int(sessionPropertiesInterface.Get(cons.TK_DBUS_SESSION_OBJECT, "VTNr")))
                 self._timekprUserSessions[sessionId][cons.TK_CTRL_DBUS_SESS_PROP]["Seat"] = str(sessionPropertiesInterface.Get(cons.TK_DBUS_SESSION_OBJECT, "Seat")[0])
+                self._timekprUserSessions[sessionId][cons.TK_CTRL_DBUS_SESS_PROP]["UID"] = self._userId
+                self._timekprUserSessions[sessionId][cons.TK_CTRL_DBUS_SESS_PROP]["Name"] = self._userName
+                for propName, defaultVal, castFn in (
+                    ("Display", "", str),
+                    ("Desktop", "", str),
+                    ("Leader", 0, int),
+                ):
+                    try:
+                        self._timekprUserSessions[sessionId][cons.TK_CTRL_DBUS_SESS_PROP][propName] = castFn(
+                            sessionPropertiesInterface.Get(cons.TK_DBUS_SESSION_OBJECT, propName)
+                        )
+                    except Exception:
+                        self._timekprUserSessions[sessionId][cons.TK_CTRL_DBUS_SESS_PROP][propName] = defaultVal
             else:
                 log.log(cons.TK_LOG_LEVEL_DEBUG, "session already cached: %s" % (sessionId))
 

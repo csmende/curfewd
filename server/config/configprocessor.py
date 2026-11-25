@@ -1181,6 +1181,10 @@ class timekprConfigurationProcessor(object):
             timekprConfigurationStore["TIMEKPR_SWITCH_TTY_ENABLED"] = self._timekprConfig.getTimekprSwitchTTYEnabled()
             # is use of kill leftover processes enabled
             timekprConfigurationStore["TIMEKPR_KILL_LEFTOVER_PROCESSES_ENABLED"] = self._timekprConfig.getTimekprKillLeftOverProcessesEnabled()
+            # is direct DE session lock fallback enabled
+            timekprConfigurationStore["TIMEKPR_SESSION_LOCK_FALLBACK"] = self._timekprConfig.getTimekprSessionLockFallbackEnabled()
+            # is fullscreen X11 grab release on lock enabled
+            timekprConfigurationStore["TIMEKPR_RELEASE_X11_GRAB_ON_LOCK"] = self._timekprConfig.getTimekprReleaseX11GrabOnLockEnabled()
             # PlayTime enabled
             timekprConfigurationStore["TIMEKPR_PLAYTIME_ENABLED"] = self._timekprConfig.getTimekprPlayTimeEnabled()
             # PlayTime enhanced activity monitor enabled

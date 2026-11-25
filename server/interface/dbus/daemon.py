@@ -439,7 +439,7 @@ class timekprDaemon(dbus.service.Object):
                             # lock computer
                             #self._timekprUserList[rUserName].lockUserSessions()
                             # lock the computer (from manager)
-                            self._timekprLoginManager.lockUserSessionsManager(self._timekprUserList[rUserName].getUserSessionList())
+                            self._timekprLoginManager.lockUserSessionsManager(self._timekprUserList[rUserName].getUserSessionList(), self._timekprConfig)
             # we are going to SUSPEND user sessions
             elif self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY] in (cons.TK_CTRL_RES_S, cons.TK_CTRL_RES_W):
                 # is user active
@@ -492,7 +492,7 @@ class timekprDaemon(dbus.service.Object):
                             # if delay is still in place, just lock the screen (from user sessions)
                             #self._timekprUserList[rUserName].lockUserSessions()
                             # if delay is still in place, just lock the screen (from manager)
-                            self._timekprLoginManager.lockUserSessionsManager(self._timekprUserList[rUserName].getUserSessionList())
+                            self._timekprLoginManager.lockUserSessionsManager(self._timekprUserList[rUserName].getUserSessionList(), self._timekprConfig)
             else:
                 log.log(cons.TK_LOG_LEVEL_WARN, "WARN: unsupported restriction type \"%s\"" % (self._timekprUserRestrictionList[rUserName][cons.TK_CTRL_RESTY]))
 

@@ -14,6 +14,7 @@ from gi.repository import GLib
 from timekpr.common.constants import constants as cons
 from timekpr.common.log import log
 from timekpr.common.utils import misc
+from timekpr.server.interface.dbus.logind import screenlock
 
 
 class timekprUserLoginManager(object):
@@ -29,6 +30,7 @@ class timekprUserLoginManager(object):
         self._loginManagerVTNr = None
         self._loginManagerVTNrRetries = 0
         self._connectionRetryCount = 0
+        self._screenLockEnforcer = screenlock.ScreenLockEnforcer()
 
         # dbus initialization
         self._timekprBus = dbus.SystemBus()
@@ -304,20 +306,65 @@ class timekprUserLoginManager(object):
         # return false for repeat schedule to be discarded
         return False
 
-    def lockUserSessionsManager(self, pUserSessions):
-        """Ask login manager to lock user sessions"""
+    def _callLockSession(self, pSessionId):
+        """Invoke logind Manager.LockSession safely from the GLib main loop."""
+        try:
+            self._login1ManagerInterface.LockSession(pSessionId)
+        except Exception as exc:
+            log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: logind LockSession(%s) failed: %s" % (pSessionId, exc))
+        return False
+
+    def lockUserSessionsManager(self, pUserSessions, pTimekprConfig=None):
+        """Ask login manager to lock user sessions, with verified DE screensaver fallback."""
         log.log(cons.TK_LOG_LEVEL_EXTRA_DEBUG, "start lockUserSessionsManager")
+
+        sessionFallbackEnabled = True
+        releaseX11Grab = True
+        controlledTypes = cons.TK_SESSION_TYPES_CTRL.split(";")
+        if pTimekprConfig is not None:
+            sessionFallbackEnabled = pTimekprConfig.getTimekprSessionLockFallbackEnabled()
+            releaseX11Grab = pTimekprConfig.getTimekprReleaseX11GrabOnLockEnabled()
+            controlledTypes = pTimekprConfig.getTimekprSessionsCtrl()
 
         # go through all user sessions
         for rSessionId in pUserSessions:
+            sessEntry = pUserSessions[rSessionId]
+            sessPropIf = sessEntry[cons.TK_CTRL_DBUS_SESS_PROP_IF]
+            sessStaticProps = sessEntry.get(cons.TK_CTRL_DBUS_SESS_PROP, {})
+            sessionType = str(sessPropIf.Get(cons.TK_DBUS_SESSION_OBJECT, "Type"))
+
             # we lock only GUI sessions
-            if str(pUserSessions[rSessionId][cons.TK_CTRL_DBUS_SESS_PROP_IF].Get(cons.TK_DBUS_SESSION_OBJECT, "Type")) in cons.TK_SESSION_TYPES_CTRL:
+            if sessionType in controlledTypes:
                 # not locking myself out
                 if cons.TK_DEV_ACTIVE:
                     log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not locking myself out, sorry...")
                 else:
-                    # lock
-                    GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.LockSession, rSessionId)
+                    # Layer 1: standards-compliant systemd-logind LockSession signal
+                    GLib.timeout_add(100, self._callLockSession, rSessionId)
+
+                    # Layer 2 & 3: verified DE screensaver lock + X11 fullscreen grab-release retry
+                    if sessionFallbackEnabled:
+                        uid = sessStaticProps.get("UID")
+                        username = sessStaticProps.get("Name", "")
+                        display = sessStaticProps.get("Display", "")
+                        desktop = sessStaticProps.get("Desktop", "")
+                        leaderPid = sessStaticProps.get("Leader", 0)
+                        if uid is None:
+                            try:
+                                uid = int(sessPropIf.Get(cons.TK_DBUS_SESSION_OBJECT, "User")[0])
+                            except Exception:
+                                uid = None
+                        if uid is not None:
+                            ctx = screenlock.discover_session_context(
+                                session_id=rSessionId,
+                                uid=uid,
+                                username=username,
+                                session_type=sessionType,
+                                display=display,
+                                desktop=desktop,
+                                leader_pid=leaderPid,
+                            )
+                            self._screenLockEnforcer.enforce_session_lock_async(ctx, release_x11_grab=releaseX11Grab)
 
         log.log(cons.TK_LOG_LEVEL_EXTRA_DEBUG, "finish lockUserSessionsManager")
 
@@ -342,9 +389,9 @@ class timekprUserLoginManager(object):
                 if cons.TK_DEV_ACTIVE:
                     log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not killing myself, sorry...")
                 elif pRestrictionType == cons.TK_CTRL_RES_K:
-                    GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.KillSession, rUserSession["sessionId"], "all", signal.SIGTERM)
+                    GLib.timeout_add(100, self._login1ManagerInterface.KillSession, rUserSession["sessionId"], "all", signal.SIGTERM)
                 else:
-                    GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.TerminateSession, rUserSession["sessionId"])
+                    GLib.timeout_add(100, self._login1ManagerInterface.TerminateSession, rUserSession["sessionId"])
                 # get last seat
                 if pTimekprConfig.getTimekprSwitchTTYEnabled():
                     lastSeat = rUserSession["seat"] if rUserSession["seat"] is not None and rUserSession["seat"] != "" and rUserSession["vtnr"] is not None and rUserSession["vtnr"] != "" and self._loginManagerVTNr != rUserSession["vtnr"] else lastSeat
@@ -384,7 +431,7 @@ class timekprUserLoginManager(object):
             log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not suspending myself, sorry...")
         else:
             log.log(cons.TK_LOG_LEVEL_DEBUG, "start suspendComputer in the name of \"%s\"" % (pUserName))
-            GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.Suspend, False)
+            GLib.timeout_add(100, self._login1ManagerInterface.Suspend, False)
 
     def shutdownComputer(self, pUserName):
         """Shutdown computer"""
@@ -393,4 +440,4 @@ class timekprUserLoginManager(object):
             log.log(cons.TK_LOG_LEVEL_WARN, "DEVELOPMENT ACTIVE, not issuing shutdown for myself, sorry...")
         else:
             log.log(cons.TK_LOG_LEVEL_DEBUG, "start shutdownComputer in the name of \"%s\"" % (pUserName))
-            GLib.timeout_add_seconds(0.1, self._login1ManagerInterface.PowerOff, False)
+            GLib.timeout_add(100, self._login1ManagerInterface.PowerOff, False)
