@@ -189,7 +189,7 @@ sudo apt install python3-dbus python3-gi gir1.2-gtk-3.0 python3-psutil libglib2.
 /usr/bin/python3 -m unittest discover -s tests -v
 
 # Build a local .deb package
-sudo apt install debhelper dh-python dpkg-dev po-debconf
+sudo apt install build-essential debhelper dh-python dpkg-dev po-debconf
 dpkg-buildpackage -us -uc -b
 ```
 
