@@ -1,14 +1,17 @@
 # curfewd
 
-**Modern Linux screen-time enforcement & parental controls daemon — a drop-in maintained fork of [Timekpr-nExT](https://launchpad.net/timekpr-next).**
+**Modern Linux screen-time enforcement & parental controls — extending [Timekpr-nExT](https://launchpad.net/timekpr-next) in capability, interface, and day-to-day usability.**
 
 [![CI](https://github.com/csmende/curfewd/actions/workflows/ci.yml/badge.svg)](https://github.com/csmende/curfewd/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/csmende/curfewd?include_prereleases&label=release)](https://github.com/csmende/curfewd/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Linux-Mint%20%7C%20Ubuntu%20%7C%20Debian-brightgreen)](#installation)
+[![Development: Spec-Driven · AI-Assisted](https://img.shields.io/badge/Development-Spec--Driven%20%C2%B7%20AI--Assisted-6f42c1)](#development-approach-spec-driven--ai-assisted)
 
-> **Looking for why Timekpr-nExT's `lock` screen timeout stopped working on Linux Mint Cinnamon, XFCE, MATE, or during fullscreen games?**
-> That's the exact bug `curfewd` was built to solve — as a zero-friction, drop-in `.deb` replacement that keeps all of your existing `/etc/timekpr` and `/var/lib/timekpr` settings intact.
+`curfewd` started as a fork of [Timekpr-nExT](https://launchpad.net/timekpr-next) and is actively being taken further to expand its capabilities, modernize its user interface, and improve day-to-day usability. I run and rely on it across multiple Linux systems and am building the fixes and enhancements the original maintainer simply didn't have a need for — while keeping `curfewd` a clean, drop-in `.deb` replacement that preserves existing `/etc/timekpr` and `/var/lib/timekpr` configurations.
+
+> **Hit the bug where Timekpr-nExT's `LOCKOUT_TYPE=lock` countdown hits `00:00` on Linux Mint Cinnamon, XFCE, MATE, or during fullscreen games without actually locking the screen?**
+> That was our first milestone — fixed out of the box in `v0.6.0` — and it's just the starting point.
 
 ---
 
@@ -28,6 +31,14 @@ However, modern Linux desktops — especially **Linux Mint (Cinnamon)**, **XFCE*
 | **Packaging & Distribution** | Launchpad PPA (`Architecture: any`) | **Automated GitHub Releases** (`Architecture: all` `.deb`), CI test suite with live D-Bus wire tests |
 | **Modern CLI & systemd naming** | `timekpra`, `timekpr.service` | **`curfewctl`** & **`curfewd.service`** aliases + **100% backward compatibility** with `timekpra` & `timekpr.service` |
 | **Parent lock-screen hardening** | Manual `dconf` setup | **Bundled helper script** (`dconf-lock-screensaver.sh`) preventing kids from turning off the lock screen in Settings |
+
+### Beyond the Initial Fixes: UI, Usability & Capability Roadmap
+
+`curfewd` is not a one-off patch fork. Planned enhancements — driven by real-world use across multiple Linux machines — include:
+
+- **Modernized Admin & Client UI:** Cleaner GTK layout, simpler schedule/curfew editing, improved dark-theme and HiDPI ergonomics, and clearer remaining-time/countdown feedback.
+- **First-Class CLI & Automation (`curfewctl`):** Structured JSON output, friendlier flags, and easier scripting/remote-control hooks for households managing multiple Linux desktops.
+- **Stronger Multi-DE & Wayland Support:** Ongoing hardening across Cinnamon, XFCE, MATE, GNOME, KDE Plasma, X11, and Wayland compositors.
 
 ---
 
@@ -192,6 +203,18 @@ sudo apt install python3-dbus python3-gi gir1.2-gtk-3.0 python3-psutil libglib2.
 sudo apt install build-essential debhelper dh-python dpkg-dev po-debconf
 dpkg-buildpackage -us -uc -b
 ```
+
+---
+
+## Development Approach (Spec-Driven & AI-Assisted)
+
+`curfewd` is openly developed using a **spec-driven design workflow** with **AI-assisted code generation**:
+
+1. **Specification first ([`docs/specs/`](docs/specs/)):** Non-trivial features, behavioral changes, and UI/usability redesigns start as written design specs defining motivation, compatibility guarantees, security boundaries, and acceptance criteria before code is written.
+2. **AI-assisted, human-directed engineering:** AI coding agents assist with drafting code, tests, packaging, and documentation under human direction and review.
+3. **Verified on CI and live Linux desktops:** Every change must pass automated unit + live D-Bus wire tests in GitHub Actions and is validated across real multi-machine Linux deployments.
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contributor guidelines and AI disclosure policy, and [`AGENTS.md`](AGENTS.md) for the project's engineering invariants and agent instructions.
 
 ---
 
