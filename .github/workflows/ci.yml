@@ -81,7 +81,8 @@ jobs:
           test -x /usr/bin/curfewd
           test -x /usr/bin/timekpra
           test -f /usr/lib/python3/dist-packages/timekpr/server/interface/dbus/logind/screenlock.py
-          test -f /lib/systemd/system/timekpr.service
+          test -f /usr/lib/systemd/system/timekpr.service
+          test -f /usr/share/dbus-1/system.d/timekpr.conf
           test -x /usr/share/doc/curfewd/examples/dconf-lock-screensaver.sh
           /usr/bin/python3 -c "import timekpr.server.interface.dbus.logind.screenlock as s; print('Imported screenlock OK:', list(s.BACKENDS))"
 

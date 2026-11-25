@@ -10,10 +10,10 @@ extras/90-curfewd-ungrab.conf usr/share/doc/curfewd/examples/
 extras/dconf-lock-screensaver.sh usr/share/doc/curfewd/examples/
 
 # config files
-resource/server/dbus/timekpr.conf etc/dbus-1/system.d/
+resource/server/dbus/timekpr.conf usr/share/dbus-1/system.d/
 resource/server/logrotate.d/timekpr etc/logrotate.d/
 resource/server/polkit/com.ubuntu.timekpr.pkexec.policy usr/share/polkit-1/actions/
-resource/server/systemd/timekpr.service lib/systemd/system/
+resource/server/systemd/timekpr.service usr/lib/systemd/system/
 resource/server/timekpr.conf etc/timekpr/
 
 # sample runtime files
