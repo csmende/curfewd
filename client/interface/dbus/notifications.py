@@ -62,6 +62,8 @@ class timekprNotifications(object):
             self.CL_CONN_NOTIF: {self.CL_IF: None, self.CL_IFA: None, self.CL_SI: None, self.CL_CNT: 99, self.CL_DEL: 0},
             self.CL_CONN_SCR: {self.CL_IF: None, self.CL_IFA: None, self.CL_SI: None, self.CL_CNT: 5, self.CL_DEL: 2}
         }
+        self._scrBusName = None
+        self._scrObjPath = None
 
         # WORKAROUNDS section start
         # adjust even bigger delay with unity + 18.04 + HDD
@@ -200,8 +202,11 @@ class timekprNotifications(object):
                 try:
                     # dbus performance measurement
                     misc.measureDBUSTimeElapsed(pStart=True)
-                    # getting interface
-                    self._dbusConnections[self.CL_CONN_SCR][self.CL_IF] = dbus.Interface(self._userSessionBus.get_object(iNames[idx], iPaths[idx]), iNames[idx])
+                    # getting interface (follow_name_owner_changes keeps proxy valid when cinnamon-screensaver exits after 30s)
+                    self._dbusConnections[self.CL_CONN_SCR][self.CL_IF] = dbus.Interface(
+                        self._userSessionBus.get_object(iNames[idx], iPaths[idx], follow_name_owner_changes=True),
+                        iNames[idx],
+                    )
                     # log
                     log.log(cons.TK_LOG_LEVEL_INFO, "INFO: connected to screensaver service through \"%s\"" % (iNames[idx]))
                     # verification (Gnome has not implemented freedesktop methods, we need to verify this actually works)
@@ -220,6 +225,8 @@ class timekprNotifications(object):
 
             # connection successful
             if self._dbusConnections[self.CL_CONN_SCR][self.CL_IF] is not None:
+                self._scrBusName = iNames[chosenIdx]
+                self._scrObjPath = iPaths[chosenIdx]
                 # log
                 log.log(cons.TK_LOG_LEVEL_DEBUG, "CONNECTED to DBUS %s (%s) interface" % (self.CL_CONN_SCR, iNames[chosenIdx]))
                 # add a connection to signal
@@ -464,8 +471,35 @@ class timekprNotifications(object):
 
         # for screensaver status
         if pWhat == cons.TK_CTRL_SCR_N:
-            # value
-            value = str(bool(self._dbusConnections[self.CL_CONN_SCR][self.CL_IF].GetActive()))
+            value = "False"
+            # If the screensaver bus name currently has no owner (e.g. cinnamon-screensaver exited
+            # after its 30s inactivity timeout), the screen is not locked; avoid waking it needlessly.
+            if self._scrBusName is not None and hasattr(self._userSessionBus, "name_has_owner"):
+                try:
+                    if not self._userSessionBus.name_has_owner(self._scrBusName):
+                        log.log(cons.TK_LOG_LEVEL_DEBUG, "screensaver \"%s\" has no bus owner, reporting inactive" % (self._scrBusName))
+                        self.processUserSessionAttributes(pWhat, pKey, value)
+                        return
+                except Exception as dbusEx:
+                    log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: checking screensaver bus owner failed: %s" % (str(dbusEx)))
+
+            scrIf = self._dbusConnections[self.CL_CONN_SCR][self.CL_IF]
+            if scrIf is not None:
+                try:
+                    value = str(bool(scrIf.GetActive()))
+                except Exception as dbusEx:
+                    log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: screensaver GetActive failed (%s), reconnecting proxy" % (str(dbusEx)))
+                    if self._scrBusName is not None and self._scrObjPath is not None:
+                        try:
+                            scrIf = dbus.Interface(
+                                self._userSessionBus.get_object(self._scrBusName, self._scrObjPath, follow_name_owner_changes=True),
+                                self._scrBusName,
+                            )
+                            self._dbusConnections[self.CL_CONN_SCR][self.CL_IF] = scrIf
+                            value = str(bool(scrIf.GetActive()))
+                        except Exception as retryEx:
+                            log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: screensaver GetActive retry failed: %s" % (str(retryEx)))
+                            value = "False"
 
         # resend stuff to server
         self.processUserSessionAttributes(pWhat, pKey, value)

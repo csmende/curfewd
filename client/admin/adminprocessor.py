@@ -405,8 +405,8 @@ class timekprAdminClient(object):
                         result = "%s%s" % (uacc, hr) if result == "" else "%s;%s%s" % (result, uacc, hr)
             # bools
             elif rUserKey in ("TRACK_INACTIVE", "HIDE_TRAY_ICON", "PLAYTIME_ENABLED", "PLAYTIME_LIMIT_OVERRIDE_ENABLED", "PLAYTIME_UNACCOUNTED_INTERVALS_ENABLED"):
-                # bools
-                result = True if str(bool(rUserConfig)).lower() == "true" else False
+                # bools (dbus.Boolean subclasses int whose str() is "1"/"0", while string configs may pass "True"/"False")
+                result = (rUserConfig.strip().lower() in ("true", "1")) if isinstance(rUserConfig, str) else bool(rUserConfig)
             # strings
             elif rUserKey in ("PLAYTIME_ACTIVITIES"):
                 # loop thorhough activities

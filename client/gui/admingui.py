@@ -159,11 +159,13 @@ class timekprAdminGUI(object):
         """Initialize all GUI elements for stores"""
 
         # ## get actual colors for norm and error display ##
-        ctx = self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsTreeView").get_style_context();
-        tmps, baseBG = ctx.lookup_color("theme_base_color")
-        tmps, errBG = ctx.lookup_color("error_color")
-        self._ROWCOLOR_OK = baseBG.to_string()
-        self._ROWCOLOR_NOK = errBG.to_string()
+        ctx = self._timekprAdminFormBuilder.get_object("TimekprHourIntervalsTreeView").get_style_context()
+        foundBase, baseBG = ctx.lookup_color("theme_base_color")
+        foundErr, errBG = ctx.lookup_color("error_color")
+        if foundBase:
+            self._ROWCOLOR_OK = baseBG.to_string()
+        if foundErr:
+            self._ROWCOLOR_NOK = errBG.to_string()
         self._BTLCOLOR_OK = None
         self._BTLCOLOR_NOK = Gdk.color_parse("red")
 
