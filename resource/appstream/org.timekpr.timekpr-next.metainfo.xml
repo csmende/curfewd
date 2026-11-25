@@ -2,39 +2,37 @@
 <!-- Copyright (c) Eduards Bezverhijs <edzis@inbox.lv>, et al. Contact: Eduards Bezverhijs <edzis@inbox.lv> -->
 <component type="desktop">
   <id>org.timekpr.timekpr_next</id>
-  <name>Timekpr-nExT Control Panel</name>
+  <name>curfewd (Timekpr-nExT Control Panel)</name>
   <summary>Track and control computer usage of user accounts</summary>
   <metadata_license>CC-BY-SA-4.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <translation type="gettext">timekpr-next</translation>
   <description>
     <p>
-      Timekpr-nExT is a program that tracks and controls the computer usage
-      of your user accounts. You can limit their daily usage based on a
-      timed access duration and configure periods of day when they can or
-      cannot log in.
+      curfewd is a maintained drop-in fork of Timekpr-nExT that tracks and
+      controls the computer usage of your user accounts. You can limit daily,
+      weekly, and monthly usage and configure curfew hours with reliable screen
+      locking across Cinnamon, XFCE, MATE, GNOME, and KDE Plasma.
     </p>
     <p>
       This may be used for parental control to limit the amount of screen time
       a child spends in front of the computer.
     </p>
     <p>
-      Please report any bugs to Timekpr-nExT’s bug tracker on Launchpad at:
-      https://bugs.launchpad.net/timekpr-next
+      Please report any bugs to curfewd’s issue tracker on GitHub at:
+      https://github.com/csmende/curfewd/issues
     </p>
   </description>
   <screenshots>
     <screenshot type="default">
-      <image type="source">https://git.launchpad.net/timekpr-next/plain/resource/screenshots/timekpr-next-screenshot-admin.png</image>
+      <image type="source">https://raw.githubusercontent.com/csmende/curfewd/main/resource/screenshots/timekpr-next-screenshot-admin.png</image>
     </screenshot>
     <screenshot type="default">
-      <image type="source">https://git.launchpad.net/timekpr-next/plain/resource/screenshots/timekpr-next-screenshot-client.png</image>
+      <image type="source">https://raw.githubusercontent.com/csmende/curfewd/main/resource/screenshots/timekpr-next-screenshot-client.png</image>
     </screenshot>
   </screenshots>
-  <url type="homepage">https://launchpad.net/timekpr-next</url>
-  <url type="bugtracker">https://bugs.launchpad.net/timekpr-next</url>
-  <url type="translate">https://translations.launchpad.net/timekpr-next</url>
-  <url type="donation">https://tinyurl.com/yc9x85v2</url>
+  <url type="homepage">https://github.com/csmende/curfewd</url>
+  <url type="bugtracker">https://github.com/csmende/curfewd/issues</url>
   <launchable type="desktop-id">timekpr-admin-su.desktop</launchable>
-  <update_contact>edzis@inbox.lv</update_contact>
+  <update_contact>29665166+csmende@users.noreply.github.com</update_contact>
 </component>
