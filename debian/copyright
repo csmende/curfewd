@@ -1,14 +1,23 @@
-This package was debianized by Eduards Bezverhijs (mjasnik)
-<edzis@inbox.lv> on Sun, 23 Sep 2018 01:10:17 +0200.
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: curfewd
+Source: https://github.com/csmende/curfewd
+Comment:
+ curfewd is a maintained fork of Timekpr-nExT (https://launchpad.net/timekpr-next),
+ originally authored and packaged by Eduards Bezverhijs (mjasnik).
 
-Upstream Authors: 
-Eduards Bezverhijs <edzis@inbox.lv>
+Files: *
+Copyright: 2018-2026 Eduards Bezverhijs <edzis@inbox.lv>
+           2026 Christopher Mende <29665166+csmende@users.noreply.github.com>
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ On Debian systems, the full text of the GNU General Public License
+ version 3 can be found in `/usr/share/common-licenses/GPL-3'.
 
-Copyright:
-2018-2026 Eduards Bezverhijs
-
-All code is released under the GPLv3, see
-/usr/share/common-licenses/GPL-3
-
-With the exception of the artwork SVG source files,
-which are released to the Public Domain.
+Files: resource/icons/*.svg
+Copyright: 2018-2026 Eduards Bezverhijs <edzis@inbox.lv>
+License: public-domain
+ The artwork SVG source files are released to the Public Domain.

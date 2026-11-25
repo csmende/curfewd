@@ -1,48 +1,57 @@
-Source: timekpr-next
-Maintainer: Eduards Bezverhijs <edzis@inbox.lv>
-Uploaders: Eduards Bezverhijs <edzis@inbox.lv>
+Source: curfewd
+Maintainer: Christopher Mende <29665166+csmende@users.noreply.github.com>
 Section: admin
 Priority: optional
-Build-Depends: debhelper (>= 7) | debhelper-compat (= 12),
-               dh-python | python-support,
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
                gir1.2-gtk-3.0,
                po-debconf,
-               python3 (>= 3.2),
+               python3 (>= 3.8),
                python3-dbus,
                python3-gi
-Standards-Version: 3.9.5
-Homepage: https://launchpad.net/timekpr-next
+Standards-Version: 4.6.2
+Homepage: https://github.com/csmende/curfewd
+Vcs-Git: https://github.com/csmende/curfewd.git
+Vcs-Browser: https://github.com/csmende/curfewd
 Rules-Requires-Root: no
 
-Package: timekpr-next
-Architecture: any
+Package: curfewd
+Architecture: all
 Depends: gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1,
          gir1.2-gtk-3.0,
          lxpolkit | lxqt-policykit | mate-polkit | policykit-1-gnome | polkit-kde-agent-1 | polkit-1-auth-agent,
          pkexec | policykit-1,
-         python3 (>= 3.2),
+         python3 (>= 3.8),
          python3-dbus,
          python3-gi,
          python3-psutil (>= 3.4),
          systemd | systemd-shim,
          ${misc:Depends},
          ${python3:Depends}
+Recommends: libglib2.0-bin,
+            wmctrl,
+            xdotool
 Suggests: espeak,
           gnome-shell-extension-appindicator,
           python3-espeak,
           python3-systemd
-Conflicts: timekpr-next
-Provides: timekpr
+Conflicts: timekpr,
+           timekpr-beta,
+           timekpr-next,
+           timekpr-next-beta
+Provides: timekpr,
+          timekpr-next
 Replaces: timekpr,
           timekpr-beta,
+          timekpr-next,
           timekpr-next-beta
-Description: Keep control of computer usage
- Timekpr-nExT is a fresh, simple and easy-to-use time managing software
- that helps optimizing time spent at computer for Your subordinates,
- children or even for Yourself.
+Description: Modern Linux screen-time enforcement daemon (Timekpr-nExT fork)
+ curfewd is a drop-in maintained fork of Timekpr-nExT that tracks and limits
+ computer usage for user accounts on Linux desktops.
  .
- The software is targeted at parents or supervisors to optimize / limit
- time spent at computer as they see fit.
+ It fixes broken screen-lock enforcement on Linux Mint Cinnamon, XFCE, and
+ MATE, handles fullscreen X11 games holding input grabs, preserves full
+ compatibility with existing /etc/timekpr and /var/lib/timekpr configs,
+ and provides both curfewctl and timekpra CLI tools.
  .
- Please report any bugs to Timekpr-nExT’s bug tracker on Launchpad at:
- https://bugs.launchpad.net/timekpr-next
+ Report bugs at: https://github.com/csmende/curfewd/issues

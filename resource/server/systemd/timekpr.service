@@ -1,6 +1,6 @@
 [Unit]
-Description=Timekpr-nExT daemon service
-Documentation=file:/etc/timekpr/timekpr.conf
+Description=curfewd (Timekpr-nExT fork) screen-time enforcement daemon
+Documentation=https://github.com/csmende/curfewd file:/etc/timekpr/timekpr.conf
 After=multi-user.target
 
 [Service]
@@ -15,3 +15,4 @@ RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
+Alias=curfewd.service

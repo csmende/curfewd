@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Unit & Live D-Bus Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python runtime and D-Bus test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            dbus \
+            gir1.2-gtk-3.0 \
+            libglib2.0-bin \
+            python3 \
+            python3-dbus \
+            python3-gi \
+            python3-psutil
+
+      - name: Syntax check all Python sources
+        run: |
+          /usr/bin/python3 -m compileall -q common client server tests
+
+      - name: Run unit and live D-Bus integration tests
+        run: |
+          /usr/bin/python3 -m unittest discover -s tests -v
+
+  build-deb:
+    name: Build & Verify .deb Package
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Debian packaging toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            debhelper \
+            dh-python \
+            dpkg-dev \
+            gir1.2-gtk-3.0 \
+            lintian \
+            po-debconf \
+            python3 \
+            python3-dbus \
+            python3-gi
+
+      - name: Build binary .deb package
+        run: |
+          dpkg-buildpackage -us -uc -b
+          mkdir -p dist
+          mv ../curfewd_*.deb dist/
+          ls -lh dist/
+
+      - name: Inspect package metadata and file listing
+        run: |
+          dpkg-deb -I dist/curfewd_*.deb
+          dpkg-deb -c dist/curfewd_*.deb | head -n 80
+
+      - name: Run lintian diagnostics
+        run: |
+          lintian --info dist/curfewd_*.deb || true
+
+      - name: Smoke-test .deb installation
+        run: |
+          sudo apt-get install -y ./dist/curfewd_*.deb
+          test -x /usr/bin/curfewctl
+          test -x /usr/bin/curfewd
+          test -x /usr/bin/timekpra
+          test -f /usr/lib/python3/dist-packages/timekpr/server/interface/dbus/logind/screenlock.py
+          test -f /lib/systemd/system/timekpr.service
+          test -x /usr/share/doc/curfewd/examples/dconf-lock-screensaver.sh
+          /usr/bin/python3 -c "import timekpr.server.interface.dbus.logind.screenlock as s; print('Imported screenlock OK:', list(s.BACKENDS))"
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: curfewd-deb
+          path: dist/curfewd_*.deb

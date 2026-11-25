@@ -3,3 +3,13 @@
 *.py[cod]
 **/.ropeproject/
 **/runtime.tmp/
+
+# Packaging / build artifacts
+dist/
+debian/.debhelper/
+debian/curfewd/
+debian/files
+debian/*.substvars
+debian/*.log
+debian/debhelper-build-stamp
+

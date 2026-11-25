@@ -1,3 +1,17 @@
+curfewd (0.6.0) unstable; urgency=medium
+
+  * Initial curfewd release — maintained drop-in fork of Timekpr-nExT (v0.5.11 + upstream fixes)
+  * Fix LOCKOUT_TYPE=lock failing on Linux Mint Cinnamon (30s screensaver timeout), XFCE, and MATE via verified multi-DE session lock fallback
+  * Add staged X11 grab-release retry (XF86Ungrab, then non-destructive unfullscreen/minimize) for fullscreen games (Steam/Proton, SDL2, Minecraft, Roblox)
+  * Fix client screensaver tracking across cinnamon-screensaver 30s exits (follow_name_owner_changes=True + name_has_owner guard + reconnect)
+  * Fix timekpra --userinfo boolean formatting for dbus.Boolean and string values
+  * Fix PlayTime balance reset when user is logged out (upstream #2172687) and GTK dark-mode contrast guard (upstream #2172098)
+  * Fix GLib.timeout_add_seconds(0.1, ...) calls to GLib.timeout_add(100, ...)
+  * Add curfewctl / curfewd CLI wrappers, curfewd.service systemd alias, and dconf/Xorg hardening examples
+  * Modernize Debian packaging to debhelper-compat 13, Architecture: all, with drop-in Provides/Replaces/Conflicts for timekpr-next
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Wed, 25 Nov 2026 07:30:16 +0000
+
 timekpr-next (0.5.11-1ubuntu1~ppa1) unstable; urgency=medium
 
   * a fix for leftover process killer

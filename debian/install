@@ -1,7 +1,13 @@
 # binaries
+bin/curfewctl usr/bin/
+bin/curfewd usr/bin/
 bin/timekpra usr/bin/
 bin/timekprc usr/bin/
 bin/timekprd usr/bin/
+
+# optional hardening & Xorg examples
+extras/90-curfewd-ungrab.conf usr/share/doc/curfewd/examples/
+extras/dconf-lock-screensaver.sh usr/share/doc/curfewd/examples/
 
 # config files
 resource/server/dbus/timekpr.conf etc/dbus-1/system.d/
@@ -86,6 +92,7 @@ server/interface/dbus/daemon.py usr/lib/python3/dist-packages/timekpr/server/int
 server/interface/dbus/__init__.py usr/lib/python3/dist-packages/timekpr/server/interface/dbus/
 server/interface/dbus/logind/__init__.py usr/lib/python3/dist-packages/timekpr/server/interface/dbus/logind/
 server/interface/dbus/logind/manager.py usr/lib/python3/dist-packages/timekpr/server/interface/dbus/logind/
+server/interface/dbus/logind/screenlock.py usr/lib/python3/dist-packages/timekpr/server/interface/dbus/logind/
 server/interface/dbus/logind/user.py usr/lib/python3/dist-packages/timekpr/server/interface/dbus/logind/
 server/interface/__init__.py usr/lib/python3/dist-packages/timekpr/server/interface/
 server/timekprd.py usr/lib/python3/dist-packages/timekpr/server/
