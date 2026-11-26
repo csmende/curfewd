@@ -3,6 +3,7 @@
 **Modern Linux screen-time enforcement & parental controls — extending [Timekpr-nExT](https://launchpad.net/timekpr-next) in capability, interface, and day-to-day usability.**
 
 [![CI](https://github.com/csmende/curfewd/actions/workflows/ci.yml/badge.svg)](https://github.com/csmende/curfewd/actions/workflows/ci.yml)
+[![Security](https://github.com/csmende/curfewd/actions/workflows/security.yml/badge.svg)](https://github.com/csmende/curfewd/actions/workflows/security.yml)
 [![Release](https://img.shields.io/github/v/release/csmende/curfewd?include_prereleases&label=release)](https://github.com/csmende/curfewd/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Linux-Mint%20%7C%20Ubuntu%20%7C%20Debian-brightgreen)](#installation)
