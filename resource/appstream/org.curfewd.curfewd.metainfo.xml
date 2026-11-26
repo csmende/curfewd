@@ -26,6 +26,11 @@
     <binary>curfewctl</binary>
   </provides>
   <releases>
+    <release version="1.2.0" date="2026-11-26">
+      <description>
+        <p>Spec 005 architectural refactor: non-blocking async LockUser and Doctor D-Bus RPCs, single-pass EnforcementRuntime, live daemon config reload, modular offline Material Design 3 UI scripts, curfew warning and app-scanner fixes, and persistent SQLite WAL connection management.</p>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-11-26">
       <description>
         <p>Completed curfewd rebrand: native curfewd-tray-* icons, removed legacy Timekpr assets and migration bridges, and unified App Limits schema v2 across daemon, CLI, history, and UI.</p>

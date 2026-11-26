@@ -1,3 +1,29 @@
+curfewd (1.2.0) unstable; urgency=medium
+
+  * Spec 005: Architectural modularization, non-blocking async admin RPCs,
+    single-pass enforcement runtime, bug fixes, and Ruff/Mypy CI quality gates
+    - Extract D-Bus-free `curfewd.engine.runtime.EnforcementRuntime` with
+      single-pass tick evaluation and single-pass prematched `enforce_kill()`
+    - Offload blocking `LockUser`, `RunDoctor`, and `ApplyDoctorFix` subprocesses
+      onto a bounded `ThreadPoolExecutor(max_workers=2)` via `dbus-python`
+      `async_callbacks` while keeping all `SystemBus` access on the GLib thread
+    - Apply `SetDaemonConfig` updates (`log_level`, `poll_interval_sec`) live
+      without restarting `curfewd.service`
+    - Fix repeated curfew warning notifications and weekly/monthly threshold
+      crossings in `evaluate_tick`, fix `AudioVideoEditing` category typo and
+      empty-install curated app fallback in `appscan`, and replace unclosed
+      per-call SQLite connections in `HistoryStore` with a single RLock-guarded
+      WAL connection + `close()` lifecycle
+    - Decompose `evaluate_tick`, split CLI printers into `curfewd/cli/formatters.py`
+      and dispatch `run_cli` via `_COMMAND_HANDLERS`, and modularize offline
+      Web UI assets into `curfewd/ui/web/js/{rpc,state,views,events}.js` + `app.js`
+    - Remove unused legacy model fields (`override_main`, `app_limits_balance`)
+      while keeping `from_dict()` tolerant of existing JSON files, remove
+      legacy `/var/log` from `curfewd.service` `ReadWritePaths`, and add
+      `pyproject.toml` (Ruff py310 + Mypy) gated in GitHub Actions CI
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 18:47:00 +0000
+
 curfewd (1.1.0) unstable; urgency=medium
 
   * Spec 004: Complete curfewd rebrand, legacy cleanup & schema v2 (`app_limits`)

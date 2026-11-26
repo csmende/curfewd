@@ -11,22 +11,23 @@
 
 ---
 
-## Key Capabilities (`v1.1.0`)
+## Key Capabilities (`v1.2.0`)
 
 - **Native Unprivileged Material Design 3 UI (`curfewd-ui`):** WebKitGTK desktop app (GTK4/WebKit 6.0 with automatic GTK3/WebKit2 4.1 fallback) over a 100% offline `curfewd://` scheme and Polkit D-Bus bridge, plus a passwordless **My Screen Time** self-view (`curfewd-ui --my-status`).
 - **Verified Multi-DE Screen Locking:** 3-layer lock enforcement (`systemd-logind` → DE session D-Bus/CLI across Cinnamon, XFCE, MATE, GNOME, and KDE → active verification) that reliably wakes `cinnamon-screensaver` even after its 30-second inactivity exit.
 - **Fullscreen X11 Game Grab Release:** Non-destructive staged grab release (`XF86Ungrab` → unfullscreen/minimize) and retry so Steam/Proton, SDL2, Minecraft, and Roblox (Sober) cannot silently block screen locks.
 - **Individual Per-App Daily Limits (`app-limits`):** Per-app daily timers, installed `.desktop` / Flatpak / Steam app picker, instant `+15m` per-app bonuses, and isolated per-app termination when an app hits `0m`.
 - **Today-Only Overrides (`Today's Time and Schedule`):** Adjust today's allowance or allowed hours without editing the recurring weekly schedule; resets automatically at local midnight.
-- **Polkit-Authorized D-Bus Control Plane (`org.curfewd.Daemon1`):** Fine-grained Polkit actions (`org.curfewd.read`, `org.curfewd.manage`, `org.curfewd.lock`), strict D-Bus **sender-UID binding** on client methods, atomic schema-v2 JSON storage (`/etc/curfewd`, `/var/lib/curfewd`), and SQLite WAL usage history & audit logs.
+- **Polkit-Authorized Async D-Bus Control Plane (`org.curfewd.Daemon1`):** Fine-grained Polkit actions (`org.curfewd.read`, `org.curfewd.manage`, `org.curfewd.lock`), non-blocking async worker pool for lock/doctor RPCs, live daemon config reload, strict D-Bus **sender-UID binding** on client methods, atomic schema-v2 JSON storage (`/etc/curfewd`, `/var/lib/curfewd`), and SQLite WAL usage history & audit logs.
 - **Modern CLI & Tray Companion:** Scriptable `curfewctl` with human durations (`+30m`, `08:00-22:00`) and global `--json`, plus a lean, auto-reconnecting `curfewd-tray` (`NameOwnerChanged` recovery) with Material Design 3 Twilight Guard status icons.
-- **1-Click Lock-Screen Protection & Hardening:** Built-in `curfewctl doctor --fix` (and 1-click UI button) root-locks desktop screensaver settings via `dconf`; hardened `curfewd.service` (`ProtectSystem=strict`, `PrivateTmp=yes`); `0` Bandit/ShellCheck findings and continuous GitHub CodeQL scanning.
+- **1-Click Lock-Screen Protection & Hardening:** Built-in `curfewctl doctor --fix` (and 1-click UI button) root-locks desktop screensaver settings via `dconf`; hardened `curfewd.service` (`ProtectSystem=strict`, `PrivateTmp=yes`); `0` Ruff/Mypy/Bandit/ShellCheck findings and continuous GitHub CodeQL scanning.
 
 ### Specifications
 - **Spec 001 (`v0.6.0`, Implemented):** [Multi-DE Screen Locking & X11 Fullscreen Grab Release](docs/specs/001-multi-de-screen-locking.md)
 - **Spec 002 (`v0.7.0`, Implemented):** [Native Control Plane, `org.curfewd.Daemon1` D-Bus API & Modern `curfewctl` CLI](docs/specs/002-curfewd-control-plane-and-cli.md)
 - **Spec 003 (`v1.0.0`, Implemented):** [Native Material Design 3 Desktop UI (`curfewd-ui`) & Per-App Limits](docs/specs/003-material-design-ui.md)
 - **Spec 004 (`v1.1.0`, Implemented):** [Complete `curfewd` Rebrand, Legacy Cleanup & Schema v2 (`app_limits`)](docs/specs/004-rebrand-and-app-limits-schema.md)
+- **Spec 005 (`v1.2.0`, Implemented):** [Architectural Modularization, Async Admin RPCs & Single-Pass Enforcement Runtime](docs/specs/005-architecture-refactor-and-async-daemon.md)
 
 ---
 
@@ -35,13 +36,13 @@
 Download the latest `.deb` from [GitHub Releases](https://github.com/csmende/curfewd/releases):
 
 ```bash
-curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/curfewd_1.1.0_all.deb
+curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/curfewd_1.2.0_all.deb
 curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/SHA256SUMS
 sha256sum -c SHA256SUMS
-sudo apt install -y ./curfewd_1.1.0_all.deb
+sudo apt install -y ./curfewd_1.2.0_all.deb
 ```
 
-> **Desktop UI Runtime:** `curfewd` recommends `gir1.2-webkit-6.0 | gir1.2-webkit2-4.1` so `apt install ./curfewd_1.1.0_all.deb` automatically installs WebKitGTK on desktop systems while staying lightweight on headless hosts.
+> **Desktop UI Runtime:** `curfewd` recommends `gir1.2-webkit-6.0 | gir1.2-webkit2-4.1` so `apt install ./curfewd_1.2.0_all.deb` automatically installs WebKitGTK on desktop systems while staying lightweight on headless hosts.
 >
 > **Upgrading from `curfewd 0.7.x`–`1.0.x`?** Existing schema v1 JSON policies/configs and SQLite usage history (`history.db`) automatically forward-migrate to schema v2 (`app_limits`) without data loss.
 

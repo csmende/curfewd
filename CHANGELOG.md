@@ -3,6 +3,27 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
+## [1.2.0] - 2026-11-26
+
+Architectural modularization, non-blocking async admin D-Bus RPCs, single-pass enforcement runtime, runtime bug fixes, and automated Ruff/Mypy quality gates (**Spec 005**).
+
+### Added
+- **Non-Blocking Async Admin D-Bus RPCs:** `LockUser`, `RunDoctor`, and `ApplyDoctorFix` now execute blocking subprocesses on a bounded `ThreadPoolExecutor(max_workers=2)` via `dbus-python` `async_callbacks` while keeping all `SystemBus` access strictly on the GLib main thread.
+- **Live Daemon Config Reload:** `SetDaemonConfig` dynamically updates the root logger level (`log_level`) and reschedules the GLib tick timer (`poll_interval_sec`) without restarting `curfewd.service`.
+- **Automated Quality Gates & Expanded Tests:** Added `pyproject.toml` (Ruff targeting Python 3.10+ and Mypy `check_untyped_defs = true`), `.editorconfig`, `.prettierrc.json`, a dedicated CI `lint` job, `tests/test_applimits.py`, `tests/test_runtime.py`, live D-Bus async concurrency & config-reload tests, and Web UI allowlist/packaging integrity tests (`65` tests total).
+
+### Changed
+- **Single-Pass Enforcement Runtime (`curfewd/engine/runtime.py`):** Extracted D-Bus-free `EnforcementRuntime` out of `CurfewDaemonService`, eliminating duplicate `evaluate_tick()` calls per active user and duplicate `/proc` scans when terminating expired apps.
+- **Evaluator, CLI & Offline Web UI Decomposition:** Decomposed `evaluate_tick` into 5 focused pure helpers (CC `54 → 17`), split terminal printers into `curfewd/cli/formatters.py` and replaced `run_cli`'s giant `if`-chain with `_COMMAND_HANDLERS` (CC `102 → 11`), and modularized the zero-bundler Web UI into `curfewd/ui/web/js/{rpc,state,views,events}.js` + thin `app.js`.
+- **SQLite & Storage Hardening:** Replaced unclosed per-call SQLite connections in `HistoryStore` with a single `RLock`-guarded WAL connection + explicit `close()`, reused `write_json_atomic` in `UIPreferencesStore.save`, and removed legacy `/var/log` from `curfewd.service` `ReadWritePaths`.
+
+### Fixed
+- **Curfew Warning Spam & Cap Crossings:** Fixed warning threshold detection in `evaluate_tick` to compare against `prev_time_left_continuous` across daily, weekly, monthly, and curfew window limits so warnings fire once instead of repeating every 3 seconds before curfew.
+- **App Scanner (`appscan.py`):** Fixed `"audioVideoediting"` casing typo in `_map_category` and fixed the empty-install curated fallback loop so all 6 curated app suggestions load on minimal environments.
+
+### Removed
+- Dropped unused legacy model fields (`AppLimitsPolicy.override_main`, `UserAccountingState.app_limits_balance`) while keeping `from_dict()` tolerant of existing JSON files, removed empty `debian/curfewd.lintian-overrides`, and deleted the superseded `docs/design/curfewd-ui-prototype-rev9.html` mockup.
+
 ## [1.1.0] - 2026-11-26
 
 Complete `curfewd` rebrand, legacy asset/bridge cleanup, and schema v2 (`app_limits`) migration (**Spec 004**).
