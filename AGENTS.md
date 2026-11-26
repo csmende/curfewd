@@ -35,5 +35,5 @@ Before committing or opening a PR:
 
 1. Byte-compile all sources: `/usr/bin/python3 -m compileall -q curfewd tests`
 2. Run the full test suite: `/usr/bin/python3 -m unittest discover -s tests -v`
-3. Run lint, format, typecheck, and JS syntax checks: `ruff check curfewd tests`, `ruff format --check curfewd tests`, `mypy curfewd`, and `node --check curfewd/ui/web/app.js`
+3. Run lint, format, typecheck, and JS syntax checks: `ruff check curfewd tests`, `ruff format --check curfewd tests`, `mypy curfewd`, and `for f in curfewd/ui/web/app.js curfewd/ui/web/js/*.js; do node --check "$f"; done`
 4. Verify Debian metadata & security gates: `dpkg-parsechangelog`, Bandit (`0` Medium/High), ShellCheck (`0` warnings), and GitHub Actions `CI`, `Security`, and `CodeQL`.

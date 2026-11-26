@@ -207,37 +207,33 @@ class LogindSessionMonitor:
             for s in sessions
         ]
 
-    def lock_user_sessions(
-        self,
-        sessions: list[dict[str, Any]],
-        config: DaemonConfig,
-        async_mode: bool = True,
-    ) -> list[LockResult]:
-        """Invoke Layer 1 logind LockSession + Layers 2-3 verified multi-DE lock."""
+    def prepare_session_locks(self, sessions: list[dict[str, Any]]) -> list[SessionContext]:
+        """GLib-thread phase: invoke Layer 1 logind LockSession and snapshot SessionContexts."""
         mgr = self._get_manager()
         contexts = self.build_contexts(sessions)
-        results: list[LockResult] = []
-
         for ctx in contexts:
             if mgr is not None:
                 try:
                     mgr.LockSession(ctx.session_id)
                 except Exception as exc:
                     logger.debug("logind LockSession(%s) failed: %s", ctx.session_id, exc)
+        return contexts
 
+    def execute_fallback_locks(
+        self,
+        contexts: list[SessionContext],
+        config: DaemonConfig,
+    ) -> list[LockResult]:
+        """Worker-safe phase: run Layers 2-3 privilege-dropped lock verification (no SystemBus)."""
+        results: list[LockResult] = []
+        for ctx in contexts:
             if config.session_lock_fallback:
-                if async_mode:
-                    self._screenlock.enforce_session_lock_async(
-                        ctx,
-                        release_x11_grab=config.release_x11_grab_on_lock,
-                    )
-                else:
-                    res = self._screenlock.enforce_session_lock_detailed(
-                        ctx,
-                        release_x11_grab=config.release_x11_grab_on_lock,
-                    )
-                    results.append(res)
-            elif not async_mode:
+                res = self._screenlock.enforce_session_lock_detailed(
+                    ctx,
+                    release_x11_grab=config.release_x11_grab_on_lock,
+                )
+                results.append(res)
+            else:
                 results.append(
                     LockResult(
                         session_id=ctx.session_id,
@@ -249,6 +245,24 @@ class LogindSessionMonitor:
                     )
                 )
         return results
+
+    def lock_user_sessions(
+        self,
+        sessions: list[dict[str, Any]],
+        config: DaemonConfig,
+        async_mode: bool = True,
+    ) -> list[LockResult]:
+        """Invoke Layer 1 logind LockSession + Layers 2-3 verified multi-DE lock."""
+        contexts = self.prepare_session_locks(sessions)
+        if async_mode:
+            if config.session_lock_fallback:
+                for ctx in contexts:
+                    self._screenlock.enforce_session_lock_async(
+                        ctx,
+                        release_x11_grab=config.release_x11_grab_on_lock,
+                    )
+            return []
+        return self.execute_fallback_locks(contexts, config)
 
     def enforce_lockout_action(
         self,

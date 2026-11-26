@@ -28,6 +28,10 @@ resource/icons/curfewd-tray-unlimited.svg usr/share/curfewd/icons/
 curfewd/ui/web/index.html usr/share/curfewd/ui/
 curfewd/ui/web/styles.css usr/share/curfewd/ui/
 curfewd/ui/web/app.js usr/share/curfewd/ui/
+curfewd/ui/web/js/rpc.js usr/share/curfewd/ui/js/
+curfewd/ui/web/js/state.js usr/share/curfewd/ui/js/
+curfewd/ui/web/js/views.js usr/share/curfewd/ui/js/
+curfewd/ui/web/js/events.js usr/share/curfewd/ui/js/
 
 # python package (curfewd)
 curfewd/__init__.py usr/lib/python3/dist-packages/curfewd/
@@ -38,6 +42,7 @@ curfewd/parsing.py usr/lib/python3/dist-packages/curfewd/
 curfewd/storage.py usr/lib/python3/dist-packages/curfewd/
 curfewd/cli/__init__.py usr/lib/python3/dist-packages/curfewd/cli/
 curfewd/cli/__main__.py usr/lib/python3/dist-packages/curfewd/cli/
+curfewd/cli/formatters.py usr/lib/python3/dist-packages/curfewd/cli/
 curfewd/cli/main.py usr/lib/python3/dist-packages/curfewd/cli/
 curfewd/dbus/__init__.py usr/lib/python3/dist-packages/curfewd/dbus/
 curfewd/dbus/client.py usr/lib/python3/dist-packages/curfewd/dbus/
@@ -47,6 +52,7 @@ curfewd/engine/__init__.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/applimits.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/doctor.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/evaluator.py usr/lib/python3/dist-packages/curfewd/engine/
+curfewd/engine/runtime.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/screenlock.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/sessions.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/tray/__init__.py usr/lib/python3/dist-packages/curfewd/tray/

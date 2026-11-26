@@ -99,9 +99,32 @@ def main(argv: list[str] | None = None) -> int:
 
     bus = dbus.SessionBus() if args.session_bus else dbus.SystemBus()
     history = HistoryStore(os.path.join(args.state_dir, "history.db"))
-    service = CurfewDaemonService(bus=bus, store=store, history=history)
-
     loop = GLib.MainLoop()
+
+    timer_state: dict[str, int | None] = {"source_id": None, "interval": cfg.poll_interval_sec}
+    service_ref: list[CurfewDaemonService] = []
+
+    def _on_config_changed(new_cfg) -> None:
+        nonlocal cfg
+        cfg = new_cfg
+        logging.getLogger().setLevel(getattr(logging, new_cfg.log_level.upper(), logging.INFO))
+        if new_cfg.poll_interval_sec != timer_state["interval"] and service_ref:
+            old_id = timer_state["source_id"]
+            if old_id is not None:
+                GLib.source_remove(old_id)
+            timer_state["interval"] = new_cfg.poll_interval_sec
+            timer_state["source_id"] = GLib.timeout_add_seconds(
+                new_cfg.poll_interval_sec, service_ref[0].tick
+            )
+            logger.info("rescheduled daemon tick interval to %ds", new_cfg.poll_interval_sec)
+
+    service = CurfewDaemonService(
+        bus=bus,
+        store=store,
+        history=history,
+        on_config_changed=_on_config_changed,
+    )
+    service_ref.append(service)
 
     def _shutdown(*_args) -> bool:
         logger.info("shutting down curfewd v%s", __version__)
@@ -118,12 +141,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # Run first tick shortly after startup, then every poll_interval_sec
     GLib.idle_add(lambda: (service.tick(), False)[1])
-    GLib.timeout_add_seconds(cfg.poll_interval_sec, service.tick)
+    timer_state["source_id"] = GLib.timeout_add_seconds(cfg.poll_interval_sec, service.tick)
 
     try:
         loop.run()
     finally:
-        service.flush_states()
+        service.shutdown()
         history.close()
     return 0
 

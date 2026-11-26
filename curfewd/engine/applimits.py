@@ -70,9 +70,14 @@ class AppLimitsMonitor:
 
         return matches
 
-    def enforce_kill(self, uid: int, apps: list[AppLimitRule]) -> list[int]:
+    def enforce_kill(
+        self,
+        uid: int,
+        apps: list[AppLimitRule],
+        prematched: list[dict[str, Any]] | None = None,
+    ) -> list[int]:
         """Send SIGTERM (escalating to SIGKILL after grace ticks) to matched processes."""
-        matches = self.find_matching_processes(uid, apps)
+        matches = prematched if prematched is not None else self.find_matching_processes(uid, apps)
         active_pids = {m["pid"] for m in matches}
         # Clean stale tracking entries
         for stale in list(self._term_attempts):

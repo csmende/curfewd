@@ -10,6 +10,7 @@
 | `002` | [Native Control Plane, `org.curfewd.Daemon1` D-Bus API & Modern `curfewctl` CLI](002-curfewd-control-plane-and-cli.md) | Implemented | `v0.7.0` |
 | `003` | [Native Material Design 3 Desktop UI (`curfewd-ui`) & Per-App Limits](003-material-design-ui.md) | Implemented | `v1.0.0` |
 | `004` | [Complete `curfewd` Rebrand, Legacy Cleanup & Schema v2 (`app_limits`)](004-rebrand-and-app-limits-schema.md) | Implemented | `v1.1.0` |
+| `005` | [Architectural Modularization, Async Admin RPCs & Single-Pass Enforcement Runtime](005-architecture-refactor-and-async-daemon.md) | Implemented | `v1.2.0` |
 
 ## Adding a New Spec
 

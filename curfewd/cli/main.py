@@ -1,9 +1,9 @@
-"""Modern curfewctl command-line interface with structured --json output."""
+"""Modern curfewctl command-line interface with structured --json output (Spec 005)."""
 
 import argparse
-import json
 import sys
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -14,6 +14,14 @@ from curfewd import (
     EXIT_PERMISSION_DENIED,
     EXIT_USAGE,
     __version__,
+)
+from curfewd.cli.formatters import (
+    format_windows_human,
+    print_doctor,
+    print_history,
+    print_json,
+    print_user_status,
+    print_users_table,
 )
 from curfewd.dbus.client import (
     CurfewClient,
@@ -26,7 +34,6 @@ from curfewd.dbus.client import (
 from curfewd.engine.doctor import apply_dconf_lock_fix, run_doctor
 from curfewd.models import LOCKOUT_ACTIONS, AppLimitRule
 from curfewd.parsing import (
-    WEEKDAYS,
     format_duration,
     parse_days,
     parse_delta,
@@ -58,150 +65,8 @@ def _normalize_argv(argv: list[str]) -> list[str]:
         and positionals[1][0] == "-"
         and positionals[1][1].isdigit()
     ):
-        return prefix + flags + [positionals[0], "--"] + positionals[1:]
+        return [*prefix, *flags, positionals[0], "--", *positionals[1:]]
     return argv
-
-
-def _print_json(data: Any, stream=None) -> None:
-    out = stream or sys.stdout
-    out.write(json.dumps(data, indent=2, sort_keys=True) + "\n")
-
-
-def _format_windows_human(windows: list[dict[str, Any]]) -> str:
-    if not windows:
-        return "blocked"
-    return ", ".join(f"{w['start']}-{w['end']}" for w in windows)
-
-
-def _print_users_table(users: list[dict[str, Any]], stream) -> None:
-    if not users:
-        stream.write("No tracked or discoverable desktop users found.\n")
-        return
-    header = f"{'USER':<14} {'STATE':<13} {'LEFT TODAY':<11} {'SPENT':<9} {'LIMIT':<9} {'LOCKOUT':<10} {'LOGGED IN'}\n"
-    stream.write(header)
-    stream.write("-" * (len(header) - 1) + "\n")
-    for u in users:
-        left = (
-            "unlimited"
-            if u["enforcement_state"] in ("unrestricted", "paused")
-            else format_duration(u["time_left_today"])
-        )
-        spent = format_duration(u["time_spent_today"])
-        limit = (
-            "unlimited"
-            if u["daily_limit_today"] >= 86400
-            else format_duration(u["daily_limit_today"])
-        )
-        logged = (
-            "yes (locked)"
-            if (u["logged_in"] and u["screen_locked"])
-            else ("yes" if u["logged_in"] else "no")
-        )
-        stream.write(
-            f"{u['username']:<14} {u['enforcement_state']:<13} {left:<11} {spent:<9} {limit:<9} {u['lockout_action']:<10} {logged}\n"
-        )
-
-
-def _print_user_status(st: dict[str, Any], stream) -> None:
-    pol = st["policy"]
-    pause = st["pause"]
-    stream.write(f"User: {st['username']} ({st.get('full_name') or st['username']})\n")
-    stream.write(
-        f"State: {st['enforcement_state']} | Logged in: {'yes' if st['logged_in'] else 'no'} | Locked: {'yes' if st['screen_locked'] else 'no'}\n"
-    )
-    if pause.get("active"):
-        until = pause.get("until_utc") or "indefinite"
-        reason = f" ({pause['reason']})" if pause.get("reason") else ""
-        stream.write(f"Pause: ACTIVE until {until}{reason}\n")
-    left_str = (
-        "unlimited"
-        if st["enforcement_state"] in ("unrestricted", "paused")
-        else format_duration(st["time_left_today"], include_seconds=True)
-    )
-    cont_str = (
-        "unlimited"
-        if st["enforcement_state"] in ("unrestricted", "paused")
-        else format_duration(st["time_left_continuous"], include_seconds=True)
-    )
-    stream.write(
-        f"Today: {left_str} left (continuous: {cont_str}) | "
-        f"Spent: {format_duration(st['time_spent_today'])} / "
-        f"{'unlimited' if st['daily_limit_today'] >= 86400 else format_duration(st['daily_limit_today'])}"
-        f" | Bonus: {format_duration(st['bonus_today'])}\n"
-    )
-    ovr = st.get("today_override") or {}
-    if ovr.get("active"):
-        win_txt = _format_windows_human(st.get("today_windows") or [])
-        stream.write(f"Today override: ACTIVE (windows={win_txt})\n")
-    stream.write(
-        f"Totals: week={format_duration(st['time_spent_week'])} "
-        f"month={format_duration(st['time_spent_month'])} | "
-        f"Lockout: {pol['lockout_action']} | Track inactive: {pol['track_inactive']} | Hide tray: {pol['hide_tray_icon']}\n"
-    )
-    if st.get("next_curfew_at"):
-        stream.write(f"Next curfew: {st['next_curfew_at']}\n")
-    if st.get("next_allowed_at"):
-        stream.write(f"Next allowed window: {st['next_allowed_at']}\n")
-    stream.write("Schedule:\n")
-    for day in WEEKDAYS:
-        lim = pol["daily_limits"].get(day, 86400)
-        lim_s = "unlimited" if lim >= 86400 else format_duration(lim)
-        win_s = _format_windows_human(pol["curfew_windows"].get(day, []))
-        stream.write(f"  {day}: limit={lim_s:<10} windows={win_s}\n")
-    al = st.get("app_limits_status", {})
-    if al.get("enabled"):
-        apps_list = al.get("apps") or []
-        stream.write(f"App Limits: enabled ({len(apps_list)} tracked)\n")
-        for a in apps_list:
-            run_tag = " [running]" if a.get("running") else ""
-            stream.write(
-                f"  - {a['label']} ({a['pattern']}): "
-                f"{format_duration(a.get('time_left_today', 0))} left / "
-                f"{format_duration(a.get('allotted_today', a.get('daily_limit_sec', 0)))}{run_tag}\n"
-            )
-
-
-def _print_history(hist: dict[str, Any], stream) -> None:
-    stream.write(
-        f"Usage History for {hist['username']} (last {hist['days']} days since {hist['start_date']}):\n"
-    )
-    if not hist["daily"]:
-        stream.write("  No daily usage recorded yet.\n")
-    else:
-        stream.write(
-            f"  {'DATE':<12} {'ACTIVE':<10} {'INACTIVE':<10} {'APPS':<10} {'BONUS':<9} {'LOCKOUTS'}\n"
-        )
-        for row in hist["daily"]:
-            stream.write(
-                f"  {row['date']:<12} {format_duration(row['active_sec']):<10} "
-                f"{format_duration(row['inactive_sec']):<10} {format_duration(row['app_limits_sec']):<10} "
-                f"{format_duration(row['bonus_sec']):<9} {row['lockouts']}\n"
-            )
-    if hist["events"]:
-        stream.write("Recent events:\n")
-        for ev in hist["events"][:10]:
-            stream.write(
-                f"  {ev['ts_utc']} [{ev['kind']}] by {ev['actor']} {json.dumps(ev['detail'])}\n"
-            )
-
-
-def _print_doctor(report: dict[str, Any], stream) -> None:
-    stream.write(
-        f"curfewd doctor (v{report.get('version', __version__)}) — overall: {report['overall'].upper()}\n"
-    )
-    for chk in report.get("checks", []):
-        tag = {"ok": "OK  ", "warn": "WARN", "error": "FAIL"}.get(
-            chk["status"], chk["status"].upper()
-        )
-        stream.write(f"  [{tag}] {chk['name']}: {chk['detail']}\n")
-    sessions = report.get("active_sessions", [])
-    if sessions:
-        stream.write("Active graphical sessions:\n")
-        for s in sessions:
-            stream.write(
-                f"  - {s['username']} session={s['session_id']} type={s['session_type']} "
-                f"desktop={s['desktop']} locked={s['locked']} backends={','.join(s['lock_backends'])}\n"
-            )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -405,11 +270,384 @@ def _coerce_config_value(existing: Any, raw_value: str) -> Any:
     return raw_value.strip()
 
 
+@dataclass
+class _CLIContext:
+    session_bus: bool
+    as_json: bool
+    out: Any
+    err: Any
+    client_factory: Callable[[bool], CurfewClient] | None = None
+    _client: CurfewClient | None = field(default=None, init=False, repr=False)
+
+    @property
+    def client(self) -> CurfewClient:
+        if self._client is None:
+            if self.client_factory is not None:
+                self._client = self.client_factory(self.session_bus)
+            elif self.session_bus:
+                import dbus
+
+                self._client = CurfewClient(bus=dbus.SessionBus())
+            else:
+                self._client = CurfewClient()
+        return self._client
+
+    def emit(self, payload: Any, human_fn: Callable[[], None]) -> None:
+        if self.as_json:
+            print_json(payload, self.out)
+        else:
+            human_fn()
+
+
+# ---------------- Per-Subcommand Handlers ---------------- #
+
+
+def _cmd_doctor(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    fix_result = None
+    if args.fix:
+        try:
+            fixed = ctx.client.apply_doctor_fix()
+            fix_result = fixed.get("fix_applied")
+            report = fixed.get("doctor") or run_doctor(dbus_connected=True)
+        except DaemonUnavailableError:
+            fix_result = apply_dconf_lock_fix()
+            report = run_doctor(dbus_connected=False)
+    else:
+        try:
+            report = ctx.client.run_doctor()
+        except DaemonUnavailableError:
+            report = run_doctor(dbus_connected=False)
+
+    if fix_result is not None:
+        report["fix_applied"] = fix_result
+
+    def _human() -> None:
+        if fix_result is not None:
+            ctx.out.write(f"Applied dconf lock hardening: {fix_result['detail']}\n")
+        print_doctor(report, ctx.out)
+
+    ctx.emit(report, _human)
+    return EXIT_OK if report["overall"] != "error" else EXIT_ERROR
+
+
+def _cmd_users(_args: argparse.Namespace, ctx: _CLIContext) -> int:
+    users = ctx.client.list_users()
+    ctx.emit({"users": users}, lambda: print_users_table(users, ctx.out))
+    return EXIT_OK
+
+
+def _cmd_status(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    if args.user:
+        st = ctx.client.get_user_status(args.user)
+        ctx.emit(st, lambda: print_user_status(st, ctx.out))
+    else:
+        users = ctx.client.list_users()
+        ctx.emit({"users": users}, lambda: print_users_table(users, ctx.out))
+    return EXIT_OK
+
+
+def _cmd_grant(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    mode, delta_sec = parse_delta(args.delta)
+    res = ctx.client.grant_time(args.user, delta_sec, mode=mode)
+    st = res["status"]
+    ctx.emit(
+        res,
+        lambda: ctx.out.write(
+            f"Updated {args.user}: applied {format_duration(res['applied_sec'], include_seconds=True)}; "
+            f"remaining today: {format_duration(st['time_left_today'], include_seconds=True)}\n"
+        ),
+    )
+    return EXIT_OK
+
+
+def _cmd_limit(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    days = parse_days(args.days)
+    sec = parse_duration(args.duration)
+    st = ctx.client.get_user_status(args.user)
+    policy = dict(st["policy"])
+    policy["daily_limits"] = dict(policy["daily_limits"])
+    for d in days:
+        policy["daily_limits"][d] = sec
+    if args.week is not None:
+        policy["weekly_limit"] = (
+            None if args.week.lower() in ("unlimited", "none") else parse_duration(args.week)
+        )
+    if args.month is not None:
+        policy["monthly_limit"] = (
+            None if args.month.lower() in ("unlimited", "none") else parse_duration(args.month)
+        )
+    updated = ctx.client.set_user_policy(args.user, policy)
+    ctx.emit(
+        updated,
+        lambda: ctx.out.write(
+            f"Updated daily limit for {args.user} ({','.join(days)}): {format_duration(sec)}\n"
+        ),
+    )
+    return EXIT_OK
+
+
+def _cmd_window(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    days = parse_days(args.days)
+    windows = parse_windows(args.windows)
+    st = ctx.client.get_user_status(args.user)
+    policy = dict(st["policy"])
+    policy["curfew_windows"] = dict(policy["curfew_windows"])
+    for d in days:
+        policy["curfew_windows"][d] = windows
+    updated = ctx.client.set_user_policy(args.user, policy)
+    ctx.emit(
+        updated,
+        lambda: ctx.out.write(
+            f"Updated curfew windows for {args.user} ({','.join(days)}): {format_windows_human(windows)}\n"
+        ),
+    )
+    return EXIT_OK
+
+
+def _cmd_lockout(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    st = ctx.client.get_user_status(args.user)
+    policy = dict(st["policy"])
+    policy["lockout_action"] = args.action
+    updated = ctx.client.set_user_policy(args.user, policy)
+    ctx.emit(
+        updated,
+        lambda: ctx.out.write(f"Updated lockout action for {args.user}: {args.action}\n"),
+    )
+    return EXIT_OK
+
+
+def _cmd_pause(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    until_utc = ""
+    if args.pause_for:
+        dur = parse_duration(args.pause_for)
+        until_utc = (datetime.now(timezone.utc) + timedelta(seconds=dur)).isoformat()
+    elif args.pause_until:
+        until_utc = parse_until_timestamp(args.pause_until)
+    elif args.today:
+        until_utc = parse_until_timestamp("today")
+    updated = ctx.client.pause_user(
+        args.user,
+        until_utc=until_utc,
+        reason=args.reason,
+        hide_tray=not bool(args.keep_tray),
+    )
+    mode_str = f"until {until_utc}" if until_utc else "indefinitely"
+    ctx.emit(
+        updated,
+        lambda: ctx.out.write(
+            f"Paused enforcement for {args.user} ({mode_str}). Saved schedule preserved.\n"
+        ),
+    )
+    return EXIT_OK
+
+
+def _cmd_resume(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    updated = ctx.client.resume_user(args.user)
+    ctx.emit(
+        updated,
+        lambda: ctx.out.write(
+            f"Resumed enforcement for {args.user} (state: {updated['enforcement_state']}).\n"
+        ),
+    )
+    return EXIT_OK
+
+
+def _cmd_lock(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    res = ctx.client.lock_user(args.user)
+
+    def _human() -> None:
+        if res.get("locked"):
+            detail = ", ".join(
+                f"{s['session_id']} via {s['backend']} ({s['stage']}, {s['elapsed_ms']}ms)"
+                for s in res.get("sessions", [])
+            )
+            ctx.out.write(f"Locked {args.user}: {detail}\n")
+        else:
+            ctx.out.write(
+                f"Could not lock {args.user}: {res.get('detail') or 'lock verification failed'}\n"
+            )
+
+    ctx.emit(res, _human)
+    return EXIT_OK if res.get("locked") else EXIT_ERROR
+
+
+def _cmd_history(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    hist = ctx.client.get_usage_history(args.user, days=args.days)
+    ctx.emit(hist, lambda: print_history(hist, ctx.out))
+    return EXIT_OK
+
+
+def _cmd_today(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    if not args.reset and args.today_limit is None and args.today_window is None:
+        raise ValueError("Specify at least one of --limit, --window, or --reset")
+    lim_sec = parse_duration(args.today_limit) if args.today_limit is not None else None
+    wins = parse_windows(args.today_window) if args.today_window is not None else None
+    updated = ctx.client.set_today_override(
+        args.user,
+        limit_sec=lim_sec,
+        windows=wins,
+        reset=bool(args.reset),
+    )
+
+    def _human() -> None:
+        if args.reset:
+            ctx.out.write(
+                f"Cleared today's override for {args.user}; reverted to weekly schedule.\n"
+            )
+        else:
+            allowance = (
+                "unlimited"
+                if updated["daily_limit_today"] >= 86400
+                else format_duration(updated["daily_limit_today"])
+            )
+            ctx.out.write(
+                f"Updated today's schedule for {args.user}: "
+                f"allowance={allowance}, "
+                f"windows={format_windows_human(updated.get('today_windows') or [])}\n"
+            )
+
+    ctx.emit(updated, _human)
+    return EXIT_OK
+
+
+def _mutate_app_limits(args: argparse.Namespace, al: dict[str, Any]) -> None:
+    action = args.al_action
+    if action == "enable":
+        al["enabled"] = True
+    elif action == "disable":
+        al["enabled"] = False
+    elif action == "limit":
+        apps = [dict(a) for a in al["apps"]]
+        if args.duration is None:
+            sec = parse_duration(args.target)
+            for a in apps:
+                a["daily_limit_sec"] = sec
+        else:
+            sec = parse_duration(args.duration)
+            matched = False
+            for a in apps:
+                if a["pattern"] == args.target:
+                    a["daily_limit_sec"] = sec
+                    matched = True
+            if not matched:
+                raise ValueError(f"Tracked app pattern not found: {args.target!r}")
+        al["apps"] = apps
+    elif action == "add":
+        lim_sec = parse_duration(args.app_limit)
+        app = AppLimitRule(
+            pattern=args.pattern,
+            label=args.label or args.pattern,
+            daily_limit_sec=lim_sec,
+            category=args.category,
+        ).to_dict()
+        al["apps"] = [a for a in al["apps"] if a["pattern"] != app["pattern"]] + [app]
+    elif action == "remove":
+        al["apps"] = [a for a in al["apps"] if a["pattern"] != args.pattern]
+
+
+def _cmd_app_limits(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    if args.al_action == "grant":
+        mode, delta_sec = parse_delta(args.delta)
+        if mode == "set":
+            raise ValueError("app-limits grant supports relative deltas like +15m or -15m")
+        res = ctx.client.grant_app_time(args.user, args.pattern, delta_sec)
+        ctx.emit(
+            res,
+            lambda: ctx.out.write(
+                f"Updated {args.pattern} for {args.user}: applied "
+                f"{format_duration(res['applied_sec'], include_seconds=True)}\n"
+            ),
+        )
+        return EXIT_OK
+
+    st = ctx.client.get_user_status(args.user)
+    policy = dict(st["policy"])
+    al = dict(policy["app_limits"])
+    if args.al_action == "status":
+        payload = {
+            "username": args.user,
+            "app_limits": al,
+            "app_limits_status": st["app_limits_status"],
+        }
+
+        def _human() -> None:
+            ctx.out.write(
+                f"App Limits for {args.user}: enabled={al['enabled']} apps={len(al['apps'])}\n"
+            )
+            for a in st["app_limits_status"].get("apps", al["apps"]):
+                lim_s = format_duration(a.get("allotted_today", a.get("daily_limit_sec", 0)))
+                rem_s = format_duration(a.get("time_left_today", a.get("daily_limit_sec", 0)))
+                ctx.out.write(f"  - {a['label']} ({a['pattern']}): {rem_s} left / {lim_s}\n")
+
+        ctx.emit(payload, _human)
+        return EXIT_OK
+
+    _mutate_app_limits(args, al)
+    policy["app_limits"] = al
+    updated = ctx.client.set_user_policy(args.user, policy)
+    ctx.emit(
+        updated,
+        lambda: ctx.out.write(
+            f"Updated App Limits for {args.user} "
+            f"(enabled={updated['policy']['app_limits']['enabled']}).\n"
+        ),
+    )
+    return EXIT_OK
+
+
+def _cmd_config(args: argparse.Namespace, ctx: _CLIContext) -> int:
+    cfg = ctx.client.get_daemon_config()
+    if args.cfg_action == "show":
+
+        def _print_cfg() -> None:
+            for k, v in sorted(cfg.items()):
+                ctx.out.write(f"{k} = {v}\n")
+
+        ctx.emit(cfg, _print_cfg)
+        return EXIT_OK
+    if args.cfg_action == "set":
+        if args.key not in cfg:
+            raise ValidationError(f"Unknown daemon config key: {args.key!r}")
+        cfg[args.key] = _coerce_config_value(cfg[args.key], args.value)
+        updated = ctx.client.set_daemon_config(cfg)
+        ctx.emit(
+            updated,
+            lambda: ctx.out.write(f"Updated daemon config: {args.key} = {updated[args.key]}\n"),
+        )
+        return EXIT_OK
+    return EXIT_USAGE
+
+
+_COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace, _CLIContext], int]] = {
+    "doctor": _cmd_doctor,
+    "users": _cmd_users,
+    "status": _cmd_status,
+    "grant": _cmd_grant,
+    "limit": _cmd_limit,
+    "window": _cmd_window,
+    "lockout": _cmd_lockout,
+    "pause": _cmd_pause,
+    "resume": _cmd_resume,
+    "lock": _cmd_lock,
+    "history": _cmd_history,
+    "today": _cmd_today,
+    "app-limits": _cmd_app_limits,
+    "config": _cmd_config,
+}
+
+
+def _emit_error(ctx: _CLIContext, code: str, prefix: str, exc: Exception) -> None:
+    if ctx.as_json:
+        print_json({"error": code, "message": str(exc)}, ctx.err)
+    else:
+        ctx.err.write(f"{prefix}: {exc}\n")
+
+
 def run_cli(
     argv: list[str] | None = None,
     client_factory: Callable[[bool], CurfewClient] | None = None,
-    stdout=None,
-    stderr=None,
+    stdout: Any = None,
+    stderr: Any = None,
 ) -> int:
     out = stdout or sys.stdout
     err = stderr or sys.stderr
@@ -421,351 +659,30 @@ def run_cli(
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else EXIT_USAGE
 
-    as_json = bool(getattr(args, "json_output", False))
-
-    def _make_client() -> CurfewClient:
-        if client_factory is not None:
-            return client_factory(bool(args.session_bus))
-        if args.session_bus:
-            import dbus
-
-            return CurfewClient(bus=dbus.SessionBus())
-        return CurfewClient()
+    ctx = _CLIContext(
+        session_bus=bool(args.session_bus),
+        as_json=bool(getattr(args, "json_output", False)),
+        out=out,
+        err=err,
+        client_factory=client_factory,
+    )
+    handler = _COMMAND_HANDLERS.get(args.command)
+    if handler is None:
+        return EXIT_USAGE
 
     try:
-        cmd = args.command
-
-        if cmd == "doctor":
-            fix_result = None
-            if args.fix:
-                try:
-                    fixed = _make_client().apply_doctor_fix()
-                    fix_result = fixed.get("fix_applied")
-                    report = fixed.get("doctor") or run_doctor(dbus_connected=True)
-                except DaemonUnavailableError:
-                    fix_result = apply_dconf_lock_fix()
-                    report = run_doctor(dbus_connected=False)
-            else:
-                try:
-                    report = _make_client().run_doctor()
-                except DaemonUnavailableError:
-                    report = run_doctor(dbus_connected=False)
-            if fix_result is not None:
-                report["fix_applied"] = fix_result
-            if as_json:
-                _print_json(report, out)
-            else:
-                if fix_result is not None:
-                    out.write(f"Applied dconf lock hardening: {fix_result['detail']}\n")
-                _print_doctor(report, out)
-            return EXIT_OK if report["overall"] != "error" else EXIT_ERROR
-
-        client = _make_client()
-
-        if cmd == "users":
-            users = client.list_users()
-            if as_json:
-                _print_json({"users": users}, out)
-            else:
-                _print_users_table(users, out)
-            return EXIT_OK
-
-        if cmd == "status":
-            if args.user:
-                st = client.get_user_status(args.user)
-                if as_json:
-                    _print_json(st, out)
-                else:
-                    _print_user_status(st, out)
-            else:
-                users = client.list_users()
-                if as_json:
-                    _print_json({"users": users}, out)
-                else:
-                    _print_users_table(users, out)
-            return EXIT_OK
-
-        if cmd == "grant":
-            mode, delta_sec = parse_delta(args.delta)
-            res = client.grant_time(args.user, delta_sec, mode=mode)
-            if as_json:
-                _print_json(res, out)
-            else:
-                st = res["status"]
-                out.write(
-                    f"Updated {args.user}: applied {format_duration(res['applied_sec'], include_seconds=True)}; "
-                    f"remaining today: {format_duration(st['time_left_today'], include_seconds=True)}\n"
-                )
-            return EXIT_OK
-
-        if cmd == "limit":
-            days = parse_days(args.days)
-            sec = parse_duration(args.duration)
-            st = client.get_user_status(args.user)
-            policy = dict(st["policy"])
-            policy["daily_limits"] = dict(policy["daily_limits"])
-            for d in days:
-                policy["daily_limits"][d] = sec
-            if args.week is not None:
-                policy["weekly_limit"] = (
-                    None
-                    if args.week.lower() in ("unlimited", "none")
-                    else parse_duration(args.week)
-                )
-            if args.month is not None:
-                policy["monthly_limit"] = (
-                    None
-                    if args.month.lower() in ("unlimited", "none")
-                    else parse_duration(args.month)
-                )
-            updated = client.set_user_policy(args.user, policy)
-            if as_json:
-                _print_json(updated, out)
-            else:
-                out.write(
-                    f"Updated daily limit for {args.user} ({','.join(days)}): {format_duration(sec)}\n"
-                )
-            return EXIT_OK
-
-        if cmd == "window":
-            days = parse_days(args.days)
-            windows = parse_windows(args.windows)
-            st = client.get_user_status(args.user)
-            policy = dict(st["policy"])
-            policy["curfew_windows"] = dict(policy["curfew_windows"])
-            for d in days:
-                policy["curfew_windows"][d] = windows
-            updated = client.set_user_policy(args.user, policy)
-            if as_json:
-                _print_json(updated, out)
-            else:
-                out.write(
-                    f"Updated curfew windows for {args.user} ({','.join(days)}): {_format_windows_human(windows)}\n"
-                )
-            return EXIT_OK
-
-        if cmd == "lockout":
-            st = client.get_user_status(args.user)
-            policy = dict(st["policy"])
-            policy["lockout_action"] = args.action
-            updated = client.set_user_policy(args.user, policy)
-            if as_json:
-                _print_json(updated, out)
-            else:
-                out.write(f"Updated lockout action for {args.user}: {args.action}\n")
-            return EXIT_OK
-
-        if cmd == "pause":
-            until_utc = ""
-            if args.pause_for:
-                dur = parse_duration(args.pause_for)
-                until_utc = (datetime.now(timezone.utc) + timedelta(seconds=dur)).isoformat()
-            elif args.pause_until:
-                until_utc = parse_until_timestamp(args.pause_until)
-            elif args.today:
-                until_utc = parse_until_timestamp("today")
-            updated = client.pause_user(
-                args.user,
-                until_utc=until_utc,
-                reason=args.reason,
-                hide_tray=not bool(args.keep_tray),
-            )
-            if as_json:
-                _print_json(updated, out)
-            else:
-                mode_str = f"until {until_utc}" if until_utc else "indefinitely"
-                out.write(
-                    f"Paused enforcement for {args.user} ({mode_str}). Saved schedule preserved.\n"
-                )
-            return EXIT_OK
-
-        if cmd == "resume":
-            updated = client.resume_user(args.user)
-            if as_json:
-                _print_json(updated, out)
-            else:
-                out.write(
-                    f"Resumed enforcement for {args.user} (state: {updated['enforcement_state']}).\n"
-                )
-            return EXIT_OK
-
-        if cmd == "lock":
-            res = client.lock_user(args.user)
-            if as_json:
-                _print_json(res, out)
-            else:
-                if res.get("locked"):
-                    sessions = res.get("sessions", [])
-                    detail = ", ".join(
-                        f"{s['session_id']} via {s['backend']} ({s['stage']}, {s['elapsed_ms']}ms)"
-                        for s in sessions
-                    )
-                    out.write(f"Locked {args.user}: {detail}\n")
-                else:
-                    out.write(
-                        f"Could not lock {args.user}: {res.get('detail') or 'lock verification failed'}\n"
-                    )
-            return EXIT_OK if res.get("locked") else EXIT_ERROR
-
-        if cmd == "history":
-            hist = client.get_usage_history(args.user, days=args.days)
-            if as_json:
-                _print_json(hist, out)
-            else:
-                _print_history(hist, out)
-            return EXIT_OK
-
-        if cmd == "today":
-            if not args.reset and args.today_limit is None and args.today_window is None:
-                raise ValueError("Specify at least one of --limit, --window, or --reset")
-            lim_sec = parse_duration(args.today_limit) if args.today_limit is not None else None
-            wins = parse_windows(args.today_window) if args.today_window is not None else None
-            updated = client.set_today_override(
-                args.user,
-                limit_sec=lim_sec,
-                windows=wins,
-                reset=bool(args.reset),
-            )
-            if as_json:
-                _print_json(updated, out)
-            else:
-                if args.reset:
-                    out.write(
-                        f"Cleared today's override for {args.user}; reverted to weekly schedule.\n"
-                    )
-                else:
-                    out.write(
-                        f"Updated today's schedule for {args.user}: "
-                        f"allowance={'unlimited' if updated['daily_limit_today'] >= 86400 else format_duration(updated['daily_limit_today'])}, "
-                        f"windows={_format_windows_human(updated.get('today_windows') or [])}\n"
-                    )
-            return EXIT_OK
-
-        if cmd == "app-limits":
-            st = client.get_user_status(args.user)
-            policy = dict(st["policy"])
-            al = dict(policy["app_limits"])
-            if args.al_action == "status":
-                payload = {
-                    "username": args.user,
-                    "app_limits": al,
-                    "app_limits_status": st["app_limits_status"],
-                }
-                if as_json:
-                    _print_json(payload, out)
-                else:
-                    out.write(
-                        f"App Limits for {args.user}: enabled={al['enabled']} apps={len(al['apps'])}\n"
-                    )
-                    for a in st["app_limits_status"].get("apps", al["apps"]):
-                        lim_s = format_duration(
-                            a.get("allotted_today", a.get("daily_limit_sec", 0))
-                        )
-                        rem_s = format_duration(
-                            a.get("time_left_today", a.get("daily_limit_sec", 0))
-                        )
-                        out.write(f"  - {a['label']} ({a['pattern']}): {rem_s} left / {lim_s}\n")
-                return EXIT_OK
-            if args.al_action == "grant":
-                mode, delta_sec = parse_delta(args.delta)
-                if mode == "set":
-                    raise ValueError("app-limits grant supports relative deltas like +15m or -15m")
-                res = client.grant_app_time(args.user, args.pattern, delta_sec)
-                if as_json:
-                    _print_json(res, out)
-                else:
-                    out.write(
-                        f"Updated {args.pattern} for {args.user}: applied {format_duration(res['applied_sec'], include_seconds=True)}\n"
-                    )
-                return EXIT_OK
-            if args.al_action == "enable":
-                al["enabled"] = True
-            elif args.al_action == "disable":
-                al["enabled"] = False
-            elif args.al_action == "limit":
-                apps = [dict(a) for a in al["apps"]]
-                if args.duration is None:
-                    sec = parse_duration(args.target)
-                    for a in apps:
-                        a["daily_limit_sec"] = sec
-                else:
-                    sec = parse_duration(args.duration)
-                    matched = False
-                    for a in apps:
-                        if a["pattern"] == args.target:
-                            a["daily_limit_sec"] = sec
-                            matched = True
-                    if not matched:
-                        raise ValueError(f"Tracked app pattern not found: {args.target!r}")
-                al["apps"] = apps
-            elif args.al_action == "add":
-                lim_sec = parse_duration(args.app_limit)
-                app = AppLimitRule(
-                    pattern=args.pattern,
-                    label=args.label or args.pattern,
-                    daily_limit_sec=lim_sec,
-                    category=args.category,
-                ).to_dict()
-                apps = [a for a in al["apps"] if a["pattern"] != app["pattern"]]
-                apps.append(app)
-                al["apps"] = apps
-            elif args.al_action == "remove":
-                al["apps"] = [a for a in al["apps"] if a["pattern"] != args.pattern]
-            policy["app_limits"] = al
-            updated = client.set_user_policy(args.user, policy)
-            if as_json:
-                _print_json(updated, out)
-            else:
-                out.write(
-                    f"Updated App Limits for {args.user} (enabled={updated['policy']['app_limits']['enabled']}).\n"
-                )
-            return EXIT_OK
-
-        if cmd == "config":
-            cfg = client.get_daemon_config()
-            if args.cfg_action == "show":
-                if as_json:
-                    _print_json(cfg, out)
-                else:
-                    for k, v in sorted(cfg.items()):
-                        out.write(f"{k} = {v}\n")
-                return EXIT_OK
-            if args.cfg_action == "set":
-                if args.key not in cfg:
-                    raise ValidationError(f"Unknown daemon config key: {args.key!r}")
-                cfg[args.key] = _coerce_config_value(cfg[args.key], args.value)
-                updated = client.set_daemon_config(cfg)
-                if as_json:
-                    _print_json(updated, out)
-                else:
-                    out.write(f"Updated daemon config: {args.key} = {updated[args.key]}\n")
-                return EXIT_OK
-
-        return EXIT_USAGE
-
+        return handler(args, ctx)
     except (ValueError, ValidationError) as exc:
-        if as_json:
-            _print_json({"error": "validation_error", "message": str(exc)}, err)
-        else:
-            err.write(f"error: {exc}\n")
+        _emit_error(ctx, "validation_error", "error", exc)
         return EXIT_USAGE
     except (PermissionError, PermissionDeniedError) as exc:
-        if as_json:
-            _print_json({"error": "permission_denied", "message": str(exc)}, err)
-        else:
-            err.write(f"permission denied: {exc}\n")
+        _emit_error(ctx, "permission_denied", "permission denied", exc)
         return EXIT_PERMISSION_DENIED
     except DaemonUnavailableError as exc:
-        if as_json:
-            _print_json({"error": "daemon_unavailable", "message": str(exc)}, err)
-        else:
-            err.write(f"daemon unavailable: {exc}\n")
+        _emit_error(ctx, "daemon_unavailable", "daemon unavailable", exc)
         return EXIT_DAEMON_UNAVAILABLE
     except (UserNotFoundError, CurfewError, OSError) as exc:
-        if as_json:
-            _print_json({"error": "error", "message": str(exc)}, err)
-        else:
-            err.write(f"error: {exc}\n")
+        _emit_error(ctx, "error", "error", exc)
         return EXIT_ERROR
 
 

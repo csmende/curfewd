@@ -169,12 +169,10 @@ class AppLimitsPolicy:
     """Per-user App Limits configuration (individual daily limits per tracked app)."""
 
     enabled: bool = False
-    override_main: bool = False
     apps: list[AppLimitRule] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.enabled = bool(self.enabled)
-        self.override_main = bool(self.override_main)
         self.apps = [
             a if isinstance(a, AppLimitRule) else AppLimitRule.from_dict(a) for a in self.apps
         ]
@@ -182,7 +180,6 @@ class AppLimitsPolicy:
     def to_dict(self) -> dict[str, Any]:
         return {
             "enabled": self.enabled,
-            "override_main": self.override_main,
             "apps": [a.to_dict() for a in self.apps],
         }
 
@@ -201,7 +198,6 @@ class AppLimitsPolicy:
                     break
         return cls(
             enabled=bool(data.get("enabled", False)),
-            override_main=bool(data.get("override_main", False)),
             apps=[
                 a
                 if isinstance(a, AppLimitRule)
@@ -341,7 +337,6 @@ class UserAccountingState:
     spent_month: int = 0
     bonus_today: int = 0
     app_limits_spent_today: int = 0
-    app_limits_balance: int = 0
     app_spent_today: dict[str, int] = field(default_factory=dict)
     app_bonus_today: dict[str, int] = field(default_factory=dict)
     today_limit_override: int | None = None
@@ -357,7 +352,6 @@ class UserAccountingState:
         self.spent_month = max(0, int(self.spent_month))
         self.bonus_today = int(self.bonus_today)
         self.app_limits_spent_today = max(0, int(self.app_limits_spent_today))
-        self.app_limits_balance = int(self.app_limits_balance)
         self.app_spent_today = {
             str(k).strip(): max(0, int(v))
             for k, v in (self.app_spent_today or {}).items()
@@ -393,13 +387,10 @@ class UserAccountingState:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "UserAccountingState":
-        # Forward-migrate schema v1 `playtime_*` counters cleanly
+        # Forward-migrate schema v1 `playtime_*` counters cleanly (ignoring obsolete balance keys)
         al_spent = data.get("app_limits_spent_today")
         if al_spent is None:
             al_spent = data.get("playtime_spent_today", 0)
-        al_bal = data.get("app_limits_balance")
-        if al_bal is None:
-            al_bal = data.get("playtime_balance", 0)
         return cls(
             username=str(data["username"]),
             schema_version=SCHEMA_VERSION,
@@ -412,7 +403,6 @@ class UserAccountingState:
             spent_month=int(data.get("spent_month", 0)),
             bonus_today=int(data.get("bonus_today", 0)),
             app_limits_spent_today=int(al_spent),
-            app_limits_balance=int(al_bal),
             app_spent_today=dict(data.get("app_spent_today", {}) or {}),
             app_bonus_today=dict(data.get("app_bonus_today", {}) or {}),
             today_limit_override=data.get("today_limit_override"),

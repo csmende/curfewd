@@ -123,6 +123,7 @@ class TestModels(unittest.TestCase):
                 "username": "alice",
                 "playtime": {
                     "enabled": True,
+                    "override_main": True,
                     "daily_limits": {"mon": 1800},
                     "apps": [{"pattern": "minecraft", "label": "Minecraft"}],
                 },
@@ -133,6 +134,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(v1_pol.app_limits.apps[0].daily_limit_sec, 1800)
         self.assertIn("app_limits", v1_pol.to_dict())
         self.assertNotIn("playtime", v1_pol.to_dict())
+        self.assertNotIn("override_main", v1_pol.to_dict()["app_limits"])
 
         v1_cfg = DaemonConfig.from_dict({"schema_version": 1, "playtime_enabled": False})
         self.assertEqual(v1_cfg.schema_version, 2)
@@ -144,11 +146,12 @@ class TestModels(unittest.TestCase):
                 "username": "alice",
                 "playtime_spent_today": 420,
                 "playtime_balance": 420,
+                "app_limits_balance": 420,
             }
         )
         self.assertEqual(v1_st.schema_version, 2)
         self.assertEqual(v1_st.app_limits_spent_today, 420)
-        self.assertEqual(v1_st.app_limits_balance, 420)
+        self.assertNotIn("app_limits_balance", v1_st.to_dict())
         self.assertEqual(
             TimeWindow.from_dict({"start": "08:00", "end": "20:00", "unaccounted": True}).to_dict(),
             {"start": "08:00", "end": "20:00"},

@@ -34,6 +34,8 @@ class _FakeSessionMonitor:
     def __init__(self, username: str) -> None:
         self.username = username
         self.lock_calls = 0
+        self.lock_delay_sec = 0.0
+        self.lock_started = threading.Event()
 
     def list_user_sessions(self, tracked_types=None):
         return {
@@ -67,8 +69,14 @@ class _FakeSessionMonitor:
             for s in sessions
         ]
 
-    def lock_user_sessions(self, sessions, config, async_mode=True):
+    def prepare_session_locks(self, sessions):
+        return list(sessions)
+
+    def execute_fallback_locks(self, contexts, config):
         self.lock_calls += 1
+        self.lock_started.set()
+        if self.lock_delay_sec > 0:
+            time.sleep(self.lock_delay_sec)
         return [
             LockResult(
                 session_id=s["session_id"],
@@ -79,8 +87,11 @@ class _FakeSessionMonitor:
                 stage="dbus_or_cli",
                 elapsed_ms=42,
             )
-            for s in sessions
+            for s in contexts
         ]
+
+    def lock_user_sessions(self, sessions, config, async_mode=True):
+        return self.execute_fallback_locks(sessions, config)
 
     def enforce_lockout_action(self, action, username, uid, sessions, config):
         self.lock_calls += 1
@@ -144,6 +155,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self._store.save_user_policy(pol)
 
         self._doctor_fix_calls = 0
+        self._config_reloads = []
         self._service = CurfewDaemonService(
             bus=self._server_bus,
             store=self._store,
@@ -152,6 +164,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
             authorizer=self._authorizer,
             now_fn=lambda: self._fixed_now,
             doctor_fixer=self._fake_doctor_fix,
+            on_config_changed=self._config_reloads.append,
         )
 
         self._loop = GLib.MainLoop()
@@ -166,6 +179,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
     def tearDown(self) -> None:
         GLib.idle_add(self._loop.quit)
         self._thread.join(timeout=3.0)
+        self._service.shutdown()
         self._history.close()
         self._server_bus.close()
         self._client_bus.close()
@@ -211,7 +225,6 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         pol = dict(st["policy"])
         pol["app_limits"] = {
             "enabled": True,
-            "override_main": False,
             "apps": [
                 {
                     "pattern": "steam",
@@ -406,6 +419,46 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         c = CurfewClient(bus=_NoLoopBus(), follow_name_owner=True)
         self.assertEqual(c._get_proxy(), "sync-proxy-ok")
         self.assertEqual(calls, [True, False])
+
+    def test_async_lock_user_does_not_block_concurrent_status_calls(self):
+        """Spec 005: blocking LockUser runs on RPC worker pool while GLib main loop stays responsive."""
+        self._sessions.lock_delay_sec = 0.4
+        self._sessions.lock_started.clear()
+        lock_result: dict[str, object] = {}
+
+        lock_bus = dbus.bus.BusConnection(self._bus_addr)
+        lock_client = CurfewClient(bus=lock_bus, follow_name_owner=False)
+
+        def _invoke_lock() -> None:
+            lock_result["resp"] = lock_client.lock_user(self._current_user)
+
+        t = threading.Thread(target=_invoke_lock, daemon=True)
+        t.start()
+        self.assertTrue(self._sessions.lock_started.wait(timeout=2.0))
+
+        # While LockUser is sleeping 0.4s in the worker pool, GetUserStatus must return immediately
+        t0 = time.monotonic()
+        st = self._client.get_user_status(self._current_user)
+        elapsed = time.monotonic() - t0
+        self.assertEqual(st["username"], self._current_user)
+        self.assertLess(
+            elapsed, 0.25, f"GLib main loop was blocked for {elapsed:.3f}s during LockUser"
+        )
+
+        t.join(timeout=3.0)
+        lock_bus.close()
+        self.assertTrue(lock_result.get("resp", {}).get("locked"))
+
+    def test_set_daemon_config_invokes_live_reload_callback(self):
+        cfg = self._client.get_daemon_config()
+        cfg["poll_interval_sec"] = 5
+        cfg["log_level"] = "DEBUG"
+        updated = self._client.set_daemon_config(cfg)
+        self.assertEqual(updated["poll_interval_sec"], 5)
+        self.assertEqual(updated["log_level"], "DEBUG")
+        self.assertEqual(len(self._config_reloads), 1)
+        self.assertEqual(self._config_reloads[0].poll_interval_sec, 5)
+        self.assertEqual(self._config_reloads[0].log_level, "DEBUG")
 
 
 if __name__ == "__main__":

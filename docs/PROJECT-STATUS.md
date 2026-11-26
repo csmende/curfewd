@@ -13,12 +13,12 @@
 | [Spec 002](specs/002-curfewd-control-plane-and-cli.md) | Clean-Break `curfewd` Control Plane, Polkit D-Bus API, Atomic JSON/SQLite Storage, `curfewctl`, `curfewd-tray` | `v0.7.0` | Shipped & Verified |
 | [Spec 003](specs/003-material-design-ui.md) | Native Unprivileged Material Design 3 Desktop UI (`curfewd-ui`), Today-Only Overrides & Individual Per-App Limits | `v1.0.0` (`v1.0.1`–`v1.0.4` patches) | Shipped & Verified |
 | [Spec 004](specs/004-rebrand-and-app-limits-schema.md) | Complete `curfewd` Rebrand, Legacy Cleanup & Schema v2 (`app_limits`) | `v1.1.0` | Shipped & Verified |
+| [Spec 005](specs/005-architecture-refactor-and-async-daemon.md) | Architectural Modularization, Async Admin RPCs & Single-Pass Enforcement Runtime | `main` (pending `v1.2.0`) | Implemented & Verified |
 
 ## Design & Implementation Archive
 
 - [`docs/design/spec-002-implementation-plan.md`](design/spec-002-implementation-plan.md) — Spec 002 architectural plan and security model
 - [`docs/design/v0.7.0-walkthrough.md`](design/v0.7.0-walkthrough.md) — Spec 002 verification walkthrough
-- [`docs/design/curfewd-ui-prototype-rev9.html`](design/curfewd-ui-prototype-rev9.html) — Approved interactive Material Design 3 UI mockup (implemented in `curfewd/ui/web/{index.html,styles.css,app.js}`)
 
 ## Release Timeline
 

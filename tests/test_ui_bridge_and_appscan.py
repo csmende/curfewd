@@ -336,6 +336,34 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             self.assertIn(f"{icon_name}.svg", expected)
         self.assertEqual(TrayController.select_icon_name(None), "curfewd")
 
+    def test_web_ui_html_assets_match_webkit_allowlist_and_packaging(self):
+        import re
+
+        from curfewd.ui.app import _ALLOWED_ASSETS, _MIME_TYPES, resolve_web_dir
+
+        web_dir = resolve_web_dir()
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        with open(os.path.join(web_dir, "index.html"), encoding="utf-8") as fh:
+            html = fh.read()
+        with open(os.path.join(repo_root, "debian", "install"), encoding="utf-8") as fh:
+            deb_install = fh.read()
+
+        refs = re.findall(r'(?:src|href)="curfewd://app(/[^"]+)"', html)
+        self.assertGreaterEqual(len(refs), 6)
+        for uri_path in refs:
+            self.assertIn(uri_path, _ALLOWED_ASSETS, f"Not allowlisted in ui/app.py: {uri_path}")
+            rel = _ALLOWED_ASSETS[uri_path]
+            self.assertIn(rel, _MIME_TYPES, f"Missing MIME type for {rel}")
+            self.assertTrue(
+                os.path.isfile(os.path.join(web_dir, rel)),
+                f"Referenced UI asset missing on disk: {rel}",
+            )
+            self.assertIn(
+                f"curfewd/ui/web/{rel}",
+                deb_install,
+                f"UI asset missing from debian/install: {rel}",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -95,7 +95,6 @@ def rollover_state(state: UserAccountingState, now_local: datetime) -> bool:
         state.spent_balance = 0
         state.bonus_today = 0
         state.app_limits_spent_today = 0
-        state.app_limits_balance = 0
         state.app_spent_today = {}
         state.app_bonus_today = {}
         state.today_limit_override = None
@@ -336,6 +335,142 @@ def _is_policy_unrestricted(policy: UserPolicy, state: UserAccountingState, toda
     return True
 
 
+def _evaluate_pause(policy: UserPolicy, now_utc: datetime) -> tuple[bool, bool]:
+    """Return (pause_active, pause_expired), auto-clearing expired timed pauses."""
+    if not policy.pause.active:
+        return False, False
+    if policy.pause.is_effective(now_utc):
+        return True, False
+    policy.pause.active = False
+    policy.pause.mode = "none"
+    policy.pause.until_utc = None
+    policy.pause.reason = ""
+    return False, True
+
+
+def _compute_time_left_today(
+    policy: UserPolicy,
+    state: UserAccountingState,
+    daily_limit: int,
+) -> int:
+    """Return effective seconds remaining across daily, weekly, and monthly caps."""
+    caps = [max(0, daily_limit - state.spent_balance)]
+    if policy.weekly_limit is not None:
+        caps.append(max(0, policy.weekly_limit - state.spent_week))
+    if policy.monthly_limit is not None:
+        caps.append(max(0, policy.monthly_limit - state.spent_month))
+    return min(caps)
+
+
+def _normalize_running_apps(
+    policy: UserPolicy,
+    app_limits_active: bool,
+    running_app_patterns: Iterable[str] | None,
+) -> set[str]:
+    if running_app_patterns is not None:
+        return {str(p).strip() for p in running_app_patterns if str(p).strip()}
+    if app_limits_active:
+        return {a.pattern for a in policy.app_limits.apps}
+    return set()
+
+
+def _advance_accounting(
+    policy: UserPolicy,
+    state: UserAccountingState,
+    config: DaemonConfig,
+    safe_elapsed: int,
+    effective_active: bool,
+    pause_active: bool,
+    running_set: set[str],
+) -> tuple[int, int, int]:
+    """Advance daily/weekly/monthly and per-app counters; return (active, inactive, app_limits) deltas."""
+    if safe_elapsed <= 0:
+        return 0, 0, 0
+    if not effective_active:
+        return 0, safe_elapsed, 0
+
+    active_delta = safe_elapsed
+    app_limits_delta = 0
+    if policy.enabled and not pause_active:
+        state.spent_today += safe_elapsed
+        state.spent_balance += safe_elapsed
+        state.spent_week += safe_elapsed
+        state.spent_month += safe_elapsed
+    if config.app_limits_enabled and policy.app_limits.enabled and running_set and not pause_active:
+        app_limits_delta = safe_elapsed
+        state.app_limits_spent_today += safe_elapsed
+        for app in policy.app_limits.apps:
+            if app.pattern in running_set:
+                state.app_spent_today[app.pattern] = (
+                    state.app_spent_today.get(app.pattern, 0) + safe_elapsed
+                )
+    return active_delta, 0, app_limits_delta
+
+
+def _evaluate_app_limits(
+    policy: UserPolicy,
+    state: UserAccountingState,
+    config: DaemonConfig,
+    pause_active: bool,
+    running_set: set[str],
+) -> tuple[list[dict[str, Any]], list[str], int]:
+    """Evaluate per-app remaining time and identify expired running app patterns."""
+    app_statuses: list[dict[str, Any]] = []
+    expired_patterns: list[str] = []
+    can_enforce_apps = (
+        config.app_limits_enabled
+        and policy.enabled
+        and not pause_active
+        and policy.app_limits.enabled
+    )
+
+    for app in policy.app_limits.apps:
+        bonus = int(state.app_bonus_today.get(app.pattern, 0))
+        allotted = max(0, app.daily_limit_sec + bonus)
+        spent = int(state.app_spent_today.get(app.pattern, 0))
+        rem = max(0, allotted - spent)
+        is_running = app.pattern in running_set
+        app_statuses.append(
+            {
+                "pattern": app.pattern,
+                "label": app.label,
+                "category": app.category,
+                "daily_limit_sec": app.daily_limit_sec,
+                "bonus_today": bonus,
+                "allotted_today": allotted,
+                "spent_today": spent,
+                "time_left_today": rem,
+                "running": is_running,
+            }
+        )
+        if can_enforce_apps and is_running and rem <= 0:
+            expired_patterns.append(app.pattern)
+
+    al_left = (
+        min((a["time_left_today"] for a in app_statuses), default=0)
+        if policy.app_limits.enabled
+        else 0
+    )
+    return app_statuses, expired_patterns, al_left
+
+
+def _classify_enforcement_state(
+    time_left_continuous: int,
+    should_enforce: bool,
+    config: DaemonConfig,
+) -> str:
+    """Map continuous remaining time into an enforcement state string."""
+    if time_left_continuous <= 0:
+        return "locked_out"
+    if should_enforce:
+        return "countdown"
+    if config.warning_thresholds_sec and time_left_continuous <= max(
+        min(config.warning_thresholds_sec), 600
+    ):
+        return "warning"
+    return "ok"
+
+
 def evaluate_tick(
     policy: UserPolicy,
     state: UserAccountingState,
@@ -360,132 +495,31 @@ def evaluate_tick(
     if safe_elapsed >= max(15, config.poll_interval_sec * 15):
         safe_elapsed = 0
 
-    # Check pause state (auto-expire timed pauses cleanly)
-    pause_expired = False
-    pause_active = False
-    if policy.pause.active:
-        if policy.pause.is_effective(now_utc):
-            pause_active = True
-        else:
-            policy.pause.active = False
-            policy.pause.mode = "none"
-            policy.pause.until_utc = None
-            policy.pause.reason = ""
-            pause_expired = True
+    pause_active, pause_expired = _evaluate_pause(policy, now_utc)
 
     sec_of_day = now_local.hour * 3600 + now_local.minute * 60 + now_local.second
     today_windows = effective_today_windows(policy, state, day_name)
     active_win, active_idx = _window_at(today_windows, sec_of_day)
     daily_limit = effective_daily_limit(policy, state, day_name)
+    running_set = _normalize_running_apps(policy, app_limits_active, running_app_patterns)
 
-    # Normalize running per-app patterns
-    if running_app_patterns is not None:
-        running_set = {str(p).strip() for p in running_app_patterns if str(p).strip()}
-    elif app_limits_active:
-        running_set = {a.pattern for a in policy.app_limits.apps}
-    else:
-        running_set = set()
-    any_app_running = bool(running_set)
-
-    # Determine whether this tick counts as active usage
     effective_active = bool(is_active) and (policy.track_inactive or not screen_locked)
-    if config.app_limits_enabled and policy.app_limits.enabled and policy.app_limits.override_main:
-        effective_active = effective_active and any_app_running
+    prev_time_left_today = _compute_time_left_today(policy, state, daily_limit)
 
-    # Compute previous remaining time across daily, weekly, and monthly caps (before advancing counters)
-    prev_caps = [max(0, daily_limit - state.spent_balance)]
-    if policy.weekly_limit is not None:
-        prev_caps.append(max(0, policy.weekly_limit - state.spent_week))
-    if policy.monthly_limit is not None:
-        prev_caps.append(max(0, policy.monthly_limit - state.spent_month))
-    prev_time_left_today = min(prev_caps)
-
-    active_delta = 0
-    inactive_delta = 0
-    app_limits_delta = 0
-
-    if safe_elapsed > 0:
-        if effective_active:
-            active_delta = safe_elapsed
-            if policy.enabled and not pause_active:
-                state.spent_today += safe_elapsed
-                state.spent_balance += safe_elapsed
-                state.spent_week += safe_elapsed
-                state.spent_month += safe_elapsed
-            if (
-                config.app_limits_enabled
-                and policy.app_limits.enabled
-                and any_app_running
-                and not pause_active
-            ):
-                app_limits_delta = safe_elapsed
-                state.app_limits_spent_today += safe_elapsed
-                if not policy.app_limits.override_main:
-                    state.app_limits_balance += safe_elapsed
-                for app in policy.app_limits.apps:
-                    if app.pattern in running_set:
-                        state.app_spent_today[app.pattern] = (
-                            state.app_spent_today.get(app.pattern, 0) + safe_elapsed
-                        )
-        else:
-            inactive_delta = safe_elapsed
-
+    active_delta, inactive_delta, app_limits_delta = _advance_accounting(
+        policy, state, config, safe_elapsed, effective_active, pause_active, running_set
+    )
     state.last_checked_utc = now_utc.isoformat()
 
-    # Individual per-app remaining calculation & isolated kill detection
-    app_statuses: list[dict[str, Any]] = []
-    expired_app_patterns: list[str] = []
-    for app in policy.app_limits.apps:
-        bonus = int(state.app_bonus_today.get(app.pattern, 0))
-        allotted = max(0, app.daily_limit_sec + bonus)
-        spent = int(state.app_spent_today.get(app.pattern, 0))
-        rem = max(0, allotted - spent)
-        is_running = app.pattern in running_set
-        app_statuses.append(
-            {
-                "pattern": app.pattern,
-                "label": app.label,
-                "category": app.category,
-                "daily_limit_sec": app.daily_limit_sec,
-                "bonus_today": bonus,
-                "allotted_today": allotted,
-                "spent_today": spent,
-                "time_left_today": rem,
-                "running": is_running,
-            }
-        )
-        if (
-            config.app_limits_enabled
-            and policy.enabled
-            and not pause_active
-            and policy.app_limits.enabled
-            and not policy.app_limits.override_main
-            and is_running
-            and rem <= 0
-        ):
-            expired_app_patterns.append(app.pattern)
-
-    al_left = (
-        min((a["time_left_today"] for a in app_statuses), default=0)
-        if policy.app_limits.enabled
-        else 0
+    app_statuses, expired_app_patterns, al_left = _evaluate_app_limits(
+        policy, state, config, pause_active, running_set
     )
     al_should_kill = bool(expired_app_patterns)
-
     hide_tray_effective = bool(
         policy.hide_tray_icon or (pause_active and policy.pause.hide_tray_while_paused)
     )
+    time_left_today = _compute_time_left_today(policy, state, daily_limit)
 
-    # Compute time left today (daily, weekly, monthly caps)
-    daily_left = max(0, daily_limit - state.spent_balance)
-    caps = [daily_left]
-    if policy.weekly_limit is not None:
-        caps.append(max(0, policy.weekly_limit - state.spent_week))
-    if policy.monthly_limit is not None:
-        caps.append(max(0, policy.monthly_limit - state.spent_month))
-    time_left_today = min(caps)
-
-    # Window bounds
     if active_win is not None:
         window_left, next_curfew_dt = _contiguous_window_end(policy, state, now_local, active_idx)
         next_curfew_iso = next_curfew_dt.isoformat() if next_curfew_dt else None
@@ -498,7 +532,6 @@ def evaluate_tick(
 
     today_wins_dicts = [w.to_dict() for w in today_windows]
 
-    # Paused or disabled policy -> never enforce
     if pause_active:
         return EvaluationResult(
             enforcement_state="paused",
@@ -548,23 +581,16 @@ def evaluate_tick(
     prev_time_left_continuous = min(prev_time_left_today, prev_window_left)
     should_enforce = time_left_continuous <= config.final_countdown_sec
 
-    # Detect newly crossed warning thresholds (against previous continuous remaining time)
-    crossed_warnings: list[int] = []
-    if active_delta > 0:
-        for thresh in config.warning_thresholds_sec:
-            if prev_time_left_continuous > thresh >= time_left_continuous:
-                crossed_warnings.append(thresh)
-
-    if time_left_continuous <= 0:
-        enf_state = "locked_out"
-    elif should_enforce:
-        enf_state = "countdown"
-    elif config.warning_thresholds_sec and time_left_continuous <= max(
-        min(config.warning_thresholds_sec), 600
-    ):
-        enf_state = "warning"
-    else:
-        enf_state = "ok"
+    crossed_warnings = (
+        [
+            thresh
+            for thresh in config.warning_thresholds_sec
+            if prev_time_left_continuous > thresh >= time_left_continuous
+        ]
+        if active_delta > 0
+        else []
+    )
+    enf_state = _classify_enforcement_state(time_left_continuous, should_enforce, config)
 
     return EvaluationResult(
         enforcement_state=enf_state,

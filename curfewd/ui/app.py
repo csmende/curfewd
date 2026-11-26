@@ -22,12 +22,20 @@ _ALLOWED_ASSETS: dict[str, str] = {
     "/index.html": "index.html",
     "/styles.css": "styles.css",
     "/app.js": "app.js",
+    "/js/rpc.js": "js/rpc.js",
+    "/js/state.js": "js/state.js",
+    "/js/views.js": "js/views.js",
+    "/js/events.js": "js/events.js",
 }
 
 _MIME_TYPES: dict[str, str] = {
     "index.html": "text/html; charset=utf-8",
     "styles.css": "text/css; charset=utf-8",
     "app.js": "application/javascript; charset=utf-8",
+    "js/rpc.js": "application/javascript; charset=utf-8",
+    "js/state.js": "application/javascript; charset=utf-8",
+    "js/views.js": "application/javascript; charset=utf-8",
+    "js/events.js": "application/javascript; charset=utf-8",
 }
 
 
