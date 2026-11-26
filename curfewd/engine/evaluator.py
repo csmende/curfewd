@@ -32,9 +32,9 @@ class EvaluationResult:
     next_allowed_at: str | None = None
     active_delta: int = 0
     inactive_delta: int = 0
-    playtime_delta: int = 0
-    playtime_left_today: int = 0
-    playtime_should_kill: bool = False
+    app_limits_delta: int = 0
+    app_limits_left_today: int = 0
+    app_limits_should_kill: bool = False
     expired_app_patterns: list[str] = field(default_factory=list)
     app_statuses: list[dict[str, Any]] = field(default_factory=list)
     today_windows: list[dict[str, str]] = field(default_factory=list)
@@ -90,8 +90,8 @@ def rollover_state(state: UserAccountingState, now_local: datetime) -> bool:
         state.spent_today = 0
         state.spent_balance = 0
         state.bonus_today = 0
-        state.playtime_spent_today = 0
-        state.playtime_balance = 0
+        state.app_limits_spent_today = 0
+        state.app_limits_balance = 0
         state.app_spent_today = {}
         state.app_bonus_today = {}
         state.today_limit_override = None
@@ -210,7 +210,7 @@ def apply_app_grant(
     """Grant (or subtract) bonus time today for a single tracked application pattern."""
     rollover_state(state, now_local)
     target = str(pattern).strip()
-    app = next((a for a in policy.playtime.apps if a.pattern == target), None)
+    app = next((a for a in policy.app_limits.apps if a.pattern == target), None)
     if app is None:
         raise ValueError(f"Tracked app pattern not found: {target!r}")
 
@@ -338,7 +338,7 @@ def evaluate_tick(
     elapsed_sec: int,
     is_active: bool,
     screen_locked: bool,
-    playtime_active: bool = False,
+    app_limits_active: bool = False,
     running_app_patterns: Iterable[str] | None = None,
 ) -> EvaluationResult:
     """Advance accounting counters by elapsed_sec and evaluate current enforcement state."""
@@ -375,15 +375,15 @@ def evaluate_tick(
     # Normalize running per-app patterns
     if running_app_patterns is not None:
         running_set = {str(p).strip() for p in running_app_patterns if str(p).strip()}
-    elif playtime_active:
-        running_set = {a.pattern for a in policy.playtime.apps}
+    elif app_limits_active:
+        running_set = {a.pattern for a in policy.app_limits.apps}
     else:
         running_set = set()
     any_app_running = bool(running_set)
 
     # Determine whether this tick counts as active usage
     effective_active = bool(is_active) and (policy.track_inactive or not screen_locked)
-    if config.playtime_enabled and policy.playtime.enabled and policy.playtime.override_main:
+    if config.app_limits_enabled and policy.app_limits.enabled and policy.app_limits.override_main:
         effective_active = effective_active and any_app_running
 
     # Compute previous remaining time (to detect threshold crossings)
@@ -391,7 +391,7 @@ def evaluate_tick(
 
     active_delta = 0
     inactive_delta = 0
-    playtime_delta = 0
+    app_limits_delta = 0
 
     if safe_elapsed > 0:
         if effective_active:
@@ -402,16 +402,16 @@ def evaluate_tick(
                 state.spent_week += safe_elapsed
                 state.spent_month += safe_elapsed
             if (
-                config.playtime_enabled
-                and policy.playtime.enabled
+                config.app_limits_enabled
+                and policy.app_limits.enabled
                 and any_app_running
                 and not pause_active
             ):
-                playtime_delta = safe_elapsed
-                state.playtime_spent_today += safe_elapsed
-                if not policy.playtime.override_main:
-                    state.playtime_balance += safe_elapsed
-                for app in policy.playtime.apps:
+                app_limits_delta = safe_elapsed
+                state.app_limits_spent_today += safe_elapsed
+                if not policy.app_limits.override_main:
+                    state.app_limits_balance += safe_elapsed
+                for app in policy.app_limits.apps:
                     if app.pattern in running_set:
                         state.app_spent_today[app.pattern] = (
                             state.app_spent_today.get(app.pattern, 0) + safe_elapsed
@@ -424,7 +424,7 @@ def evaluate_tick(
     # Individual per-app remaining calculation & isolated kill detection
     app_statuses: list[dict[str, Any]] = []
     expired_app_patterns: list[str] = []
-    for app in policy.playtime.apps:
+    for app in policy.app_limits.apps:
         bonus = int(state.app_bonus_today.get(app.pattern, 0))
         allotted = max(0, app.daily_limit_sec + bonus)
         spent = int(state.app_spent_today.get(app.pattern, 0))
@@ -444,18 +444,18 @@ def evaluate_tick(
             }
         )
         if (
-            config.playtime_enabled
+            config.app_limits_enabled
             and policy.enabled
             and not pause_active
-            and policy.playtime.enabled
-            and not policy.playtime.override_main
+            and policy.app_limits.enabled
+            and not policy.app_limits.override_main
             and is_running
             and rem <= 0
         ):
             expired_app_patterns.append(app.pattern)
 
-    pt_left = min((a["time_left_today"] for a in app_statuses), default=0) if policy.playtime.enabled else 0
-    pt_should_kill = bool(expired_app_patterns)
+    al_left = min((a["time_left_today"] for a in app_statuses), default=0) if policy.app_limits.enabled else 0
+    al_should_kill = bool(expired_app_patterns)
 
     hide_tray_effective = bool(
         policy.hide_tray_icon or (pause_active and policy.pause.hide_tray_while_paused)
@@ -498,9 +498,9 @@ def evaluate_tick(
             next_allowed_at=next_allowed_iso,
             active_delta=active_delta,
             inactive_delta=inactive_delta,
-            playtime_delta=playtime_delta,
-            playtime_left_today=pt_left,
-            playtime_should_kill=False,
+            app_limits_delta=app_limits_delta,
+            app_limits_left_today=al_left,
+            app_limits_should_kill=False,
             expired_app_patterns=[],
             app_statuses=app_statuses,
             today_windows=today_wins_dicts,
@@ -520,9 +520,9 @@ def evaluate_tick(
             next_allowed_at=None,
             active_delta=active_delta,
             inactive_delta=inactive_delta,
-            playtime_delta=playtime_delta,
-            playtime_left_today=pt_left,
-            playtime_should_kill=pt_should_kill,
+            app_limits_delta=app_limits_delta,
+            app_limits_left_today=al_left,
+            app_limits_should_kill=al_should_kill,
             expired_app_patterns=expired_app_patterns,
             app_statuses=app_statuses,
             today_windows=today_wins_dicts,
@@ -562,9 +562,9 @@ def evaluate_tick(
         next_allowed_at=next_allowed_iso,
         active_delta=active_delta,
         inactive_delta=inactive_delta,
-        playtime_delta=playtime_delta,
-        playtime_left_today=pt_left,
-        playtime_should_kill=pt_should_kill,
+        app_limits_delta=app_limits_delta,
+        app_limits_left_today=al_left,
+        app_limits_should_kill=al_should_kill,
         expired_app_patterns=expired_app_patterns,
         app_statuses=app_statuses,
         today_windows=today_wins_dicts,
@@ -582,7 +582,7 @@ def build_user_status_dict(
     active: bool = False,
     screen_locked: bool = False,
     sessions: list[dict[str, Any]] | None = None,
-    active_playtime_apps: list[str] | None = None,
+    active_limited_apps: list[str] | None = None,
 ) -> dict[str, Any]:
     """Assemble the canonical UserStatus JSON object returned by D-Bus and CLI."""
     return {
@@ -613,11 +613,11 @@ def build_user_status_dict(
         "next_allowed_at": eval_res.next_allowed_at,
         "sessions": list(sessions or []),
         "pause": policy.pause.to_dict(),
-        "playtime_status": {
-            "enabled": policy.playtime.enabled,
-            "time_left_today": eval_res.playtime_left_today,
-            "time_spent_today": state.playtime_spent_today,
-            "active_apps": list(active_playtime_apps or []),
+        "app_limits_status": {
+            "enabled": policy.app_limits.enabled,
+            "time_left_today": eval_res.app_limits_left_today,
+            "time_spent_today": state.app_limits_spent_today,
+            "active_apps": list(active_limited_apps or []),
             "apps": list(eval_res.app_statuses),
         },
         "policy": policy.to_dict(),

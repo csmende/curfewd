@@ -21,12 +21,12 @@ logger = logging.getLogger("curfewd.tray")
 
 ICONS_DIR = "/usr/share/curfewd/icons"
 _ICON_MAP = {
-    "ok": "timekpr-padlock-limited-green",
-    "warning": "timekpr-padlock-limited-yellow",
-    "countdown": "timekpr-padlock-limited-red",
-    "locked_out": "timekpr-padlock-limited-red",
-    "paused": "timekpr-padlock-unlimited-green",
-    "unrestricted": "timekpr-padlock-unlimited-green",
+    "ok": "curfewd-tray-ok",
+    "warning": "curfewd-tray-warning",
+    "countdown": "curfewd-tray-alert",
+    "locked_out": "curfewd-tray-alert",
+    "paused": "curfewd-tray-unlimited",
+    "unrestricted": "curfewd-tray-unlimited",
 }
 
 

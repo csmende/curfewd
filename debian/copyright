@@ -16,8 +16,3 @@ License: GPL-3+
  .
  On Debian systems, the full text of the GNU General Public License
  version 3 can be found in `/usr/share/common-licenses/GPL-3'.
-
-Files: resource/icons/*.svg
-Copyright: 2018-2026 Eduards Bezverhijs <edzis@inbox.lv>
-License: public-domain
- The artwork SVG source files are released to the Public Domain.

@@ -183,11 +183,11 @@ function normalizeUserStatus(st) {
     days[d] = { limit: lim, startMin: rng.startMin, endMin: rng.endMin };
   }
   const todayRng = extractRange(st.today_windows || (pol.curfew_windows && pol.curfew_windows[getTodayKey()]));
-  const ptStatus = st.playtime_status || {};
-  const ptPol = pol.playtime || {};
+  const alStatus = st.app_limits_status || {};
+  const alPol = pol.app_limits || {};
   const statusByPat = new Map();
-  (ptStatus.apps || []).forEach(a => statusByPat.set(a.pattern, a));
-  const apps = (ptPol.apps || []).map(a => {
+  (alStatus.apps || []).forEach(a => statusByPat.set(a.pattern, a));
+  const apps = (alPol.apps || []).map(a => {
     const live = statusByPat.get(a.pattern) || {};
     return {
       pattern: a.pattern,
@@ -220,7 +220,7 @@ function normalizeUserStatus(st) {
     todayEndMin: todayRng.endMin,
     todayOverrideActive: Boolean(st.today_override && st.today_override.active),
     appLimits: {
-      enabled: Boolean(ptPol.enabled),
+      enabled: Boolean(alPol.enabled),
       apps,
     },
     rawPolicy: pol,
@@ -232,7 +232,7 @@ function buildHistorySeries(histObj, spanDays) {
   ((histObj && histObj.daily) || []).forEach(row => {
     byDate.set(row.date, {
       act: Math.round(Number(row.active_sec || 0) / 60),
-      pt: Math.round(Number(row.playtime_sec || 0) / 60),
+      pt: Math.round(Number(row.app_limits_sec || 0) / 60),
     });
   });
 
@@ -350,9 +350,10 @@ function serializeUserPolicy(u) {
     base.daily_limits[d] = u.days[d].limit;
     base.curfew_windows[d] = [{ start: fmtMin(u.days[d].startMin), end: fmtMin(u.days[d].endMin) }];
   }
-  base.playtime = {
+  delete base.playtime;
+  base.app_limits = {
     enabled: Boolean(u.appLimits.enabled),
-    override_main: Boolean(base.playtime && base.playtime.override_main),
+    override_main: Boolean(base.app_limits && base.app_limits.override_main),
     apps: u.appLimits.apps.map(a => ({
       pattern: a.pattern,
       label: a.label,

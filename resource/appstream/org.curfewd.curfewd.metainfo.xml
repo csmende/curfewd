@@ -26,6 +26,11 @@
     <binary>curfewctl</binary>
   </provides>
   <releases>
+    <release version="1.1.0" date="2026-11-26">
+      <description>
+        <p>Completed curfewd rebrand: native curfewd-tray-* icons, removed legacy Timekpr assets and migration bridges, and unified App Limits schema v2 across daemon, CLI, history, and UI.</p>
+      </description>
+    </release>
     <release version="1.0.4" date="2026-11-26">
       <description>
         <p>Refined Material Design 3 tray status icons with the Twilight Guard indigo squircle and emerald active status badge dot.</p>

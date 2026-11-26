@@ -3,6 +3,19 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
+## [1.1.0] - 2026-11-26
+
+Complete `curfewd` rebrand, legacy asset/bridge cleanup, and schema v2 (`app_limits`) migration (**Spec 004**).
+
+### Changed
+- **Native Tray Icon Filenames:** Renamed the 4 Material Design 3 Twilight Guard tray status SVGs from `timekpr-padlock-*.svg` to `curfewd-tray-{ok,warning,alert,unlimited}.svg`.
+- **Schema v2 (`app_limits` Everywhere):** Renamed internal `playtime` module (`curfewd/engine/applimits.py`), dataclasses (`AppLimitRule`, `AppLimitsPolicy`), persisted JSON keys (`app_limits`, `app_limits_enabled`, `app_limits_spent_today`, `app_limits_balance`), D-Bus status key (`app_limits_status`), audit event (`app_limit_kill`), and SQLite column (`daily_usage.app_limits_sec`). Existing `curfewd` schema v1 JSON files and SQLite `history.db` databases forward-migrate automatically on load without data loss.
+- **Docs & Metadata Refresh:** Refreshed `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.github/ISSUE_TEMPLATE/bug_report.md`, `extras/dconf-lock-screensaver.sh`, `debian/copyright`, and `debian/control` while retaining GPL-3.0 upstream attribution and strategic search discoverability.
+
+### Removed
+- Deleted 11 unused legacy `timekpr-*.{png,svg}` icons (~270 KB), the obsolete `spec/` RPM directory, and `docs/TIMEKPR_GUIDE.md`.
+- Removed `curfewd/migrate.py`, `curfewctl migrate-timekpr`, the legacy `curfewctl playtime` CLI alias, and legacy `/etc/timekpr` hooks from `debian/postinst`.
+
 ## [1.0.4] - 2026-11-26
 
 ### Changed

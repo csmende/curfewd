@@ -100,7 +100,7 @@ class _RecordingNotifier(DesktopNotifier):
         super().__init__(session_bus=None)
         self.messages: list[tuple[str, str, int]] = []
 
-    def send(self, summary: str, body: str, urgency: int = 1, icon: str = "timekpr-client") -> None:
+    def send(self, summary: str, body: str, urgency: int = 1, icon: str = "curfewd") -> None:
         self.messages.append((summary, body, urgency))
 
 
@@ -208,7 +208,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
 
         # Per-app limits + GrantAppTime
         pol = dict(st["policy"])
-        pol["playtime"] = {
+        pol["app_limits"] = {
             "enabled": True,
             "override_main": False,
             "apps": [{"pattern": "steam", "label": "Steam", "daily_limit_sec": 2700, "category": "Gaming"}],
@@ -216,7 +216,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self._client.set_user_policy(self._current_user, pol)
         app_grant = self._client.grant_app_time(self._current_user, "steam", 900)
         self.assertEqual(app_grant["applied_sec"], 900)
-        self.assertEqual(app_grant["status"]["playtime_status"]["apps"][0]["allotted_today"], 3600)
+        self.assertEqual(app_grant["status"]["app_limits_status"]["apps"][0]["allotted_today"], 3600)
 
         # Pause & verify schedule untouched
         paused = self._client.pause_user(self._current_user, until_utc="", reason="test", hide_tray=True)

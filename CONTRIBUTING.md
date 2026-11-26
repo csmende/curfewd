@@ -17,7 +17,7 @@ Thank you for your interest in **curfewd**! This project is actively developed f
 
 See [`AGENTS.md`](AGENTS.md) for the full set of architectural invariants and security rules. At a high level:
 
-1. **Drop-in compatibility:** Preserve compatibility with existing `/etc/timekpr/timekpr.conf`, `/var/lib/timekpr/`, `com.timekpr.server` D-Bus interfaces, `timekpra` CLI flags, and `timekpr.service` unless a spec explicitly defines a migration path.
+1. **Native platform invariants:** Preserve the native `curfewd.service`, `org.curfewd.Daemon1` D-Bus + Polkit boundary, unprivileged `curfewd-ui` model, and forward-migrating `"schema_version"` JSON/SQLite storage unless a spec explicitly defines a migration path.
 2. **Least privilege:** The daemon runs as `root`. Any interaction with a desktop user's session must drop privileges to the target `(uid, gid)`, use a strict environment allowlist, avoid `shell=True`, resolve binaries from trusted system paths, and enforce bounded timeouts.
 3. **Tests required:** Add or update unit/integration tests under `tests/` for bug fixes and new behavior.
 
@@ -27,13 +27,18 @@ See [`AGENTS.md`](AGENTS.md) for the full set of architectural invariants and se
 # Install runtime and D-Bus test dependencies (Debian / Ubuntu / Linux Mint)
 sudo apt install python3-dbus python3-gi gir1.2-gtk-3.0 python3-psutil libglib2.0-bin dbus
 
-# Syntax check all Python files
-/usr/bin/python3 -m compileall -q common client server tests
+# Syntax check all Python and frontend JS sources
+/usr/bin/python3 -m compileall -q curfewd tests
+node --check curfewd/ui/web/app.js
 
 # Run unit + live ephemeral D-Bus integration tests
 /usr/bin/python3 -m unittest discover -s tests -v
+
+# Static security & shell checks
+bandit -r curfewd -ll
+shellcheck --severity=warning bin/curfewctl bin/curfewd bin/curfewd-tray bin/curfewd-ui debian/postinst debian/postrm extras/dconf-lock-screensaver.sh
 ```
 
 ## License
 
-All contributions are licensed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)**, consistent with upstream Timekpr-nExT (see [`LICENSE`](LICENSE)).
+All contributions are licensed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)** (see [`LICENSE`](LICENSE)).

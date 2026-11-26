@@ -116,7 +116,7 @@ class PauseState:
 
 
 @dataclass
-class PlayTimeApp:
+class AppLimitRule:
     """A tracked application or game rule with its own daily time limit."""
 
     pattern: str
@@ -143,7 +143,7 @@ class PlayTimeApp:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], default_limit_sec: int = 3600) -> "PlayTimeApp":
+    def from_dict(cls, data: dict[str, Any], default_limit_sec: int = 3600) -> "AppLimitRule":
         raw_lim = data.get("daily_limit_sec")
         limit_sec = default_limit_sec if raw_lim is None else int(raw_lim)
         return cls(
@@ -155,18 +155,18 @@ class PlayTimeApp:
 
 
 @dataclass
-class PlayTimePolicy:
+class AppLimitsPolicy:
     """Per-user App Limits configuration (individual daily limits per tracked app)."""
 
     enabled: bool = False
     override_main: bool = False
-    apps: list[PlayTimeApp] = field(default_factory=list)
+    apps: list[AppLimitRule] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.enabled = bool(self.enabled)
         self.override_main = bool(self.override_main)
         self.apps = [
-            a if isinstance(a, PlayTimeApp) else PlayTimeApp.from_dict(a)
+            a if isinstance(a, AppLimitRule) else AppLimitRule.from_dict(a)
             for a in self.apps
         ]
 
@@ -178,7 +178,7 @@ class PlayTimePolicy:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any] | None) -> "PlayTimePolicy":
+    def from_dict(cls, data: dict[str, Any] | None) -> "AppLimitsPolicy":
         if not data:
             return cls()
         # Preserve legacy v0.7.0 shared daily_limits as fallback for apps lacking daily_limit_sec
@@ -194,7 +194,7 @@ class PlayTimePolicy:
             enabled=bool(data.get("enabled", False)),
             override_main=bool(data.get("override_main", False)),
             apps=[
-                a if isinstance(a, PlayTimeApp) else PlayTimeApp.from_dict(a, default_limit_sec=default_limit)
+                a if isinstance(a, AppLimitRule) else AppLimitRule.from_dict(a, default_limit_sec=default_limit)
                 for a in data.get("apps", [])
             ],
         )
@@ -223,11 +223,11 @@ class UserPolicy:
     track_inactive: bool = False
     hide_tray_icon: bool = False
     pause: PauseState = field(default_factory=PauseState)
-    playtime: PlayTimePolicy = field(default_factory=PlayTimePolicy)
+    app_limits: AppLimitsPolicy = field(default_factory=AppLimitsPolicy)
 
     def __post_init__(self) -> None:
         self.username = validate_username(self.username)
-        self.schema_version = int(self.schema_version)
+        self.schema_version = max(SCHEMA_VERSION, int(self.schema_version))
         self.enabled = bool(self.enabled)
         if self.lockout_action not in LOCKOUT_ACTIONS:
             raise ValueError(f"Invalid lockout_action {self.lockout_action!r}; expected one of {LOCKOUT_ACTIONS}")
@@ -267,12 +267,12 @@ class UserPolicy:
         self.hide_tray_icon = bool(self.hide_tray_icon)
         if not isinstance(self.pause, PauseState):
             self.pause = PauseState.from_dict(self.pause)
-        if not isinstance(self.playtime, PlayTimePolicy):
-            self.playtime = PlayTimePolicy.from_dict(self.playtime)
+        if not isinstance(self.app_limits, AppLimitsPolicy):
+            self.app_limits = AppLimitsPolicy.from_dict(self.app_limits)
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "schema_version": self.schema_version,
+            "schema_version": SCHEMA_VERSION,
             "username": self.username,
             "enabled": self.enabled,
             "lockout_action": self.lockout_action,
@@ -286,14 +286,18 @@ class UserPolicy:
             "track_inactive": self.track_inactive,
             "hide_tray_icon": self.hide_tray_icon,
             "pause": self.pause.to_dict(),
-            "playtime": self.playtime.to_dict(),
+            "app_limits": self.app_limits.to_dict(),
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "UserPolicy":
+        # Forward-migrate schema v1 `playtime` key cleanly into `app_limits`
+        raw_app_limits = data.get("app_limits")
+        if raw_app_limits is None:
+            raw_app_limits = data.get("playtime")
         return cls(
             username=str(data["username"]),
-            schema_version=int(data.get("schema_version", SCHEMA_VERSION)),
+            schema_version=SCHEMA_VERSION,
             enabled=bool(data.get("enabled", True)),
             lockout_action=str(data.get("lockout_action", "lock")),
             daily_limits=dict(data.get("daily_limits", default_daily_limits())),
@@ -303,7 +307,7 @@ class UserPolicy:
             track_inactive=bool(data.get("track_inactive", False)),
             hide_tray_icon=bool(data.get("hide_tray_icon", False)),
             pause=PauseState.from_dict(data.get("pause")),
-            playtime=PlayTimePolicy.from_dict(data.get("playtime")),
+            app_limits=AppLimitsPolicy.from_dict(raw_app_limits),
         )
 
 
@@ -321,8 +325,8 @@ class UserAccountingState:
     spent_week: int = 0
     spent_month: int = 0
     bonus_today: int = 0
-    playtime_spent_today: int = 0
-    playtime_balance: int = 0
+    app_limits_spent_today: int = 0
+    app_limits_balance: int = 0
     app_spent_today: dict[str, int] = field(default_factory=dict)
     app_bonus_today: dict[str, int] = field(default_factory=dict)
     today_limit_override: int | None = None
@@ -331,14 +335,14 @@ class UserAccountingState:
 
     def __post_init__(self) -> None:
         self.username = validate_username(self.username)
-        self.schema_version = int(self.schema_version)
+        self.schema_version = max(SCHEMA_VERSION, int(self.schema_version))
         self.spent_today = max(0, int(self.spent_today))
         self.spent_balance = int(self.spent_balance)
         self.spent_week = max(0, int(self.spent_week))
         self.spent_month = max(0, int(self.spent_month))
         self.bonus_today = int(self.bonus_today)
-        self.playtime_spent_today = max(0, int(self.playtime_spent_today))
-        self.playtime_balance = int(self.playtime_balance)
+        self.app_limits_spent_today = max(0, int(self.app_limits_spent_today))
+        self.app_limits_balance = int(self.app_limits_balance)
         self.app_spent_today = {
             str(k).strip(): max(0, int(v))
             for k, v in (self.app_spent_today or {}).items()
@@ -366,13 +370,22 @@ class UserAccountingState:
             self.today_windows_override = [w.to_dict() for w in parsed]
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        out = asdict(self)
+        out["schema_version"] = SCHEMA_VERSION
+        return out
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "UserAccountingState":
+        # Forward-migrate schema v1 `playtime_*` counters cleanly
+        al_spent = data.get("app_limits_spent_today")
+        if al_spent is None:
+            al_spent = data.get("playtime_spent_today", 0)
+        al_bal = data.get("app_limits_balance")
+        if al_bal is None:
+            al_bal = data.get("playtime_balance", 0)
         return cls(
             username=str(data["username"]),
-            schema_version=int(data.get("schema_version", SCHEMA_VERSION)),
+            schema_version=SCHEMA_VERSION,
             date=str(data.get("date", "")),
             week_key=str(data.get("week_key", "")),
             month_key=str(data.get("month_key", "")),
@@ -381,8 +394,8 @@ class UserAccountingState:
             spent_week=int(data.get("spent_week", 0)),
             spent_month=int(data.get("spent_month", 0)),
             bonus_today=int(data.get("bonus_today", 0)),
-            playtime_spent_today=int(data.get("playtime_spent_today", 0)),
-            playtime_balance=int(data.get("playtime_balance", 0)),
+            app_limits_spent_today=int(al_spent),
+            app_limits_balance=int(al_bal),
             app_spent_today=dict(data.get("app_spent_today", {}) or {}),
             app_bonus_today=dict(data.get("app_bonus_today", {}) or {}),
             today_limit_override=data.get("today_limit_override"),
@@ -403,7 +416,7 @@ class DaemonConfig:
     session_lock_fallback: bool = True
     release_x11_grab_on_lock: bool = True
     use_locked_hint: bool = True
-    playtime_enabled: bool = True
+    app_limits_enabled: bool = True
     tracked_session_types: list[str] = field(default_factory=lambda: list(DEFAULT_TRACKED_SESSION_TYPES))
     excluded_users: list[str] = field(default_factory=lambda: list(DEFAULT_EXCLUDED_USERS))
     history_retention_days: int = 365
@@ -411,7 +424,7 @@ class DaemonConfig:
     log_level: str = "INFO"
 
     def __post_init__(self) -> None:
-        self.schema_version = int(self.schema_version)
+        self.schema_version = max(SCHEMA_VERSION, int(self.schema_version))
         self.poll_interval_sec = max(1, min(60, int(self.poll_interval_sec)))
         self.save_interval_sec = max(5, min(300, int(self.save_interval_sec)))
         self.warning_thresholds_sec = sorted(
@@ -422,7 +435,7 @@ class DaemonConfig:
         self.session_lock_fallback = bool(self.session_lock_fallback)
         self.release_x11_grab_on_lock = bool(self.release_x11_grab_on_lock)
         self.use_locked_hint = bool(self.use_locked_hint)
-        self.playtime_enabled = bool(self.playtime_enabled)
+        self.app_limits_enabled = bool(self.app_limits_enabled)
         self.tracked_session_types = [str(s).strip().lower() for s in self.tracked_session_types if str(s).strip()]
         self.excluded_users = [str(u).strip() for u in self.excluded_users if str(u).strip()]
         self.history_retention_days = max(7, min(3650, int(self.history_retention_days)))
@@ -433,14 +446,20 @@ class DaemonConfig:
         self.log_level = lvl
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        out = asdict(self)
+        out["schema_version"] = SCHEMA_VERSION
+        return out
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "DaemonConfig":
         if not data:
             return cls()
+        # Forward-migrate schema v1 `playtime_enabled` key cleanly
+        raw_al_enabled = data.get("app_limits_enabled")
+        if raw_al_enabled is None:
+            raw_al_enabled = data.get("playtime_enabled", True)
         return cls(
-            schema_version=int(data.get("schema_version", SCHEMA_VERSION)),
+            schema_version=SCHEMA_VERSION,
             poll_interval_sec=int(data.get("poll_interval_sec", 3)),
             save_interval_sec=int(data.get("save_interval_sec", 30)),
             warning_thresholds_sec=list(data.get("warning_thresholds_sec", DEFAULT_WARNING_THRESHOLDS)),
@@ -448,7 +467,7 @@ class DaemonConfig:
             session_lock_fallback=bool(data.get("session_lock_fallback", True)),
             release_x11_grab_on_lock=bool(data.get("release_x11_grab_on_lock", True)),
             use_locked_hint=bool(data.get("use_locked_hint", True)),
-            playtime_enabled=bool(data.get("playtime_enabled", True)),
+            app_limits_enabled=bool(raw_al_enabled),
             tracked_session_types=list(data.get("tracked_session_types", DEFAULT_TRACKED_SESSION_TYPES)),
             excluded_users=list(data.get("excluded_users", DEFAULT_EXCLUDED_USERS)),
             history_retention_days=int(data.get("history_retention_days", 365)),

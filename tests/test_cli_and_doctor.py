@@ -56,8 +56,8 @@ class _StubClient:
             "next_allowed_at": None,
             "sessions": [],
             "pause": self.policy["pause"],
-            "playtime_status": {
-                "enabled": self.policy["playtime"]["enabled"],
+            "app_limits_status": {
+                "enabled": self.policy["app_limits"]["enabled"],
                 "time_left_today": 0,
                 "time_spent_today": 0,
                 "active_apps": [],
@@ -73,7 +73,7 @@ class _StubClient:
                         "time_left_today": a["daily_limit_sec"],
                         "running": False,
                     }
-                    for a in self.policy["playtime"]["apps"]
+                    for a in self.policy["app_limits"]["apps"]
                 ],
             },
             "policy": self.policy,
@@ -135,7 +135,7 @@ class _StubClient:
         return {"username": username, "locked": True, "verified": True, "sessions": [{"session_id": "c1", "backend": "dbus:org.cinnamon.ScreenSaver", "stage": "dbus_or_cli", "elapsed_ms": 50}]}
 
     def get_usage_history(self, username, days=7):
-        return {"username": username, "days": days, "start_date": "2026-11-19", "daily": [{"date": "2026-11-25", "active_sec": 1800, "inactive_sec": 300, "playtime_sec": 600, "bonus_sec": 0, "lockouts": 1}], "totals": {"active_sec": 1800}, "events": []}
+        return {"username": username, "days": days, "start_date": "2026-11-19", "daily": [{"date": "2026-11-25", "active_sec": 1800, "inactive_sec": 300, "app_limits_sec": 600, "bonus_sec": 0, "lockouts": 1}], "totals": {"active_sec": 1800}, "events": []}
 
     def get_daemon_config(self):
         return dict(self.config)
@@ -145,7 +145,7 @@ class _StubClient:
         return dict(self.config)
 
     def run_doctor(self):
-        return {"version": "1.0.0", "overall": "ok", "checks": [{"name": "dbus_service", "status": "ok", "detail": "ok", "fixable": False}], "active_sessions": []}
+        return {"version": "1.1.0", "overall": "ok", "checks": [{"name": "dbus_service", "status": "ok", "detail": "ok", "fixable": False}], "active_sessions": []}
 
     def apply_doctor_fix(self):
         return {"fix_applied": {"applied": True, "detail": "dconf update succeeded"}, "doctor": self.run_doctor()}
@@ -213,13 +213,13 @@ class TestCurfewctlCLI(unittest.TestCase):
         self.assertEqual(rc, EXIT_OK)
         self.assertTrue(json.loads(out)["locked"])
 
-        # Per-app limits (both `app-limits` and `playtime` alias)
+        # Per-app limits (`app-limits` canonical subcommand)
         self.assertEqual(self._run(["app-limits", "alice", "enable"], stub)[0], EXIT_OK)
         self.assertEqual(self._run(["app-limits", "alice", "add", "steam", "Steam", "--limit", "45m", "--category", "Gaming"], stub)[0], EXIT_OK)
-        self.assertEqual(stub.policy["playtime"]["apps"][0]["pattern"], "steam")
-        self.assertEqual(stub.policy["playtime"]["apps"][0]["daily_limit_sec"], 2700)
-        self.assertEqual(self._run(["playtime", "alice", "limit", "steam", "1h"], stub)[0], EXIT_OK)
-        self.assertEqual(stub.policy["playtime"]["apps"][0]["daily_limit_sec"], 3600)
+        self.assertEqual(stub.policy["app_limits"]["apps"][0]["pattern"], "steam")
+        self.assertEqual(stub.policy["app_limits"]["apps"][0]["daily_limit_sec"], 2700)
+        self.assertEqual(self._run(["app-limits", "alice", "limit", "steam", "1h"], stub)[0], EXIT_OK)
+        self.assertEqual(stub.policy["app_limits"]["apps"][0]["daily_limit_sec"], 3600)
         self.assertEqual(self._run(["app-limits", "alice", "grant", "steam", "+15m"], stub)[0], EXIT_OK)
         self.assertEqual(stub.app_grants, [("alice", "steam", 900)])
 

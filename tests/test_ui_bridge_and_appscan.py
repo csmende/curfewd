@@ -51,7 +51,7 @@ class _FakeUIClient:
             "bonus_today": 0,
             "today_windows": self.today_override["windows"] or [{"start": "08:00", "end": "21:00"}],
             "today_override": dict(self.today_override),
-            "playtime_status": {"enabled": False, "apps": [], "active_apps": []},
+            "app_limits_status": {"enabled": False, "apps": [], "active_apps": []},
             "policy": self.policy,
         }
 
@@ -65,7 +65,7 @@ class _FakeUIClient:
 
     def get_usage_history(self, username: str, days: int = 14):
         self._check(admin=True)
-        return {"username": username, "days": days, "daily": [{"date": "2026-11-25", "active_sec": 1200, "playtime_sec": 600}], "events": []}
+        return {"username": username, "days": days, "daily": [{"date": "2026-11-25", "active_sec": 1200, "app_limits_sec": 600}], "events": []}
 
     def get_daemon_config(self):
         self._check(admin=True)
@@ -250,14 +250,21 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
     def test_material3_brand_and_tray_svg_icons_valid(self):
         import xml.etree.ElementTree as ET
 
+        from curfewd.tray.app import TrayController
+
         icons_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "resource", "icons"))
+        all_files = sorted(os.listdir(icons_dir))
+        self.assertEqual([f for f in all_files if "timekpr" in f.lower()], [])
+
         expected = [
             "curfewd.svg",
-            "timekpr-padlock-limited-green.svg",
-            "timekpr-padlock-limited-yellow.svg",
-            "timekpr-padlock-limited-red.svg",
-            "timekpr-padlock-unlimited-green.svg",
+            "curfewd-tray-ok.svg",
+            "curfewd-tray-warning.svg",
+            "curfewd-tray-alert.svg",
+            "curfewd-tray-unlimited.svg",
         ]
+        self.assertEqual(all_files, sorted(expected))
+
         ns = {"svg": "http://www.w3.org/2000/svg"}
         for name in expected:
             path = os.path.join(icons_dir, name)
@@ -275,11 +282,16 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             self.assertTrue(grad_id, f"Empty gradient id in {name}")
             self.assertEqual(rect.attrib.get("fill"), f"url(#{grad_id})", name)
             circle = root.find("svg:circle", ns)
-            if name == "timekpr-padlock-limited-green.svg":
-                self.assertIsNotNone(circle, "Expected emerald status dot in limited-green icon")
+            if name == "curfewd-tray-ok.svg":
+                self.assertIsNotNone(circle, "Expected emerald status dot in curfewd-tray-ok.svg")
                 self.assertEqual(circle.attrib.get("fill"), "#5cd69d")
             else:
                 self.assertIsNone(circle, f"Unexpected status dot in {name}")
+
+        for state in ("ok", "warning", "countdown", "locked_out", "paused", "unrestricted"):
+            icon_name = TrayController.select_icon_name({"enforcement_state": state})
+            self.assertIn(f"{icon_name}.svg", expected)
+        self.assertEqual(TrayController.select_icon_name(None), "curfewd")
 
 
 if __name__ == "__main__":

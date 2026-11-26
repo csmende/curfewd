@@ -11,10 +11,10 @@ from curfewd.engine.evaluator import (
     rollover_state,
 )
 from curfewd.models import (
+    AppLimitRule,
+    AppLimitsPolicy,
     DaemonConfig,
     PauseState,
-    PlayTimeApp,
-    PlayTimePolicy,
     TimeWindow,
     UserAccountingState,
     UserPolicy,
@@ -162,13 +162,13 @@ class TestPolicyEvaluator(unittest.TestCase):
         self.assertIsNone(st.today_windows_override)
 
     def test_per_app_limits_isolate_expired_app_and_support_bonus_grant(self):
-        cfg = DaemonConfig(playtime_enabled=True)
+        cfg = DaemonConfig(app_limits_enabled=True)
         pol = _make_restricted_policy(7200)
-        pol.playtime = PlayTimePolicy(
+        pol.app_limits = AppLimitsPolicy(
             enabled=True,
             apps=[
-                PlayTimeApp("steam", "Steam", daily_limit_sec=600, category="Gaming"),
-                PlayTimeApp("discord", "Discord", daily_limit_sec=1800, category="Social"),
+                AppLimitRule("steam", "Steam", daily_limit_sec=600, category="Gaming"),
+                AppLimitRule("discord", "Discord", daily_limit_sec=1800, category="Social"),
             ],
         )
         st = UserAccountingState(
@@ -190,7 +190,7 @@ class TestPolicyEvaluator(unittest.TestCase):
             screen_locked=False,
             running_app_patterns=["steam", "discord"],
         )
-        self.assertTrue(res.playtime_should_kill)
+        self.assertTrue(res.app_limits_should_kill)
         # ONLY steam expired; discord remains running untouched!
         self.assertEqual(res.expired_app_patterns, ["steam"])
         self.assertEqual(st.app_spent_today["steam"], 601)
@@ -209,7 +209,7 @@ class TestPolicyEvaluator(unittest.TestCase):
             screen_locked=False,
             running_app_patterns=["steam", "discord"],
         )
-        self.assertFalse(res2.playtime_should_kill)
+        self.assertFalse(res2.app_limits_should_kill)
         self.assertEqual(res2.expired_app_patterns, [])
 
 

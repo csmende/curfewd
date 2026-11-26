@@ -1,13 +1,13 @@
-"""Unit tests for curfewd parsers and typed schema-v1 models."""
+"""Unit tests for curfewd parsers and typed schema-v2 models."""
 
 from datetime import datetime, timezone
 import unittest
 
 from curfewd.models import (
+    AppLimitRule,
+    AppLimitsPolicy,
     DaemonConfig,
     PauseState,
-    PlayTimeApp,
-    PlayTimePolicy,
     TimeWindow,
     UserAccountingState,
     UserPolicy,
@@ -96,27 +96,49 @@ class TestModels(unittest.TestCase):
             weekly_limit=25200,
             curfew_windows={"mon": [TimeWindow("08:00", "21:00")]},
             pause=PauseState(active=True, mode="until", until_utc="2026-11-26T00:00:00+00:00", reason="homework"),
-            playtime=PlayTimePolicy(
+            app_limits=AppLimitsPolicy(
                 enabled=True,
-                apps=[PlayTimeApp("steam", "Steam", daily_limit_sec=2700, category="Gaming")],
+                apps=[AppLimitRule("steam", "Steam", daily_limit_sec=2700, category="Gaming")],
             ),
         )
         rebuilt = UserPolicy.from_dict(pol.to_dict())
         self.assertEqual(rebuilt.to_dict(), pol.to_dict())
+        self.assertEqual(rebuilt.schema_version, 2)
         self.assertEqual(rebuilt.lockout_action, "lock")
-        self.assertEqual(rebuilt.playtime.apps[0].daily_limit_sec, 2700)
-        self.assertEqual(rebuilt.playtime.apps[0].category, "Gaming")
+        self.assertEqual(rebuilt.app_limits.apps[0].daily_limit_sec, 2700)
+        self.assertEqual(rebuilt.app_limits.apps[0].category, "Gaming")
         self.assertTrue(rebuilt.pause.is_effective(datetime(2026, 11, 25, 23, 0, tzinfo=timezone.utc)))
         self.assertFalse(rebuilt.pause.is_effective(datetime(2026, 11, 26, 0, 1, tzinfo=timezone.utc)))
 
-        # Backward-compat load ignores legacy unaccounted & migrates shared daily_limits onto apps
-        legacy_pt = PlayTimePolicy.from_dict({
-            "enabled": True,
-            "allow_unaccounted": True,
-            "daily_limits": {"mon": 1800},
-            "apps": [{"pattern": "minecraft", "label": "Minecraft"}],
+        # Schema v1 forward-migration: legacy `playtime` policy, `playtime_enabled` config & `playtime_*` state
+        v1_pol = UserPolicy.from_dict({
+            "schema_version": 1,
+            "username": "alice",
+            "playtime": {
+                "enabled": True,
+                "daily_limits": {"mon": 1800},
+                "apps": [{"pattern": "minecraft", "label": "Minecraft"}],
+            },
         })
-        self.assertEqual(legacy_pt.apps[0].daily_limit_sec, 1800)
+        self.assertEqual(v1_pol.schema_version, 2)
+        self.assertTrue(v1_pol.app_limits.enabled)
+        self.assertEqual(v1_pol.app_limits.apps[0].daily_limit_sec, 1800)
+        self.assertIn("app_limits", v1_pol.to_dict())
+        self.assertNotIn("playtime", v1_pol.to_dict())
+
+        v1_cfg = DaemonConfig.from_dict({"schema_version": 1, "playtime_enabled": False})
+        self.assertEqual(v1_cfg.schema_version, 2)
+        self.assertFalse(v1_cfg.app_limits_enabled)
+
+        v1_st = UserAccountingState.from_dict({
+            "schema_version": 1,
+            "username": "alice",
+            "playtime_spent_today": 420,
+            "playtime_balance": 420,
+        })
+        self.assertEqual(v1_st.schema_version, 2)
+        self.assertEqual(v1_st.app_limits_spent_today, 420)
+        self.assertEqual(v1_st.app_limits_balance, 420)
         self.assertEqual(TimeWindow.from_dict({"start": "08:00", "end": "20:00", "unaccounted": True}).to_dict(), {"start": "08:00", "end": "20:00"})
 
     def test_daemon_config_validation(self):

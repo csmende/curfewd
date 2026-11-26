@@ -17,6 +17,7 @@ Describe what you expected vs. what actually happened.
 ### Relevant logs
 Please attach redacted output from:
 ```bash
-sudo journalctl -u timekpr -n 80 --no-pager
-sudo curfewctl --userinfo <username>
+sudo journalctl -u curfewd -n 80 --no-pager
+sudo curfewctl doctor
+sudo curfewctl status <username>
 ```

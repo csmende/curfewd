@@ -11,21 +11,15 @@ getent group curfewd >/dev/null || groupadd -r curfewd
 install -d -m 0755 -o root -g root /etc/curfewd /etc/dconf
 install -d -m 0750 -o root -g curfewd /var/lib/curfewd /var/lib/curfewd/users /var/lib/curfewd/state
 
-# One-way migration from legacy Timekpr-nExT / curfewd 0.6.x on first install
-if [ -f /etc/timekpr/timekpr.conf ] && [ ! -f /etc/curfewd/daemon.json ]; then
-    /usr/bin/curfewctl migrate-timekpr || true
-fi
-
-# Clean stale bytecode caches
+# Clean stale bytecode caches and renamed pre-1.1 tray icon files
 if [ -d "${CURFEWD_DIR}" ]; then
     find "${CURFEWD_DIR}" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
     find "${CURFEWD_DIR}" -type f -iname '*.pyc' -delete 2>/dev/null || true
 fi
+rm -f /usr/share/curfewd/icons/timekpr-padlock-*.svg 2>/dev/null || true
 
-# Stop obsolete timekpr.service and remove stale 0.6.x alias symlink if upgrading
+# Reload systemd/D-Bus and enable/restart curfewd.service
 if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
-    systemctl stop timekpr.service 2>/dev/null || true
-    systemctl disable timekpr.service 2>/dev/null || true
     if [ -L /etc/systemd/system/curfewd.service ]; then
         rm -f /etc/systemd/system/curfewd.service
     fi

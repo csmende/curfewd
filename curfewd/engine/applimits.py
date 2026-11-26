@@ -1,4 +1,4 @@
-"""PlayTime application/game process monitor and graceful termination."""
+"""App Limits application/game process monitor and graceful termination."""
 
 import logging
 import re
@@ -9,21 +9,21 @@ try:
 except ImportError:  # pragma: no cover - optional in minimal test environments
     psutil = None
 
-from curfewd.models import PlayTimeApp
+from curfewd.models import AppLimitRule
 
-logger = logging.getLogger("curfewd.playtime")
+logger = logging.getLogger("curfewd.applimits")
 
 
-class PlayTimeMonitor:
-    """Tracks per-user processes matching PlayTime regex/substring patterns."""
+class AppLimitsMonitor:
+    """Tracks per-user processes matching App Limits regex/substring patterns."""
 
     def __init__(self, term_grace_ticks: int = 3) -> None:
         self._term_grace_ticks = max(1, int(term_grace_ticks))
         self._term_attempts: dict[int, int] = {}
 
     @staticmethod
-    def _compile_patterns(apps: list[PlayTimeApp]) -> list[tuple[PlayTimeApp, re.Pattern[str]]]:
-        compiled: list[tuple[PlayTimeApp, re.Pattern[str]]] = []
+    def _compile_patterns(apps: list[AppLimitRule]) -> list[tuple[AppLimitRule, re.Pattern[str]]]:
+        compiled: list[tuple[AppLimitRule, re.Pattern[str]]] = []
         for app in apps:
             try:
                 rx = re.compile(app.pattern, re.IGNORECASE)
@@ -35,7 +35,7 @@ class PlayTimeMonitor:
     def find_matching_processes(
         self,
         uid: int,
-        apps: list[PlayTimeApp],
+        apps: list[AppLimitRule],
     ) -> list[dict[str, Any]]:
         """Return list of {pid, name, label, pattern} currently running for uid."""
         if not apps or psutil is None:
@@ -70,7 +70,7 @@ class PlayTimeMonitor:
 
         return matches
 
-    def enforce_kill(self, uid: int, apps: list[PlayTimeApp]) -> list[int]:
+    def enforce_kill(self, uid: int, apps: list[AppLimitRule]) -> list[int]:
         """Send SIGTERM (escalating to SIGKILL after grace ticks) to matched processes."""
         matches = self.find_matching_processes(uid, apps)
         active_pids = {m["pid"] for m in matches}
@@ -89,10 +89,10 @@ class PlayTimeMonitor:
                 if proc.uids().real != uid:
                     continue
                 if attempts <= self._term_grace_ticks:
-                    logger.warning("PlayTime expired: sending SIGTERM to pid=%d (%s) uid=%d", pid, m["label"], uid)
+                    logger.warning("App limit expired: sending SIGTERM to pid=%d (%s) uid=%d", pid, m["label"], uid)
                     proc.terminate()
                 else:
-                    logger.warning("PlayTime expired: sending SIGKILL to pid=%d (%s) uid=%d", pid, m["label"], uid)
+                    logger.warning("App limit expired: sending SIGKILL to pid=%d (%s) uid=%d", pid, m["label"], uid)
                     proc.kill()
                 signaled.append(pid)
             except (psutil.Error, OSError, ValueError):

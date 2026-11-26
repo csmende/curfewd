@@ -16,13 +16,13 @@ resource/launchers/curfewd-tray.desktop etc/xdg/autostart/
 resource/launchers/curfewd.desktop usr/share/applications/
 resource/appstream/org.curfewd.curfewd.metainfo.xml usr/share/metainfo/
 
-# icons (Twilight Guard brand icon + tray status padlocks)
+# icons (Twilight Guard brand icon + Material 3 tray status icons)
 resource/icons/curfewd.svg usr/share/icons/hicolor/scalable/apps/
 resource/icons/curfewd.svg usr/share/curfewd/icons/
-resource/icons/timekpr-padlock-limited-green.svg usr/share/curfewd/icons/
-resource/icons/timekpr-padlock-limited-red.svg usr/share/curfewd/icons/
-resource/icons/timekpr-padlock-limited-yellow.svg usr/share/curfewd/icons/
-resource/icons/timekpr-padlock-unlimited-green.svg usr/share/curfewd/icons/
+resource/icons/curfewd-tray-ok.svg usr/share/curfewd/icons/
+resource/icons/curfewd-tray-warning.svg usr/share/curfewd/icons/
+resource/icons/curfewd-tray-alert.svg usr/share/curfewd/icons/
+resource/icons/curfewd-tray-unlimited.svg usr/share/curfewd/icons/
 
 # offline Material Design 3 UI static assets
 curfewd/ui/web/index.html usr/share/curfewd/ui/
@@ -33,7 +33,6 @@ curfewd/ui/web/app.js usr/share/curfewd/ui/
 curfewd/__init__.py usr/lib/python3/dist-packages/curfewd/
 curfewd/daemon.py usr/lib/python3/dist-packages/curfewd/
 curfewd/history.py usr/lib/python3/dist-packages/curfewd/
-curfewd/migrate.py usr/lib/python3/dist-packages/curfewd/
 curfewd/models.py usr/lib/python3/dist-packages/curfewd/
 curfewd/parsing.py usr/lib/python3/dist-packages/curfewd/
 curfewd/storage.py usr/lib/python3/dist-packages/curfewd/
@@ -45,9 +44,9 @@ curfewd/dbus/client.py usr/lib/python3/dist-packages/curfewd/dbus/
 curfewd/dbus/polkit.py usr/lib/python3/dist-packages/curfewd/dbus/
 curfewd/dbus/service.py usr/lib/python3/dist-packages/curfewd/dbus/
 curfewd/engine/__init__.py usr/lib/python3/dist-packages/curfewd/engine/
+curfewd/engine/applimits.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/doctor.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/evaluator.py usr/lib/python3/dist-packages/curfewd/engine/
-curfewd/engine/playtime.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/screenlock.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/engine/sessions.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/tray/__init__.py usr/lib/python3/dist-packages/curfewd/tray/

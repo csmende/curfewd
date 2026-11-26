@@ -7,8 +7,6 @@ import sys
 from typing import Any, Callable
 
 from curfewd import (
-    DEFAULT_CONFIG_DIR,
-    DEFAULT_STATE_DIR,
     EXIT_DAEMON_UNAVAILABLE,
     EXIT_ERROR,
     EXIT_OK,
@@ -25,8 +23,7 @@ from curfewd.dbus.client import (
     ValidationError,
 )
 from curfewd.engine.doctor import apply_dconf_lock_fix, run_doctor
-from curfewd.migrate import migrate_from_timekpr
-from curfewd.models import LOCKOUT_ACTIONS, PlayTimeApp
+from curfewd.models import LOCKOUT_ACTIONS, AppLimitRule
 from curfewd.parsing import (
     WEEKDAYS,
     format_duration,
@@ -36,7 +33,6 @@ from curfewd.parsing import (
     parse_until_timestamp,
     parse_windows,
 )
-from curfewd.storage import AtomicJsonStore
 
 
 def _normalize_argv(argv: list[str]) -> list[str]:
@@ -124,9 +120,9 @@ def _print_user_status(st: dict[str, Any], stream) -> None:
         lim_s = "unlimited" if lim >= 86400 else format_duration(lim)
         win_s = _format_windows_human(pol["curfew_windows"].get(day, []))
         stream.write(f"  {day}: limit={lim_s:<10} windows={win_s}\n")
-    pt = st.get("playtime_status", {})
-    if pt.get("enabled"):
-        apps_list = pt.get("apps") or []
+    al = st.get("app_limits_status", {})
+    if al.get("enabled"):
+        apps_list = al.get("apps") or []
         stream.write(f"App Limits: enabled ({len(apps_list)} tracked)\n")
         for a in apps_list:
             run_tag = " [running]" if a.get("running") else ""
@@ -142,11 +138,11 @@ def _print_history(hist: dict[str, Any], stream) -> None:
     if not hist["daily"]:
         stream.write("  No daily usage recorded yet.\n")
     else:
-        stream.write(f"  {'DATE':<12} {'ACTIVE':<10} {'INACTIVE':<10} {'PLAYTIME':<10} {'BONUS':<9} {'LOCKOUTS'}\n")
+        stream.write(f"  {'DATE':<12} {'ACTIVE':<10} {'INACTIVE':<10} {'APPS':<10} {'BONUS':<9} {'LOCKOUTS'}\n")
         for row in hist["daily"]:
             stream.write(
                 f"  {row['date']:<12} {format_duration(row['active_sec']):<10} "
-                f"{format_duration(row['inactive_sec']):<10} {format_duration(row['playtime_sec']):<10} "
+                f"{format_duration(row['inactive_sec']):<10} {format_duration(row['app_limits_sec']):<10} "
                 f"{format_duration(row['bonus_sec']):<9} {row['lockouts']}\n"
             )
     if hist["events"]:
@@ -235,25 +231,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_today.add_argument("--window", dest="today_window", default=None, help="Today-only allowed window (e.g. '08:00-22:30', 'all', 'none')")
     p_today.add_argument("--reset", action="store_true", help="Clear today's override and revert to the weekly schedule")
 
-    p_pt = sub.add_parser("app-limits", aliases=["playtime"], parents=[common], help="Manage individual per-app daily limits")
-    p_pt.add_argument("user", help="Linux username")
-    pt_sub = p_pt.add_subparsers(dest="pt_action", required=True)
-    pt_sub.add_parser("status", parents=[common])
-    pt_sub.add_parser("enable", parents=[common])
-    pt_sub.add_parser("disable", parents=[common])
-    p_pt_lim = pt_sub.add_parser("limit", parents=[common], help="Set daily limit for an app pattern (or all tracked apps)")
-    p_pt_lim.add_argument("target", help="App pattern (or duration if setting all tracked apps)")
-    p_pt_lim.add_argument("duration", nargs="?", default=None, help="Daily limit duration (e.g. 45m, 1h)")
-    p_pt_add = pt_sub.add_parser("add", parents=[common], help="Track an app or game with its own daily limit")
-    p_pt_add.add_argument("pattern", help="Process name or regex pattern")
-    p_pt_add.add_argument("label", nargs="?", default="", help="Friendly app label")
-    p_pt_add.add_argument("--limit", dest="app_limit", default="45m", help="Daily time limit for this app (default: 45m)")
-    p_pt_add.add_argument("--category", default="", help="Optional category (e.g. Gaming, Social, Media)")
-    p_pt_grant = pt_sub.add_parser("grant", parents=[common], help="Add or subtract bonus time today for one app")
-    p_pt_grant.add_argument("pattern", help="Tracked app pattern")
-    p_pt_grant.add_argument("delta", help="Adjustment such as +15m or -15m")
-    p_pt_rm = pt_sub.add_parser("remove", parents=[common], help="Remove an app limit rule")
-    p_pt_rm.add_argument("pattern", help="Pattern to remove")
+    p_al = sub.add_parser("app-limits", parents=[common], help="Manage individual per-app daily limits")
+    p_al.add_argument("user", help="Linux username")
+    al_sub = p_al.add_subparsers(dest="al_action", required=True)
+    al_sub.add_parser("status", parents=[common])
+    al_sub.add_parser("enable", parents=[common])
+    al_sub.add_parser("disable", parents=[common])
+    p_al_lim = al_sub.add_parser("limit", parents=[common], help="Set daily limit for an app pattern (or all tracked apps)")
+    p_al_lim.add_argument("target", help="App pattern (or duration if setting all tracked apps)")
+    p_al_lim.add_argument("duration", nargs="?", default=None, help="Daily limit duration (e.g. 45m, 1h)")
+    p_al_add = al_sub.add_parser("add", parents=[common], help="Track an app or game with its own daily limit")
+    p_al_add.add_argument("pattern", help="Process name or regex pattern")
+    p_al_add.add_argument("label", nargs="?", default="", help="Friendly app label")
+    p_al_add.add_argument("--limit", dest="app_limit", default="45m", help="Daily time limit for this app (default: 45m)")
+    p_al_add.add_argument("--category", default="", help="Optional category (e.g. Gaming, Social, Media)")
+    p_al_grant = al_sub.add_parser("grant", parents=[common], help="Add or subtract bonus time today for one app")
+    p_al_grant.add_argument("pattern", help="Tracked app pattern")
+    p_al_grant.add_argument("delta", help="Adjustment such as +15m or -15m")
+    p_al_rm = al_sub.add_parser("remove", parents=[common], help="Remove an app limit rule")
+    p_al_rm.add_argument("pattern", help="Pattern to remove")
 
     p_cfg = sub.add_parser("config", parents=[common], help="Inspect or update global daemon configuration")
     cfg_sub = p_cfg.add_subparsers(dest="cfg_action", required=True)
@@ -264,13 +260,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_doc = sub.add_parser("doctor", parents=[common], help="Verify service, D-Bus, Polkit, dconf lock policy, and helpers")
     p_doc.add_argument("--fix", action="store_true", help="Apply built-in root dconf lock-screen hardening")
-
-    p_mig = sub.add_parser("migrate-timekpr", parents=[common], help="One-way import from legacy /etc/timekpr & /var/lib/timekpr")
-    p_mig.add_argument("--dry-run", action="store_true", help="Preview migration without writing files")
-    p_mig.add_argument("--legacy-etc", default="/etc/timekpr")
-    p_mig.add_argument("--legacy-var", default="/var/lib/timekpr")
-    p_mig.add_argument("--config-dir", default=DEFAULT_CONFIG_DIR)
-    p_mig.add_argument("--state-dir", default=DEFAULT_STATE_DIR)
 
     return parser
 
@@ -321,28 +310,6 @@ def run_cli(
 
     try:
         cmd = args.command
-
-        # Offline / local-only commands
-        if cmd == "migrate-timekpr":
-            store = AtomicJsonStore(config_dir=args.config_dir, state_dir=args.state_dir)
-            report = migrate_from_timekpr(
-                store=store,
-                legacy_etc_dir=args.legacy_etc,
-                legacy_var_dir=args.legacy_var,
-                dry_run=bool(args.dry_run),
-            )
-            if as_json:
-                _print_json(report, out)
-            else:
-                mode = " (dry-run)" if args.dry_run else ""
-                if not report["legacy_found"]:
-                    out.write(f"No legacy Timekpr-nExT configuration found{mode}.\n")
-                else:
-                    out.write(
-                        f"Migration complete{mode}: daemon_config={report['daemon_config_migrated']} "
-                        f"users={', '.join(report['users_migrated']) or 'none'}\n"
-                    )
-            return EXIT_OK
 
         if cmd == "doctor":
             fix_result = None
@@ -530,22 +497,22 @@ def run_cli(
                     )
             return EXIT_OK
 
-        if cmd in ("app-limits", "playtime"):
+        if cmd == "app-limits":
             st = client.get_user_status(args.user)
             policy = dict(st["policy"])
-            pt = dict(policy["playtime"])
-            if args.pt_action == "status":
-                payload = {"username": args.user, "playtime": pt, "playtime_status": st["playtime_status"]}
+            al = dict(policy["app_limits"])
+            if args.al_action == "status":
+                payload = {"username": args.user, "app_limits": al, "app_limits_status": st["app_limits_status"]}
                 if as_json:
                     _print_json(payload, out)
                 else:
-                    out.write(f"App Limits for {args.user}: enabled={pt['enabled']} apps={len(pt['apps'])}\n")
-                    for a in st["playtime_status"].get("apps", pt["apps"]):
+                    out.write(f"App Limits for {args.user}: enabled={al['enabled']} apps={len(al['apps'])}\n")
+                    for a in st["app_limits_status"].get("apps", al["apps"]):
                         lim_s = format_duration(a.get("allotted_today", a.get("daily_limit_sec", 0)))
                         rem_s = format_duration(a.get("time_left_today", a.get("daily_limit_sec", 0)))
                         out.write(f"  - {a['label']} ({a['pattern']}): {rem_s} left / {lim_s}\n")
                 return EXIT_OK
-            if args.pt_action == "grant":
+            if args.al_action == "grant":
                 mode, delta_sec = parse_delta(args.delta)
                 if mode == "set":
                     raise ValueError("app-limits grant supports relative deltas like +15m or -15m")
@@ -557,12 +524,12 @@ def run_cli(
                         f"Updated {args.pattern} for {args.user}: applied {format_duration(res['applied_sec'], include_seconds=True)}\n"
                     )
                 return EXIT_OK
-            if args.pt_action == "enable":
-                pt["enabled"] = True
-            elif args.pt_action == "disable":
-                pt["enabled"] = False
-            elif args.pt_action == "limit":
-                apps = [dict(a) for a in pt["apps"]]
+            if args.al_action == "enable":
+                al["enabled"] = True
+            elif args.al_action == "disable":
+                al["enabled"] = False
+            elif args.al_action == "limit":
+                apps = [dict(a) for a in al["apps"]]
                 if args.duration is None:
                     sec = parse_duration(args.target)
                     for a in apps:
@@ -576,26 +543,26 @@ def run_cli(
                             matched = True
                     if not matched:
                         raise ValueError(f"Tracked app pattern not found: {args.target!r}")
-                pt["apps"] = apps
-            elif args.pt_action == "add":
+                al["apps"] = apps
+            elif args.al_action == "add":
                 lim_sec = parse_duration(args.app_limit)
-                app = PlayTimeApp(
+                app = AppLimitRule(
                     pattern=args.pattern,
                     label=args.label or args.pattern,
                     daily_limit_sec=lim_sec,
                     category=args.category,
                 ).to_dict()
-                apps = [a for a in pt["apps"] if a["pattern"] != app["pattern"]]
+                apps = [a for a in al["apps"] if a["pattern"] != app["pattern"]]
                 apps.append(app)
-                pt["apps"] = apps
-            elif args.pt_action == "remove":
-                pt["apps"] = [a for a in pt["apps"] if a["pattern"] != args.pattern]
-            policy["playtime"] = pt
+                al["apps"] = apps
+            elif args.al_action == "remove":
+                al["apps"] = [a for a in al["apps"] if a["pattern"] != args.pattern]
+            policy["app_limits"] = al
             updated = client.set_user_policy(args.user, policy)
             if as_json:
                 _print_json(updated, out)
             else:
-                out.write(f"Updated App Limits for {args.user} (enabled={updated['policy']['playtime']['enabled']}).\n")
+                out.write(f"Updated App Limits for {args.user} (enabled={updated['policy']['app_limits']['enabled']}).\n")
             return EXIT_OK
 
         if cmd == "config":

@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS daily_usage (
     username TEXT NOT NULL,
     active_sec INTEGER NOT NULL DEFAULT 0,
     inactive_sec INTEGER NOT NULL DEFAULT 0,
-    playtime_sec INTEGER NOT NULL DEFAULT 0,
+    app_limits_sec INTEGER NOT NULL DEFAULT 0,
     bonus_sec INTEGER NOT NULL DEFAULT 0,
     lockouts INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (date, username)
@@ -56,6 +56,10 @@ class HistoryStore:
     def _init_db(self) -> None:
         with self._connect() as conn:
             conn.executescript(_SCHEMA_SQL)
+            # Forward-migrate schema v1 `playtime_sec` column cleanly without data loss
+            cols = {row["name"] for row in conn.execute("PRAGMA table_info(daily_usage)").fetchall()}
+            if "playtime_sec" in cols and "app_limits_sec" not in cols:
+                conn.execute("ALTER TABLE daily_usage RENAME COLUMN playtime_sec TO app_limits_sec")
         try:
             os.chmod(self.db_path, 0o640)
         except OSError:
@@ -67,7 +71,7 @@ class HistoryStore:
         date_str: str,
         active_sec: int = 0,
         inactive_sec: int = 0,
-        playtime_sec: int = 0,
+        app_limits_sec: int = 0,
         bonus_sec: int = 0,
         lockouts: int = 0,
     ) -> None:
@@ -75,12 +79,12 @@ class HistoryStore:
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO daily_usage (date, username, active_sec, inactive_sec, playtime_sec, bonus_sec, lockouts)
+                INSERT INTO daily_usage (date, username, active_sec, inactive_sec, app_limits_sec, bonus_sec, lockouts)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(date, username) DO UPDATE SET
                     active_sec = MAX(0, active_sec + excluded.active_sec),
                     inactive_sec = MAX(0, inactive_sec + excluded.inactive_sec),
-                    playtime_sec = MAX(0, playtime_sec + excluded.playtime_sec),
+                    app_limits_sec = MAX(0, app_limits_sec + excluded.app_limits_sec),
                     bonus_sec = bonus_sec + excluded.bonus_sec,
                     lockouts = MAX(0, lockouts + excluded.lockouts)
                 """,
@@ -89,7 +93,7 @@ class HistoryStore:
                     safe,
                     int(active_sec),
                     int(inactive_sec),
-                    int(playtime_sec),
+                    int(app_limits_sec),
                     int(bonus_sec),
                     int(lockouts),
                 ),
@@ -130,7 +134,7 @@ class HistoryStore:
         with self._connect() as conn:
             daily_rows = conn.execute(
                 """
-                SELECT date, active_sec, inactive_sec, playtime_sec, bonus_sec, lockouts
+                SELECT date, active_sec, inactive_sec, app_limits_sec, bonus_sec, lockouts
                 FROM daily_usage
                 WHERE username = ? AND date >= ?
                 ORDER BY date ASC
@@ -154,7 +158,7 @@ class HistoryStore:
                 "date": r["date"],
                 "active_sec": int(r["active_sec"]),
                 "inactive_sec": int(r["inactive_sec"]),
-                "playtime_sec": int(r["playtime_sec"]),
+                "app_limits_sec": int(r["app_limits_sec"]),
                 "bonus_sec": int(r["bonus_sec"]),
                 "lockouts": int(r["lockouts"]),
             }
@@ -173,7 +177,7 @@ class HistoryStore:
         totals = {
             "active_sec": sum(d["active_sec"] for d in daily),
             "inactive_sec": sum(d["inactive_sec"] for d in daily),
-            "playtime_sec": sum(d["playtime_sec"] for d in daily),
+            "app_limits_sec": sum(d["app_limits_sec"] for d in daily),
             "bonus_sec": sum(d["bonus_sec"] for d in daily),
             "lockouts": sum(d["lockouts"] for d in daily),
         }

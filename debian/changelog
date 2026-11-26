@@ -1,3 +1,20 @@
+curfewd (1.1.0) unstable; urgency=medium
+
+  * Spec 004: Complete curfewd rebrand, legacy cleanup & schema v2 (`app_limits`)
+    - Rename Material Design 3 tray status SVGs from `timekpr-padlock-*` to
+      `curfewd-tray-{ok,warning,alert,unlimited}.svg` and delete 11 unused
+      legacy Timekpr PNG/SVG icons
+    - Remove legacy `curfewd/migrate.py`, `curfewctl migrate-timekpr`, legacy
+      `postinst` `/etc/timekpr` hooks, obsolete `spec/` RPM files, and
+      `docs/TIMEKPR_GUIDE.md`
+    - Migrate `playtime` module, models, JSON/D-Bus keys, SQLite history column
+      (`app_limits_sec`), and CLI subcommand (`app-limits` only) cleanly to
+      schema v2 `app_limits` with automatic forward-migration from schema v1
+    - Update `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, issue templates,
+      `debian/copyright`, and CI smoke tests
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 15:55:00 +0000
+
 curfewd (1.0.4) unstable; urgency=medium
 
   * Refine Material Design 3 tray status SVGs (`timekpr-padlock-limited-green`

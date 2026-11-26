@@ -31,7 +31,7 @@ from curfewd.engine.evaluator import (
     build_user_status_dict,
     evaluate_tick,
 )
-from curfewd.engine.playtime import PlayTimeMonitor
+from curfewd.engine.applimits import AppLimitsMonitor
 from curfewd.engine.sessions import (
     LogindSessionMonitor,
     discover_desktop_users,
@@ -75,7 +75,7 @@ class CurfewDaemonService(dbus.service.Object):
         store: AtomicJsonStore,
         history: HistoryStore,
         session_monitor: LogindSessionMonitor | None = None,
-        playtime_monitor: PlayTimeMonitor | None = None,
+        app_limits_monitor: AppLimitsMonitor | None = None,
         authorizer: PolkitAuthorizer | None = None,
         now_fn: Callable[[], datetime] | None = None,
         doctor_fixer: Callable[[], dict[str, Any]] | None = None,
@@ -86,7 +86,7 @@ class CurfewDaemonService(dbus.service.Object):
         self._store = store
         self._history = history
         self._sessions = session_monitor or LogindSessionMonitor(system_bus=bus)
-        self._playtime = playtime_monitor or PlayTimeMonitor()
+        self._app_limits = app_limits_monitor or AppLimitsMonitor()
         self._authorizer = authorizer or PolkitAuthorizer(bus)
         self._now_fn = now_fn or (lambda: datetime.now().astimezone())
         self._doctor_fixer = doctor_fixer or apply_dconf_lock_fix
@@ -101,8 +101,8 @@ class CurfewDaemonService(dbus.service.Object):
         self._states: dict[str, UserAccountingState] = {}
         self._last_eval: dict[str, EvaluationResult] = {}
         self._last_sessions: dict[str, list[dict[str, Any]]] = {}
-        self._active_playtime_apps: dict[str, list[str]] = {}
-        self._active_playtime_patterns: dict[str, list[str]] = {}
+        self._active_limited_apps: dict[str, list[str]] = {}
+        self._active_limited_patterns: dict[str, list[str]] = {}
 
         # Client screensaver challenge/response state
         self._pending_nonces: dict[str, str] = {}
@@ -168,8 +168,8 @@ class CurfewDaemonService(dbus.service.Object):
         any_active = any(s.get("active", False) for s in sessions)
         locked_hint = any(s.get("locked", False) for s in sessions) if self._config.use_locked_hint else False
         screen_locked = locked_hint or self._tray_screensaver_active.get(safe, False)
-        pt_apps = self._active_playtime_apps.get(safe, [])
-        pt_patterns = self._active_playtime_patterns.get(safe, [])
+        limited_apps = self._active_limited_apps.get(safe, [])
+        limited_patterns = self._active_limited_patterns.get(safe, [])
 
         eval_res = evaluate_tick(
             policy=policy,
@@ -179,8 +179,8 @@ class CurfewDaemonService(dbus.service.Object):
             elapsed_sec=0,
             is_active=any_active,
             screen_locked=screen_locked,
-            playtime_active=bool(pt_apps),
-            running_app_patterns=pt_patterns,
+            app_limits_active=bool(limited_apps),
+            running_app_patterns=limited_patterns,
         )
         self._last_eval[safe] = eval_res
         rec = lookup_user_record(safe) or {}
@@ -194,7 +194,7 @@ class CurfewDaemonService(dbus.service.Object):
             active=any_active,
             screen_locked=screen_locked,
             sessions=self._sessions.summarize_sessions(sessions),
-            active_playtime_apps=pt_apps,
+            active_limited_apps=limited_apps,
         )
 
     # ---------------- Periodic Enforcement Tick (GLib main thread) ---------------- #
@@ -227,12 +227,12 @@ class CurfewDaemonService(dbus.service.Object):
             screen_locked = locked_hint or self._tray_screensaver_active.get(safe, False)
 
             # App Limits process check (individual per-app tracking)
-            pt_matches = []
-            if self._config.playtime_enabled and policy.playtime.enabled and any_active and not screen_locked:
-                pt_matches = self._playtime.find_matching_processes(uid, policy.playtime.apps)
-            self._active_playtime_apps[safe] = sorted({m["label"] for m in pt_matches})
-            running_patterns = sorted({m["pattern"] for m in pt_matches})
-            self._active_playtime_patterns[safe] = running_patterns
+            app_matches = []
+            if self._config.app_limits_enabled and policy.app_limits.enabled and any_active and not screen_locked:
+                app_matches = self._app_limits.find_matching_processes(uid, policy.app_limits.apps)
+            self._active_limited_apps[safe] = sorted({m["label"] for m in app_matches})
+            running_patterns = sorted({m["pattern"] for m in app_matches})
+            self._active_limited_patterns[safe] = running_patterns
 
             eval_res = evaluate_tick(
                 policy=policy,
@@ -242,7 +242,7 @@ class CurfewDaemonService(dbus.service.Object):
                 elapsed_sec=elapsed,
                 is_active=any_active,
                 screen_locked=screen_locked,
-                playtime_active=bool(pt_matches),
+                app_limits_active=bool(app_matches),
                 running_app_patterns=running_patterns,
             )
             self._last_eval[safe] = eval_res
@@ -254,13 +254,13 @@ class CurfewDaemonService(dbus.service.Object):
                 self.PolicyChanged(safe)
 
             # Record usage deltas to SQLite history
-            if eval_res.active_delta or eval_res.inactive_delta or eval_res.playtime_delta:
+            if eval_res.active_delta or eval_res.inactive_delta or eval_res.app_limits_delta:
                 self._history.record_daily_delta(
                     safe,
                     date_str,
                     active_sec=eval_res.active_delta,
                     inactive_sec=eval_res.inactive_delta,
-                    playtime_sec=eval_res.playtime_delta,
+                    app_limits_sec=eval_res.app_limits_delta,
                 )
 
             # Emit threshold warnings
@@ -279,13 +279,13 @@ class CurfewDaemonService(dbus.service.Object):
             # Enforce individual per-app limits (terminate ONLY expired apps)
             if eval_res.expired_app_patterns:
                 expired_set = set(eval_res.expired_app_patterns)
-                expired_apps = [a for a in policy.playtime.apps if a.pattern in expired_set]
-                killed = self._playtime.enforce_kill(uid, expired_apps)
+                expired_apps = [a for a in policy.app_limits.apps if a.pattern in expired_set]
+                killed = self._app_limits.enforce_kill(uid, expired_apps)
                 if killed:
                     expired_labels = [a.label for a in expired_apps]
                     self._history.record_event(
                         safe,
-                        "playtime_kill",
+                        "app_limit_kill",
                         actor="daemon",
                         detail={"pids": killed, "apps": expired_labels},
                     )
@@ -573,7 +573,7 @@ class CurfewDaemonService(dbus.service.Object):
         except ValueError as exc:
             raise _DBusTypedError(DBUS_ERR_VALIDATION, str(exc)) from exc
 
-        app = next((a for a in policy.playtime.apps if a.pattern == str(pattern).strip()), None)
+        app = next((a for a in policy.app_limits.apps if a.pattern == str(pattern).strip()), None)
         label = app.label if app else str(pattern)
         self._store.save_user_state(state)
         self._history.record_event(

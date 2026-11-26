@@ -3,7 +3,7 @@
 #
 # Prevents non-admin desktop users (e.g. children's accounts) from disabling
 # the lock screen in System Settings, which would otherwise let them bypass
-# curfewd / Timekpr-nExT LOCKOUT_TYPE=lock enforcement.
+# curfewd lockout_action="lock" enforcement.
 #
 # Covers Cinnamon (Linux Mint), GNOME (Ubuntu), and MATE schemas.
 #

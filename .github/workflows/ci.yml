@@ -82,6 +82,7 @@ jobs:
           test -x /usr/bin/curfewd-tray
           test -x /usr/bin/curfewd-ui
           test -f /usr/lib/python3/dist-packages/curfewd/engine/screenlock.py
+          test -f /usr/lib/python3/dist-packages/curfewd/engine/applimits.py
           test -f /usr/lib/python3/dist-packages/curfewd/ui/bridge.py
           test -f /usr/share/curfewd/ui/index.html
           test -f /usr/share/curfewd/ui/styles.css
@@ -93,11 +94,16 @@ jobs:
           test -f /usr/share/applications/curfewd.desktop
           test -f /usr/share/metainfo/org.curfewd.curfewd.metainfo.xml
           test -f /usr/share/icons/hicolor/scalable/apps/curfewd.svg
+          test -f /usr/share/curfewd/icons/curfewd-tray-ok.svg
+          test -f /usr/share/curfewd/icons/curfewd-tray-warning.svg
+          test -f /usr/share/curfewd/icons/curfewd-tray-alert.svg
+          test -f /usr/share/curfewd/icons/curfewd-tray-unlimited.svg
+          test ! -e /usr/share/curfewd/icons/timekpr-padlock-limited-green.svg
           test -x /usr/share/doc/curfewd/examples/dconf-lock-screensaver.sh
           /usr/bin/curfewctl --version
           /usr/bin/curfewctl --help >/dev/null
           /usr/bin/curfewd-ui --version
-          /usr/bin/python3 -c "import curfewd, curfewd.engine.screenlock as s, curfewd.ui.bridge, curfewd.ui.appscan; print('Imported curfewd', curfewd.__version__, 'backends:', list(s.BACKENDS))"
+          /usr/bin/python3 -c "import curfewd, curfewd.engine.screenlock as s, curfewd.engine.applimits, curfewd.ui.bridge, curfewd.ui.appscan; print('Imported curfewd', curfewd.__version__, 'schema:', curfewd.SCHEMA_VERSION, 'backends:', list(s.BACKENDS))"
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v7

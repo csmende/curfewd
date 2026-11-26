@@ -1,1 +1,1 @@
-"""Pure enforcement engine, multi-DE screen locking, sessions, PlayTime, and diagnostics."""
+"""Pure enforcement engine, multi-DE screen locking, sessions, App Limits, and diagnostics."""

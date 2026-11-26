@@ -1,8 +1,8 @@
 """curfewd — Modern Linux screen-time enforcement daemon and control plane."""
 
-__version__ = "1.0.4"
+__version__ = "1.1.0"
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Native D-Bus coordinates
 DBUS_BUS_NAME = "org.curfewd.Daemon1"

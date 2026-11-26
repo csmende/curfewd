@@ -36,20 +36,15 @@ Conflicts: timekpr,
            timekpr-beta,
            timekpr-next,
            timekpr-next-beta
-Replaces: timekpr,
-          timekpr-beta,
-          timekpr-next,
-          timekpr-next-beta
 Description: Modern Linux screen-time enforcement daemon, Material Design 3 UI & CLI
  curfewd tracks and limits desktop usage for user accounts on Linux systems
  with a native unprivileged Material Design 3 desktop UI (curfewd-ui),
  verified multi-DE screen locking (Cinnamon, XFCE, MATE, GNOME, KDE),
- X11 fullscreen-game grab release, individual per-app daily timers,
+ X11 fullscreen-game grab release, individual per-app daily limits,
  Polkit-authorized D-Bus API (org.curfewd.Daemon1), atomic JSON policy storage,
  SQLite usage history, modern curfewctl CLI with --json output, and a
  lightweight auto-reconnecting tray companion.
  .
- Originally forked from Timekpr-nExT; includes `curfewctl migrate-timekpr`
- for one-way migration of legacy configurations.
+ Modern successor originally forked from Timekpr-nExT (GPL-3.0-or-later).
  .
  Report bugs at: https://github.com/csmende/curfewd/issues

@@ -4,9 +4,9 @@
 
 | Version | Supported |
 |---|---|
-| `0.7.x` (`main`) | Yes |
-| `0.6.x` (legacy `timekpr` compat) | Security fixes only |
-| `< 0.6.0` (upstream `timekpr-next`) | See [upstream Launchpad](https://bugs.launchpad.net/timekpr-next) |
+| `1.x` (`main`) | Yes |
+| `0.7.x` | Upgrade to `1.x` |
+| `< 0.7.0` (legacy `timekpr` compat) | Unsupported |
 
 ## Threat Model & Scope
 
