@@ -365,7 +365,6 @@ class ParentAccessCodeManager:
             return {
                 "schema_version": SCHEMA_VERSION,
                 "enabled": False,
-                "secret_b32": "",
                 "digits": DEFAULT_TOTP_DIGITS,
                 "period": DEFAULT_TOTP_PERIOD,
                 "issuer": "curfewd",
@@ -428,7 +427,7 @@ class ParentAccessCodeManager:
             raw = self._load_raw()
             if not enable:
                 raw["enabled"] = False
-                raw["secret_b32"] = ""
+                raw.pop("secret_b32", None)
                 raw["created_utc"] = ""
                 raw["last_used_step"] = 0
                 self._failures.clear()
@@ -437,9 +436,6 @@ class ParentAccessCodeManager:
                 return {
                     "enabled": False,
                     "created_utc": "",
-                    "secret_b32": "",
-                    "otpauth_uri": "",
-                    "qr_svg": "",
                 }
 
             secret = str(raw.get("secret_b32") or "")
@@ -450,9 +446,6 @@ class ParentAccessCodeManager:
                     "enabled": True,
                     "already_configured": True,
                     "created_utc": str(raw.get("created_utc") or ""),
-                    "secret_b32": "",
-                    "otpauth_uri": "",
-                    "qr_svg": "",
                 }
 
             secret = generate_totp_secret()

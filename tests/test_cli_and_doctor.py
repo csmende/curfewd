@@ -196,11 +196,21 @@ class _StubClient:
         return {"enabled": True, "created_utc": "2026-11-26T00:00:00+00:00"}
 
     def setup_parent_code(self, enable=True, rotate=False):
+        if not enable:
+            return {"enabled": False, "created_utc": ""}
+        if getattr(self, "parent_code_already_configured", False) and not rotate:
+            return {
+                "enabled": True,
+                "already_configured": True,
+                "created_utc": "2026-11-26T00:00:00+00:00",
+            }
         return {
-            "enabled": enable,
-            "secret_b32": "JBSWY3DPEHPK3PXP" if enable else "",
-            "otpauth_uri": "otpauth://totp/curfewd:host?secret=JBSWY3DPEHPK3PXP" if enable else "",
-            "qr_svg": "<svg></svg>" if enable else "",
+            "enabled": True,
+            "already_configured": False,
+            "created_utc": "2026-11-26T00:00:00+00:00",
+            "secret_b32": "JBSWY3DPEHPK3PXP",
+            "otpauth_uri": "otpauth://totp/curfewd:host?secret=JBSWY3DPEHPK3PXP",
+            "qr_svg": "<svg></svg>",
         }
 
     def lock_user(self, username):
@@ -463,13 +473,18 @@ class TestCurfewctlCLI(unittest.TestCase):
         self.assertEqual(rc, EXIT_OK)
         self.assertIn("denied", out)
 
-        # parent-code status/enable/disable
+        # parent-code status/enable/already-enabled/disable
         rc, out, _, _ = self._run(["parent-code", "status"], stub)
         self.assertEqual(rc, EXIT_OK)
         self.assertIn("ENABLED", out)
         rc, out, _, _ = self._run(["parent-code", "enable"], stub)
         self.assertEqual(rc, EXIT_OK)
         self.assertIn("JBSWY3DPEHPK3PXP", out)
+        stub.parent_code_already_configured = True
+        rc, out, _, _ = self._run(["parent-code", "enable"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("already enabled", out)
+        stub.parent_code_already_configured = False
         rc, out, _, _ = self._run(["parent-code", "disable"], stub)
         self.assertEqual(rc, EXIT_OK)
         self.assertIn("disabled", out)

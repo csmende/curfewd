@@ -179,11 +179,15 @@ class _FakeUIClient:
     def setup_parent_code(self, enable: bool = True, rotate: bool = False):
         self._check(admin=True)
         self.calls.append(("setup_parent_code", enable, rotate))
+        if not enable:
+            return {"enabled": False, "created_utc": ""}
         return {
-            "enabled": enable,
-            "secret_b32": "JBSWY3DPEHPK3PXP" if enable else "",
-            "otpauth_uri": "otpauth://totp/curfewd:host?secret=JBSWY3DPEHPK3PXP" if enable else "",
-            "qr_svg": "<svg></svg>" if enable else "",
+            "enabled": True,
+            "already_configured": False,
+            "created_utc": "2026-11-26T00:00:00+00:00",
+            "secret_b32": "JBSWY3DPEHPK3PXP",
+            "otpauth_uri": "otpauth://totp/curfewd:host?secret=JBSWY3DPEHPK3PXP",
+            "qr_svg": "<svg></svg>",
         }
 
     def list_installed_apps(self, username: str):

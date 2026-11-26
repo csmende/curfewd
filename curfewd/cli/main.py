@@ -675,6 +675,10 @@ def _cmd_parent_code(args: argparse.Namespace, ctx: _CLIContext) -> int:
     def _human() -> None:
         if not res["enabled"]:
             ctx.out.write("Parent Access Code disabled.\n")
+        elif res.get("already_configured"):
+            ctx.out.write(
+                "Parent Access Code is already enabled (use 'curfewctl parent-code rotate' to issue a new key).\n"
+            )
         else:
             ctx.out.write(
                 f"Parent Access Code enabled.\nSetup key: {res['secret_b32']}\nURI: {res['otpauth_uri']}\n"

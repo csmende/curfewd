@@ -355,8 +355,9 @@ class TestQRISO18004AndParentCodeHardening(unittest.TestCase):
             self.assertFalse(ok_bad)
             recheck = mgr.setup(enable=True, rotate=False, account=long_host)
             self.assertTrue(recheck["already_configured"])
-            self.assertEqual(recheck["secret_b32"], "")
-            self.assertEqual(recheck["qr_svg"], "")
+            self.assertNotIn("secret_b32", recheck)
+            self.assertNotIn("otpauth_uri", recheck)
+            self.assertNotIn("qr_svg", recheck)
             # Secret was preserved (still verifies with original secret)
             step = 1_700_000_060 // 30
             code = compute_totp(enrolled["secret_b32"], step=step)

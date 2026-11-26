@@ -74,7 +74,7 @@ By `v1.2.0`, `curfewd` solved the hard Linux systems-engineering challenges of r
 ## 5. Security & Privacy Considerations
 
 - **No lingering admin privilege on child sessions:** Walk-up approvals use either offline single-use TOTP (`ApproveWithParentCode`, scoped strictly to caller UID) or `org.curfewd.quick_grant` (`auth_admin`, non-cached).
-- **Root-only secret isolation:** `/etc/curfewd/parent_auth.json` is mode `0o600`, opened with `O_NOFOLLOW`, and never returned by `GetParentCodeStatus` or `GetDaemonConfig`—provisioning secret/QR is returned solely during Polkit-authorized `SetupParentCode`.
+- **Root-only secret isolation:** `/etc/curfewd/parent_auth.json` is mode `0o600`, opened with `O_NOFOLLOW`, and never returned by `GetParentCodeStatus` or `GetDaemonConfig`—provisioning secret/QR is returned solely during Polkit-authorized `SetupParentCode` initial enrollment or explicit rotation, and `"secret_b32"` is deleted on disable and omitted from non-enrollment payloads.
 - **Safe target-user app scanning:** Runs inside the daemon's bounded async worker pool reading `.desktop` entries with strict symlink/size checks and zero code execution.
 - **No sensitive `/proc` leakage:** Steam matching inspects only the `SteamAppId=` key in `/proc/<pid>/environ`; `LD_PRELOAD` and other env vars are never copied or logged.
 - **Offline UI integrity:** Every `curfewd://app/...` asset (including new `/js/views_schedule.js`) is strictly allowlisted in `_ALLOWED_ASSETS` and verified by unit tests; all dynamic values are HTML-escaped.
@@ -89,6 +89,6 @@ By `v1.2.0`, `curfewd` solved the hard Linux systems-engineering challenges of r
    - `ruff check curfewd tests` & `ruff format --check curfewd tests` & `C901` complexity check
    - `mypy curfewd`
    - `node --check` & `prettier --check` on all web UI assets
-   - `bandit -r curfewd -ll` (`0` Medium/High findings)
+   - `bandit -r curfewd` (`0` Low/Medium/High findings)
    - `shellcheck --severity=warning` on all scripts
    - `dpkg-parsechangelog` & `.deb` packaging verification.

@@ -1,6 +1,7 @@
 """Unit tests for curfewd.auth_code (offline RFC 6238 TOTP, rate limit, anti-replay, SVG QR)."""
 
 import base64
+import json
 import os
 import stat
 import tempfile
@@ -82,9 +83,15 @@ class TestParentAccessCodeAndQR(unittest.TestCase):
             self.assertFalse(locked_ok)
             self.assertIn("too many failed", locked_msg.lower())
 
-            # Disable clears secret & state
+            # Disable deletes secret from disk and omits secret fields from response
             off = mgr.setup(enable=False)
             self.assertFalse(off["enabled"])
+            self.assertNotIn("secret_b32", off)
+            self.assertNotIn("otpauth_uri", off)
+            self.assertNotIn("qr_svg", off)
+            with open(auth_path, encoding="utf-8") as fh:
+                persisted = json.load(fh)
+            self.assertNotIn("secret_b32", persisted)
             self.assertFalse(mgr.is_enabled())
 
 
