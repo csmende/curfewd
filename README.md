@@ -38,13 +38,13 @@
 Download the latest `.deb` from [GitHub Releases](https://github.com/csmende/curfewd/releases):
 
 ```bash
-curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/curfewd_1.0.0_all.deb
+curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/curfewd_1.0.1_all.deb
 curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/SHA256SUMS
 sha256sum -c SHA256SUMS
-sudo apt install -y ./curfewd_1.0.0_all.deb
+sudo apt install -y ./curfewd_1.0.1_all.deb
 ```
 
-> **Desktop UI Runtime:** `curfewd` recommends `gir1.2-webkit-6.0 | gir1.2-webkit2-4.1` so `apt install ./curfewd_1.0.0_all.deb` automatically installs WebKitGTK on desktop systems while staying lightweight on headless hosts.
+> **Desktop UI Runtime:** `curfewd` recommends `gir1.2-webkit-6.0 | gir1.2-webkit2-4.1` so `apt install ./curfewd_1.0.1_all.deb` automatically installs WebKitGTK on desktop systems while staying lightweight on headless hosts.
 >
 > **Upgrading from `curfewd 0.6.x` or `timekpr-next`?**
 > On first install, if `/etc/timekpr/timekpr.conf` is found, package setup automatically runs `curfewctl migrate-timekpr` (non-destructively importing schedules and balances while leaving `/etc/timekpr` intact as a backup).

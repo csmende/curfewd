@@ -3,6 +3,13 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
+## [1.0.1] - 2026-11-26
+
+### Fixed
+- **One-shot `curfewctl` CLI D-Bus connection:** Fixed `RuntimeError` in `CurfewClient._get_proxy()` when running synchronous CLI or worker-thread calls without a GLib main loop attached.
+- **Seamless `curfewd 0.6.x → 1.0.x` upgrade:** `debian/postinst` now removes the stale `/etc/systemd/system/curfewd.service -> timekpr.service` alias symlink left behind by `v0.6.x` before reloading and enabling `curfewd.service`.
+- **Clean systemd unit:** Relocated `StartLimitIntervalSec` and `StartLimitBurst` into `[Unit]` in `curfewd.service`.
+
 ## [1.0.0] - 2026-11-26
 
 First `1.0` release delivering **Spec 003**: a native, unprivileged Material Design 3 desktop application, Today-only schedule overrides, and individual per-app daily limits.

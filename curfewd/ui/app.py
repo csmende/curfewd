@@ -92,7 +92,7 @@ class _RPCWorker:
         import dbus
 
         bus = dbus.SessionBus(private=True) if self._session_bus else dbus.SystemBus(private=True)
-        bridge = UIBridge(client=CurfewClient(bus=bus))
+        bridge = UIBridge(client=CurfewClient(bus=bus, follow_name_owner=False))
         try:
             while True:
                 item = self._queue.get()

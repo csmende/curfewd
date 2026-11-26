@@ -22,10 +22,13 @@ if [ -d "${CURFEWD_DIR}" ]; then
     find "${CURFEWD_DIR}" -type f -iname '*.pyc' -delete 2>/dev/null || true
 fi
 
-# Stop obsolete timekpr.service if upgrading from 0.6.x or timekpr-next
+# Stop obsolete timekpr.service and remove stale 0.6.x alias symlink if upgrading
 if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
     systemctl stop timekpr.service 2>/dev/null || true
     systemctl disable timekpr.service 2>/dev/null || true
+    if [ -L /etc/systemd/system/curfewd.service ]; then
+        rm -f /etc/systemd/system/curfewd.service
+    fi
     systemctl daemon-reload || true
     systemctl reload dbus 2>/dev/null || true
     systemctl enable "${CURFEWD_UNIT}" || true

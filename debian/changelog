@@ -1,3 +1,15 @@
+curfewd (1.0.1) unstable; urgency=medium
+
+  * Fix one-shot `curfewctl` CLI and UI RPC worker failing with RuntimeError
+    when no GLib main loop is attached to the synchronous D-Bus connection
+  * Fix `curfewd 0.6.x -> 1.0.x` upgrades by removing stale
+    `/etc/systemd/system/curfewd.service` alias symlink in `debian/postinst`
+    before `systemctl daemon-reload` and `enable`
+  * Move `StartLimitIntervalSec` and `StartLimitBurst` into `[Unit]` in
+    `curfewd.service` to eliminate systemd journal warnings
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 05:12:00 +0000
+
 curfewd (1.0.0) unstable; urgency=medium
 
   * Spec 003: Native Material Design 3 UI (`curfewd-ui`) & Per-App Limits

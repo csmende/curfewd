@@ -54,11 +54,17 @@ def _translate_dbus_error(exc: dbus.DBusException) -> CurfewError:
 
 
 class CurfewClient:
-    """High-level client for org.curfewd.Daemon1 (auto-follows daemon restarts)."""
+    """High-level client for org.curfewd.Daemon1 (supports both one-shot CLI and GLib loop clients)."""
 
-    def __init__(self, bus=None, bus_name: str = DBUS_BUS_NAME) -> None:
+    def __init__(
+        self,
+        bus=None,
+        bus_name: str = DBUS_BUS_NAME,
+        follow_name_owner: bool | None = None,
+    ) -> None:
         self._bus = bus
         self._bus_name = bus_name
+        self._follow_name_owner = follow_name_owner
         self._proxy = None
 
     def _get_bus(self):
@@ -68,12 +74,26 @@ class CurfewClient:
 
     def _get_proxy(self):
         if self._proxy is None:
+            bus = self._get_bus()
+            use_follow = (
+                self._follow_name_owner
+                if self._follow_name_owner is not None
+                else (dbus.get_default_main_loop() is not None)
+            )
             try:
-                self._proxy = self._get_bus().get_object(
+                self._proxy = bus.get_object(
                     self._bus_name,
                     DBUS_OBJECT_PATH,
                     introspect=False,
-                    follow_name_owner_changes=True,
+                    follow_name_owner_changes=bool(use_follow),
+                )
+            except RuntimeError:
+                # Synchronous bus without an attached main loop (e.g. one-shot CLI / worker thread)
+                self._proxy = bus.get_object(
+                    self._bus_name,
+                    DBUS_OBJECT_PATH,
+                    introspect=False,
+                    follow_name_owner_changes=False,
                 )
             except dbus.DBusException as exc:
                 raise _translate_dbus_error(exc) from exc

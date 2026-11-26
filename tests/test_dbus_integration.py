@@ -376,6 +376,21 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         watch_bus.close()
         rpc_bus.close()
 
+    def test_client_proxy_works_without_mainloop(self):
+        """Regression test: one-shot curfewctl / worker threads work when follow_name_owner_changes raises RuntimeError."""
+        calls = []
+
+        class _NoLoopBus:
+            def get_object(self, bus_name, path, introspect=False, follow_name_owner_changes=False):
+                calls.append(follow_name_owner_changes)
+                if follow_name_owner_changes:
+                    raise RuntimeError("D-Bus connections must be attached to a main loop")
+                return "sync-proxy-ok"
+
+        c = CurfewClient(bus=_NoLoopBus(), follow_name_owner=True)
+        self.assertEqual(c._get_proxy(), "sync-proxy-ok")
+        self.assertEqual(calls, [True, False])
+
 
 if __name__ == "__main__":
     unittest.main()
