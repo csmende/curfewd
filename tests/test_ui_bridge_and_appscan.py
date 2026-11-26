@@ -102,15 +102,105 @@ class _FakeUIClient:
         self.calls.append(("lock_user", username))
         return {"username": username, "locked": True, "verified": True}
 
+    def grant_time(self, username: str, delta_seconds: int, mode: str = "add", note: str = ""):
+        self._check(admin=True)
+        self.calls.append(("grant_time", username, delta_seconds, mode, note))
+        return {"applied_sec": delta_seconds, "status": self._status(username)}
+
+    def pause_user(
+        self, username: str, until_utc: str = "", reason: str = "", hide_tray: bool = False
+    ):
+        self._check(admin=True)
+        self.calls.append(("pause_user", username, until_utc, reason, hide_tray))
+        return self._status(username)
+
+    def resume_user(self, username: str):
+        self._check(admin=True)
+        self.calls.append(("resume_user", username))
+        return self._status(username)
+
+    def set_homework_mode(self, username: str, payload):
+        self._check(admin=True)
+        self.calls.append(("set_homework_mode", username, payload))
+        return self._status(username)
+
+    def test_lock(self, username: str):
+        self._check(admin=True)
+        self.calls.append(("test_lock", username))
+        return {"username": username, "locked": True, "verified": True, "sessions": []}
+
     def grant_app_time(self, username: str, pattern: str, delta_seconds: int):
         self._check(admin=True)
         self.calls.append(("grant_app_time", username, pattern, delta_seconds))
         return {"applied_sec": delta_seconds, "status": self._status(username)}
 
+    def grant_category_time(self, username: str, category: str, delta_seconds: int):
+        self._check(admin=True)
+        self.calls.append(("grant_category_time", username, category, delta_seconds))
+        return {"applied_sec": delta_seconds, "status": self._status(username)}
+
+    def list_time_requests(self, status_filter: str = "pending"):
+        self._check(admin=True)
+        return [
+            {
+                "id": 7,
+                "username": "maya",
+                "kind": "daily",
+                "requested_sec": 900,
+                "status": "pending",
+                "reason": "Almost done",
+            }
+        ]
+
+    def resolve_time_request(
+        self, request_id: int, approve: bool, grant_seconds: int = 0, note: str = ""
+    ):
+        self._check(admin=True)
+        self.calls.append(("resolve_time_request", request_id, approve, grant_seconds, note))
+        return {
+            "request": {
+                "id": request_id,
+                "username": "maya",
+                "status": "approved" if approve else "denied",
+                "granted_sec": grant_seconds or 900,
+            },
+            "status": self._status("maya"),
+        }
+
+    def quick_approve_request(self, request_id: int, grant_seconds: int = 0, note: str = ""):
+        self._check(admin=True)
+        self.calls.append(("quick_approve_request", request_id, grant_seconds, note))
+        return {"request": {"id": request_id, "status": "approved"}, "status": self._status("maya")}
+
+    def get_parent_code_status(self):
+        self._check(admin=True)
+        return {"enabled": True, "created_utc": "2026-11-26T00:00:00+00:00"}
+
+    def setup_parent_code(self, enable: bool = True, rotate: bool = False):
+        self._check(admin=True)
+        self.calls.append(("setup_parent_code", enable, rotate))
+        return {
+            "enabled": enable,
+            "secret_b32": "JBSWY3DPEHPK3PXP" if enable else "",
+            "otpauth_uri": "otpauth://totp/curfewd:host?secret=JBSWY3DPEHPK3PXP" if enable else "",
+            "qr_svg": "<svg></svg>" if enable else "",
+        }
+
+    def list_installed_apps(self, username: str):
+        self._check(admin=True)
+        return [
+            {
+                "pattern": "steam_app_413150",
+                "label": "Stardew Valley",
+                "category": "Gaming",
+                "installed": True,
+            }
+        ]
+
     def run_doctor(self):
         self._check(admin=True)
         return {
-            "version": "1.0.0",
+            "version": "2.0.0",
             "overall": "ok" if self.doctor_fixed else "warn",
             "checks": [
                 {"name": "systemd_service", "status": "ok", "detail": "active", "fixable": False},
@@ -136,6 +226,32 @@ class _FakeUIClient:
         self._check(admin=False)
         return {"username": "maya", "days": days, "daily": [], "events": []}
 
+    def list_my_time_requests(self):
+        self._check(admin=False)
+        return [{"id": 7, "username": "maya", "status": "pending", "requested_sec": 900}]
+
+    def request_more_time(
+        self,
+        requested_sec: int,
+        kind: str = "daily",
+        target: str = "",
+        target_label: str = "",
+        reason: str = "",
+    ):
+        self._check(admin=False)
+        self.calls.append(("request_more_time", requested_sec, kind, target, reason))
+        return {"id": 8, "username": "maya", "requested_sec": requested_sec, "status": "pending"}
+
+    def claim_save_grace(self):
+        self._check(admin=False)
+        self.calls.append(("claim_save_grace",))
+        return {"applied_sec": 120, "status": self._status("maya")}
+
+    def approve_with_parent_code(self, payload):
+        self._check(admin=False)
+        self.calls.append(("approve_with_parent_code", payload))
+        return {"applied_sec": 900, "status": self._status("maya")}
+
 
 class TestAppScanner(unittest.TestCase):
     def test_scans_native_and_flatpak_desktop_entries_and_filters_noise(self):
@@ -152,6 +268,11 @@ class TestAppScanner(unittest.TestCase):
                     "[Desktop Entry]\nType=Application\nName=Sober\nExec=/usr/bin/flatpak run --branch=stable org.vinegarhq.Sober\nX-Flatpak=org.vinegarhq.Sober\nCategories=Game;\n"
                 )
             os.symlink(fp_target, os.path.join(tmp, "org.vinegarhq.Sober.desktop"))
+            # Steam game desktop entry with steam://rungameid/413150
+            with open(os.path.join(tmp, "Stardew Valley.desktop"), "w", encoding="utf-8") as fh:
+                fh.write(
+                    "[Desktop Entry]\nType=Application\nName=Stardew Valley\nExec=steam steam://rungameid/413150\nCategories=Game;\n"
+                )
             # Hidden / NoDisplay / Settings utility should be ignored
             with open(os.path.join(tmp, "hidden.desktop"), "w", encoding="utf-8") as fh:
                 fh.write(
@@ -172,6 +293,7 @@ class TestAppScanner(unittest.TestCase):
             patterns = [a["pattern"] for a in apps]
             self.assertIn("steam", patterns)
             self.assertIn("sober", patterns)
+            self.assertIn("steam_app_413150", patterns)
             self.assertNotIn("foo", patterns)
             self.assertNotIn("cinnamon-settings", patterns)
             steam = next(a for a in apps if a["pattern"] == "steam")
@@ -179,6 +301,21 @@ class TestAppScanner(unittest.TestCase):
             sober = next(a for a in apps if a["pattern"] == "sober")
             self.assertEqual(sober["label"], "Roblox (Sober)")
             self.assertEqual(sober["category"], "Gaming")
+            self.assertEqual(sober["flatpak_id"], "org.vinegarhq.Sober")
+            stardew = next(a for a in apps if a["pattern"] == "steam_app_413150")
+            self.assertEqual(stardew["steam_app_id"], "413150")
+            self.assertEqual(stardew["label"], "Stardew Valley")
+
+    def test_scan_installed_apps_discovers_target_user_home_entries(self):
+        with tempfile.TemporaryDirectory() as fake_home:
+            apps_dir = os.path.join(fake_home, ".local", "share", "applications")
+            os.makedirs(apps_dir, exist_ok=True)
+            with open(os.path.join(apps_dir, "customgame.desktop"), "w", encoding="utf-8") as fh:
+                fh.write(
+                    "[Desktop Entry]\nType=Application\nName=Child Game\nExec=/usr/bin/childgame\nCategories=Game;\n"
+                )
+            apps = scan_installed_apps(target_home=fake_home, include_curated_fallback=False)
+            self.assertIn("childgame", [a["pattern"] for a in apps])
 
     def test_audiovideoediting_category_and_full_curated_fallback(self):
         from curfewd.ui.appscan import DEFAULT_CURATED_APPS, _map_category
@@ -195,14 +332,20 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             prefs_path = os.path.join(tmp, "curfewd", "ui.json")
             store = UIPreferencesStore(path=prefs_path)
-            self.assertEqual(store.load(), {"theme": "auto", "accent": "indigo"})
-            saved = store.save(theme="dark", accent="emerald")
-            self.assertEqual(saved, {"theme": "dark", "accent": "emerald"})
-            self.assertEqual(store.load(), {"theme": "dark", "accent": "emerald"})
+            self.assertEqual(
+                store.load(), {"theme": "auto", "accent": "indigo", "time_format": "auto"}
+            )
+            saved = store.save(theme="dark", accent="emerald", time_format="24h")
+            self.assertEqual(saved, {"theme": "dark", "accent": "emerald", "time_format": "24h"})
+            self.assertEqual(
+                store.load(), {"theme": "dark", "accent": "emerald", "time_format": "24h"}
+            )
             mode = stat.S_IMODE(os.stat(prefs_path).st_mode)
             self.assertEqual(mode, 0o600)
             with self.assertRaises(ValueError):
                 store.save(theme="neon")
+            with self.assertRaises(ValueError):
+                store.save(time_format="13h")
 
     def test_bridge_admin_bootstrap_save_fix_and_lock(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -252,6 +395,89 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             fix_resp = bridge.handle("apply_doctor_fix", {})
             self.assertTrue(fix_resp["ok"])
             self.assertEqual(fix_resp["data"]["doctor"]["overall"], "ok")
+
+    def test_bridge_v2_family_workflow_and_setup_rpcs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client = _FakeUIClient()
+            bridge = UIBridge(
+                client=client,
+                prefs=UIPreferencesStore(os.path.join(tmp, "ui.json")),
+                app_scanner=list,
+                current_user="parent",
+            )
+            boot = bridge.handle("bootstrap", {"mode": "admin"})
+            self.assertTrue(boot["ok"])
+            self.assertEqual(len(boot["data"]["time_requests"]), 1)
+            self.assertTrue(boot["data"]["parent_code"]["enabled"])
+
+            self.assertTrue(
+                bridge.handle(
+                    "grant_time",
+                    {"username": "maya", "delta_seconds": 900, "note": "Good job"},
+                )["ok"]
+            )
+            self.assertTrue(
+                bridge.handle(
+                    "pause_user", {"username": "maya", "reason": "Movie night", "hide_tray": False}
+                )["ok"]
+            )
+            self.assertTrue(bridge.handle("resume_user", {"username": "maya"})["ok"])
+            self.assertTrue(bridge.handle("reset_today", {"username": "maya"})["ok"])
+            self.assertTrue(
+                bridge.handle(
+                    "set_homework_mode",
+                    {"username": "maya", "payload": {"active": True, "reason": "Math"}},
+                )["ok"]
+            )
+            self.assertTrue(
+                bridge.handle(
+                    "grant_category_time",
+                    {"username": "maya", "category": "Gaming", "delta_seconds": 600},
+                )["ok"]
+            )
+            self.assertTrue(bridge.handle("test_lock", {"username": "maya"})["ok"])
+
+            req_res = bridge.handle(
+                "resolve_time_request",
+                {"request_id": 7, "approve": True, "grant_seconds": 900, "note": "Sure"},
+            )
+            self.assertTrue(req_res["ok"])
+            self.assertEqual(req_res["data"]["request"]["status"], "approved")
+            self.assertTrue(
+                bridge.handle("quick_approve_request", {"request_id": 7, "grant_seconds": 900})[
+                    "ok"
+                ]
+            )
+
+            pc = bridge.handle("setup_parent_code", {"enable": True, "rotate": True})
+            self.assertTrue(pc["ok"])
+            self.assertIn("<svg>", pc["data"]["qr_svg"])
+
+            apps_resp = bridge.handle("list_user_apps", {"username": "maya"})
+            self.assertTrue(apps_resp["ok"])
+            self.assertEqual(apps_resp["data"]["apps"][0]["pattern"], "steam_app_413150")
+
+            setup_resp = bridge.handle(
+                "complete_setup",
+                {"policies": {"maya": client.policy}, "apply_fix": True},
+            )
+            self.assertTrue(setup_resp["ok"])
+            self.assertTrue(setup_resp["data"]["config"]["setup_completed"])
+
+            # Kid self-service RPCs
+            self.assertTrue(
+                bridge.handle(
+                    "request_more_time",
+                    {"requested_sec": 900, "kind": "daily", "reason": "Saving game"},
+                )["ok"]
+            )
+            self.assertTrue(bridge.handle("claim_save_grace", {})["ok"])
+            self.assertTrue(
+                bridge.handle(
+                    "approve_with_parent_code",
+                    {"code": "123456", "action": "grant_daily", "delta_seconds": 900},
+                )["ok"]
+            )
 
     def test_bridge_auth_gate_fallback_and_passwordless_my_status(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -14,7 +14,16 @@ from curfewd import (
 )
 from curfewd.cli.main import run_cli
 from curfewd.dbus.client import DaemonUnavailableError, PermissionDeniedError
-from curfewd.engine.doctor import apply_dconf_lock_fix, check_dconf_lock_policy
+from curfewd.engine.doctor import (
+    apply_all_lock_fixes,
+    apply_dconf_lock_fix,
+    apply_kde_lock_fix,
+    apply_xfce_lock_fix,
+    check_dconf_lock_policy,
+    check_kde_lock_policy,
+    check_xfce_lock_policy,
+    run_doctor,
+)
 from curfewd.models import TimeWindow, UserPolicy
 from curfewd.parsing import WEEKDAYS
 
@@ -118,8 +127,8 @@ class _StubClient:
         self.app_grants.append((username, pattern, delta_seconds))
         return {"applied_sec": delta_seconds, "status": self._status()}
 
-    def grant_time(self, username, delta, mode="add"):
-        self.last_grant = (username, delta, mode)
+    def grant_time(self, username, delta, mode="add", note=""):
+        self.last_grant = (username, delta, mode, note)
         if mode == "set":
             self.time_left = delta
         else:
@@ -147,6 +156,53 @@ class _StubClient:
         }
         return self._status()
 
+    def set_homework_mode(self, username, payload):
+        self.policy["homework_mode"] = {
+            "active": bool(payload.get("active", False)),
+            "mode": payload.get("mode", "none"),
+            "until_utc": payload.get("until_utc"),
+            "reason": payload.get("reason", ""),
+        }
+        return self._status()
+
+    def list_time_requests(self, status_filter="pending"):
+        return [
+            {
+                "id": 12,
+                "username": "alice",
+                "kind": "daily",
+                "target": "",
+                "target_label": "Daily screen time",
+                "requested_sec": 900,
+                "status": "pending",
+                "reason": "Homework slide",
+                "created_utc": "2026-11-25T16:00:00+00:00",
+            }
+        ]
+
+    def resolve_time_request(self, request_id, approve=True, grant_seconds=0, note=""):
+        return {
+            "request": {
+                "id": request_id,
+                "username": "alice",
+                "status": "approved" if approve else "denied",
+                "granted_sec": grant_seconds or 900,
+                "parent_note": note,
+            },
+            "status": self._status(),
+        }
+
+    def get_parent_code_status(self):
+        return {"enabled": True, "created_utc": "2026-11-26T00:00:00+00:00"}
+
+    def setup_parent_code(self, enable=True, rotate=False):
+        return {
+            "enabled": enable,
+            "secret_b32": "JBSWY3DPEHPK3PXP" if enable else "",
+            "otpauth_uri": "otpauth://totp/curfewd:host?secret=JBSWY3DPEHPK3PXP" if enable else "",
+            "qr_svg": "<svg></svg>" if enable else "",
+        }
+
     def lock_user(self, username):
         return {
             "username": username,
@@ -161,6 +217,9 @@ class _StubClient:
                 }
             ],
         }
+
+    def test_lock(self, username):
+        return self.lock_user(username)
 
     def get_usage_history(self, username, days=7):
         return {
@@ -178,6 +237,16 @@ class _StubClient:
                 }
             ],
             "totals": {"active_sec": 1800},
+            "top_apps": [
+                {
+                    "app_key": "steam",
+                    "label": "Steam",
+                    "category": "Gaming",
+                    "active_sec": 2400,
+                    "daily_avg_sec": 1200,
+                    "days_used": 2,
+                }
+            ],
             "events": [],
         }
 
@@ -190,7 +259,7 @@ class _StubClient:
 
     def run_doctor(self):
         return {
-            "version": "1.1.0",
+            "version": "2.0.0",
             "overall": "ok",
             "checks": [{"name": "dbus_service", "status": "ok", "detail": "ok", "fixable": False}],
             "active_sessions": [],
@@ -222,17 +291,19 @@ class TestCurfewctlCLI(unittest.TestCase):
 
     def test_grant_supports_positive_negative_and_set_without_double_dash(self):
         stub = _StubClient()
-        rc, out, _, _ = self._run(["grant", "alice", "+30m", "--json"], stub)
+        rc, out, _, _ = self._run(
+            ["grant", "alice", "+30m", "--note", "Cleaned room", "--json"], stub
+        )
         self.assertEqual(rc, EXIT_OK)
-        self.assertEqual(stub.last_grant, ("alice", 1800, "add"))
+        self.assertEqual(stub.last_grant, ("alice", 1800, "add", "Cleaned room"))
 
         rc, out, _, _ = self._run(["grant", "alice", "-15m", "--json"], stub)
         self.assertEqual(rc, EXIT_OK)
-        self.assertEqual(stub.last_grant, ("alice", -900, "add"))
+        self.assertEqual(stub.last_grant, ("alice", -900, "add", ""))
 
         rc, out, _, _ = self._run(["grant", "alice", "=2h"], stub)
         self.assertEqual(rc, EXIT_OK)
-        self.assertEqual(stub.last_grant, ("alice", 7200, "set"))
+        self.assertEqual(stub.last_grant, ("alice", 7200, "set", ""))
         self.assertIn("2h", out)
 
     def test_limit_window_today_lockout_pause_resume_lock_app_limits_history_config(self):
@@ -286,8 +357,11 @@ class TestCurfewctlCLI(unittest.TestCase):
                     "Steam",
                     "--limit",
                     "45m",
+                    "--weekend",
+                    "2h",
                     "--category",
                     "Gaming",
+                    "--foreground-only",
                 ],
                 stub,
             )[0],
@@ -295,6 +369,8 @@ class TestCurfewctlCLI(unittest.TestCase):
         )
         self.assertEqual(stub.policy["app_limits"]["apps"][0]["pattern"], "steam")
         self.assertEqual(stub.policy["app_limits"]["apps"][0]["daily_limit_sec"], 2700)
+        self.assertEqual(stub.policy["app_limits"]["apps"][0]["weekend_limit_sec"], 7200)
+        self.assertTrue(stub.policy["app_limits"]["apps"][0]["foreground_only"])
         self.assertEqual(
             self._run(["app-limits", "alice", "limit", "steam", "1h"], stub)[0], EXIT_OK
         )
@@ -303,6 +379,19 @@ class TestCurfewctlCLI(unittest.TestCase):
             self._run(["app-limits", "alice", "grant", "steam", "+15m"], stub)[0], EXIT_OK
         )
         self.assertEqual(stub.app_grants, [("alice", "steam", 900)])
+
+        # Shared category budgets
+        self.assertEqual(
+            self._run(
+                ["app-limits", "alice", "category", "set", "Gaming", "1h", "--weekend", "2h"], stub
+            )[0],
+            EXIT_OK,
+        )
+        self.assertEqual(stub.policy["app_limits"]["category_limits"][0]["category"], "Gaming")
+        self.assertEqual(
+            self._run(["app-limits", "alice", "category", "remove", "Gaming"], stub)[0], EXIT_OK
+        )
+        self.assertEqual(stub.policy["app_limits"]["category_limits"], [])
 
         rc, out, _, _ = self._run(["history", "alice", "--days", "7"], stub)
         self.assertEqual(rc, EXIT_OK)
@@ -318,6 +407,81 @@ class TestCurfewctlCLI(unittest.TestCase):
         self.assertEqual(rc, EXIT_OK)
         self.assertTrue(json.loads(out)["fix_applied"]["applied"])
 
+    def test_v2_cli_commands_role_homework_holiday_requests_parent_code_insights_test_lock(self):
+        stub = _StubClient()
+
+        # role
+        self.assertEqual(self._run(["role", "alice", "parent"], stub)[0], EXIT_OK)
+        self.assertEqual(stub.policy["role"], "parent")
+
+        # homework on/off
+        self.assertEqual(
+            self._run(["homework", "alice", "on", "--for", "1h", "--reason", "Math"], stub)[0],
+            EXIT_OK,
+        )
+        self.assertTrue(stub.policy["homework_mode"]["active"])
+        self.assertEqual(stub.policy["homework_mode"]["reason"], "Math")
+        self.assertEqual(self._run(["homework", "alice", "off"], stub)[0], EXIT_OK)
+        self.assertFalse(stub.policy["homework_mode"]["active"])
+
+        # holiday add/list/remove
+        self.assertEqual(
+            self._run(
+                [
+                    "holiday",
+                    "alice",
+                    "add",
+                    "2026-12-24",
+                    "2026-12-31",
+                    "--mode",
+                    "weekend",
+                    "--label",
+                    "Winter Break",
+                ],
+                stub,
+            )[0],
+            EXIT_OK,
+        )
+        self.assertEqual(len(stub.policy["holidays"]), 1)
+        hol_id = stub.policy["holidays"][0]["id"]
+        rc, out, _, _ = self._run(["holiday", "alice", "list"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("Winter Break", out)
+        self.assertEqual(self._run(["holiday", "alice", "remove", hol_id], stub)[0], EXIT_OK)
+        self.assertEqual(stub.policy["holidays"], [])
+
+        # requests list/approve/deny
+        rc, out, _, _ = self._run(["requests", "list"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("alice", out)
+        rc, out, _, _ = self._run(
+            ["requests", "approve", "12", "--grant", "30m", "--note", "ok"], stub
+        )
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("approved", out)
+        rc, out, _, _ = self._run(["requests", "deny", "12", "--note", "bedtime"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("denied", out)
+
+        # parent-code status/enable/disable
+        rc, out, _, _ = self._run(["parent-code", "status"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("ENABLED", out)
+        rc, out, _, _ = self._run(["parent-code", "enable"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("JBSWY3DPEHPK3PXP", out)
+        rc, out, _, _ = self._run(["parent-code", "disable"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("disabled", out)
+
+        # insights & test-lock
+        rc, out, _, _ = self._run(["insights", "alice", "--days", "7"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertIn("Steam", out)
+        rc, out, _, _ = self._run(["test-lock", "alice", "--json"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertTrue(json.loads(out)["verified"])
+
     def test_standardized_exit_codes(self):
         class _DeniedClient(_StubClient):
             def list_users(self):
@@ -331,20 +495,67 @@ class TestCurfewctlCLI(unittest.TestCase):
         self.assertEqual(self._run(["users"], _DownClient())[0], EXIT_DAEMON_UNAVAILABLE)
         self.assertEqual(self._run(["limit", "alice", "not-a-duration"])[0], EXIT_USAGE)
 
-    def test_doctor_dconf_check_and_fix_in_temp_root(self):
+    def test_doctor_dconf_kde_xfce_hardening_and_wayland_checks(self):
         with tempfile.TemporaryDirectory() as tmp:
             before = check_dconf_lock_policy(root_prefix=tmp)
             self.assertEqual(before["status"], "warn")
             self.assertTrue(before["fixable"])
 
-            res = apply_dconf_lock_fix(root_prefix=tmp)
+            self.assertEqual(check_kde_lock_policy(root_prefix=tmp)["status"], "warn")
+            self.assertEqual(check_xfce_lock_policy(root_prefix=tmp)["status"], "warn")
+
+            res = apply_all_lock_fixes(root_prefix=tmp, include_kde=True, include_xfce=True)
             self.assertTrue(res["applied"])
-            after = check_dconf_lock_policy(root_prefix=tmp)
-            self.assertEqual(after["status"], "ok")
+            self.assertEqual(check_dconf_lock_policy(root_prefix=tmp)["status"], "ok")
+            self.assertEqual(check_kde_lock_policy(root_prefix=tmp)["status"], "ok")
+            self.assertEqual(check_xfce_lock_policy(root_prefix=tmp)["status"], "ok")
+
             with open(
                 os.path.join(tmp, "etc/dconf/db/local.d/locks/curfewd-lockscreen"), encoding="utf-8"
             ) as fh:
                 self.assertIn("/org/cinnamon/desktop/screensaver/lock-enabled", fh.read())
+            with open(os.path.join(tmp, "etc/xdg/kscreenlockerrc"), encoding="utf-8") as fh:
+                self.assertIn("[Daemon][$i]", fh.read())
+            with open(
+                os.path.join(tmp, "etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml"),
+                encoding="utf-8",
+            ) as fh:
+                self.assertIn('locked="*"', fh.read())
+
+            # Wayland-aware doctor suppresses xdotool/wmctrl missing warnings on pure Wayland
+            from unittest import mock
+
+            def _only_gdbus(tool, path=None):
+                return "/usr/bin/gdbus" if tool == "gdbus" else None
+
+            with mock.patch("shutil.which", side_effect=_only_gdbus):
+                rep = run_doctor(
+                    config_dir=tmp,
+                    state_dir=tmp,
+                    sessions_by_user={
+                        "alice": [
+                            {
+                                "session_id": "2",
+                                "session_type": "wayland",
+                                "desktop": "KDE",
+                                "locked": False,
+                                "idle": False,
+                            }
+                        ]
+                    },
+                    dbus_connected=True,
+                    root_prefix=tmp,
+                )
+            self.assertEqual(rep["session_mode"], "wayland")
+            by_name = {c["name"]: c for c in rep["checks"]}
+            self.assertEqual(by_name["bin_xdotool"]["status"], "ok")
+            self.assertIn("Wayland", by_name["bin_xdotool"]["detail"])
+            self.assertEqual(by_name["kde_lock_policy"]["status"], "ok")
+
+            # Standalone KDE/XFCE helpers remain directly callable
+            self.assertTrue(apply_kde_lock_fix(root_prefix=tmp)["applied"])
+            self.assertTrue(apply_xfce_lock_fix(root_prefix=tmp)["applied"])
+            self.assertTrue(apply_dconf_lock_fix(root_prefix=tmp)["applied"])
 
 
 if __name__ == "__main__":

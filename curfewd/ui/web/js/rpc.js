@@ -42,6 +42,13 @@
       typeof UI.applyLiveStatusPush === "function"
     ) {
       UI.applyLiveStatusPush(payload.username, payload.status);
+    } else if (
+      eventName === "time_request" &&
+      payload &&
+      payload.request &&
+      typeof UI.applyTimeRequestPush === "function"
+    ) {
+      UI.applyTimeRequestPush(payload.username || "", payload.request);
     }
   };
 

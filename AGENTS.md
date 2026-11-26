@@ -16,7 +16,7 @@ This repository is developed using a **spec-driven design workflow** with **AI-a
 ## 2. Core Platform Invariants (`v0.7.0+`)
 
 - **Native `curfewd` namespace:** Primary service is `curfewd.service`, D-Bus bus is `org.curfewd.Daemon1` (`/org/curfewd/Daemon1`), config lives in `/etc/curfewd/daemon.json`, and state/history live in `/var/lib/curfewd/`.
-- **Schema-versioned JSON & SQLite:** All persisted configs include `"schema_version"` (`SCHEMA_VERSION = 2`) and forward-migrate cleanly without data loss.
+- **Schema-versioned JSON & SQLite:** All persisted configs include `"schema_version"` (`SCHEMA_VERSION = 3`) and forward-migrate cleanly from v1/v2 without data loss.
 - **Unprivileged UI model:** Never require running desktop GUIs as `root` via `pkexec`; all admin actions authorize in-daemon via Polkit (`org.curfewd.policy`) or `root`/`curfewd` group membership.
 - **License & attribution:** Preserve GPL-3.0-or-later licensing and attribution to Eduards Bezverhijs (`Timekpr-nExT`).
 

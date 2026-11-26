@@ -3,6 +3,7 @@
 *.py[cod]
 **/.ropeproject/
 **/runtime.tmp/
+.hypothesis/
 
 # Packaging / build artifacts
 dist/

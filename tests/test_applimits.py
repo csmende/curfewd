@@ -85,6 +85,82 @@ class TestAppLimitsMonitor(unittest.TestCase):
                 [],
             )
 
+    def test_scan_user_processes_flatpak_steam_foreground_ancestry_and_passive(self):
+        import os
+        import tempfile
+
+        from curfewd.models import CategoryLimitRule
+
+        with tempfile.TemporaryDirectory() as fake_proc:
+            # PID 301: Flatpak Sober (Roblox)
+            os.makedirs(os.path.join(fake_proc, "301"))
+            with open(os.path.join(fake_proc, "301", "cgroup"), "w", encoding="utf-8") as fh:
+                fh.write("0::/user.slice/app-flatpak-org.vinegarhq.Sober-1234.scope\n")
+            # PID 302: Steam Proton game with SteamAppId=413150 (Stardew Valley)
+            os.makedirs(os.path.join(fake_proc, "302"))
+            with open(os.path.join(fake_proc, "302", "environ"), "wb") as fh:
+                fh.write(b"HOME=/home/alice\x00SteamAppId=413150\x00")
+            # PID 303: PrismLauncher -> child PID 304 (java)
+            os.makedirs(os.path.join(fake_proc, "303"))
+            os.makedirs(os.path.join(fake_proc, "304"))
+
+            def _p(pid: int, ppid: int, name: str, cmd: list[str]):
+                p = _fake_proc(pid, 1000, name, f"/usr/bin/{name}", cmd)
+                p.info["ppid"] = ppid
+                return p
+
+            procs = [
+                _p(301, 1, "sober", ["sober"]),
+                _p(302, 1, "wine64-preloader", ["wine64-preloader", "game.exe"]),
+                _p(303, 1, "prismlauncher", ["prismlauncher"]),
+                _p(304, 303, "java", ["java", "-jar", "minecraft.jar"]),
+                _p(305, 1, "discord", ["discord"]),
+            ]
+            rules = [
+                AppLimitRule(
+                    "roblox_fp",
+                    "Roblox",
+                    daily_limit_sec=1800,
+                    category="Gaming",
+                    flatpak_id="org.vinegarhq.Sober",
+                ),
+                AppLimitRule(
+                    "stardew",
+                    "Stardew Valley",
+                    daily_limit_sec=1800,
+                    category="Gaming",
+                    steam_app_id="413150",
+                ),
+                AppLimitRule("prismlauncher", "Minecraft", daily_limit_sec=1800, category="Gaming"),
+                AppLimitRule(
+                    "discord",
+                    "Discord",
+                    daily_limit_sec=1800,
+                    category="Social",
+                    foreground_only=True,
+                ),
+            ]
+            cats = [CategoryLimitRule("Gaming", daily_limit_sec=3600)]
+            monitor = AppLimitsMonitor(proc_root=fake_proc)
+            with mock.patch("curfewd.engine.applimits.psutil") as fake_psutil:
+                fake_psutil.Error = Exception
+                fake_psutil.process_iter.return_value = procs
+                # Active window is PID 304 (Minecraft java) -> Discord (minimized PID 305) skipped!
+                res = monitor.scan_user_processes(
+                    1000, rules, category_limits=cats, active_window_pid=304
+                )
+
+        matched_pats = set(res.running_patterns)
+        self.assertIn("roblox_fp", matched_pats)
+        self.assertIn("stardew", matched_pats)
+        self.assertIn("prismlauncher", matched_pats)
+        self.assertNotIn("discord", matched_pats)  # foreground_only prevented minimized drain!
+        # Child PID 304 inherited prismlauncher rule!
+        self.assertIn(304, [m["pid"] for m in res.rule_matches if m["pattern"] == "prismlauncher"])
+        self.assertIn("Gaming", res.running_categories)
+        passive_keys = {k for k, _, _ in res.passive_apps}
+        self.assertIn("steam:413150", passive_keys)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,3 +1,30 @@
+curfewd (2.0.0) unstable; urgency=medium
+
+  * Spec 006: Family ergonomics, fair enforcement & app intelligence (Schema v3)
+    - Tactical parent UI & parity: 1-click +15m/+30m/bonus-with-note grants,
+      Pause/Resume, Homework Mode, Today-override reset badge, Activity & Audit
+      timeline, Weekly/Monthly caps, and surgical live DOM updates
+    - Ask for More Time & walk-up security: kid time-request queue, offline
+      RFC 6238 6-digit TOTP Parent Access Code with offline SVG QR setup
+      (anti-replay + rate limiting), and non-cached `org.curfewd.quick_grant`
+      (`auth_admin`) Polkit action
+    - Schedule & onboarding polish: 3-way schedule grouping (Every Day / School
+      Days & Weekends / Custom), lossless multi-window split timelines, Holiday
+      & Vacation overrides, Managed Child vs. Parent roles, 12h/24h locale
+      clock toggle, and 60-second First-Run Setup Wizard
+    - Kid-side fairness: per-app & category advance warnings (10m/5m/1m),
+      `logind IdleHint` & tray idle-pause accounting, backward clock-jump guard,
+      informative Cinnamon lock-screen away messages, optional audio warning
+      chimes + 60s corner Countdown HUD pill, and 2-minute Save Grace
+    - App intelligence & multi-DE parity: single-pass Flatpak cgroup, Steam
+      `SteamAppId`, process ancestry, and optional foreground-window matching;
+      shared Category Budgets + 0m Always Blocked + weekend app caps; passive
+      `daily_app_usage` Top Apps insights with 1-click Set Limit; target-user
+      app scanning; KDE Plasma Kiosk & XFCE `doctor --fix` hardening;
+      Wayland-aware System Health + `TestLock`; and `curfewd-tray.service`
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 20:15:00 +0000
+
 curfewd (1.2.0) unstable; urgency=medium
 
   * Spec 005: Architectural modularization, non-blocking async admin RPCs,

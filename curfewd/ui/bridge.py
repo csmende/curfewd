@@ -20,6 +20,7 @@ from curfewd.ui.appscan import scan_installed_apps
 
 VALID_THEMES = ("auto", "light", "dark")
 VALID_ACCENTS = ("indigo", "emerald", "slate", "amber")
+VALID_TIME_FORMATS = ("auto", "12h", "24h")
 
 
 def default_prefs_path() -> str:
@@ -28,13 +29,13 @@ def default_prefs_path() -> str:
 
 
 class UIPreferencesStore:
-    """Persists per-user UI appearance settings (theme & accent) in ~/.config/curfewd/ui.json."""
+    """Persists per-user UI appearance settings (theme, accent, time_format) in ~/.config/curfewd/ui.json."""
 
     def __init__(self, path: str | None = None) -> None:
         self.path = path or default_prefs_path()
 
     def load(self) -> dict[str, str]:
-        defaults = {"theme": "auto", "accent": "indigo"}
+        defaults = {"theme": "auto", "accent": "indigo", "time_format": "auto"}
         if not os.path.isfile(self.path) or os.path.islink(self.path):
             return defaults
         try:
@@ -44,14 +45,21 @@ class UIPreferencesStore:
                 return defaults
             theme = str(raw.get("theme", "auto")).lower()
             accent = str(raw.get("accent", "indigo")).lower()
+            t_fmt = str(raw.get("time_format", "auto")).lower()
             return {
                 "theme": theme if theme in VALID_THEMES else "auto",
                 "accent": accent if accent in VALID_ACCENTS else "indigo",
+                "time_format": t_fmt if t_fmt in VALID_TIME_FORMATS else "auto",
             }
         except (OSError, ValueError):
             return defaults
 
-    def save(self, theme: str | None = None, accent: str | None = None) -> dict[str, str]:
+    def save(
+        self,
+        theme: str | None = None,
+        accent: str | None = None,
+        time_format: str | None = None,
+    ) -> dict[str, str]:
         current = self.load()
         if theme is not None:
             t = str(theme).lower()
@@ -63,6 +71,11 @@ class UIPreferencesStore:
             if a not in VALID_ACCENTS:
                 raise ValueError(f"Invalid accent {accent!r}")
             current["accent"] = a
+        if time_format is not None:
+            tf = str(time_format).lower()
+            if tf not in VALID_TIME_FORMATS:
+                raise ValueError(f"Invalid time_format {time_format!r}")
+            current["time_format"] = tf
 
         write_json_atomic(self.path, current, mode=0o600, dir_mode=0o700)
         return current
@@ -100,10 +113,19 @@ class UIBridge:
             return {"ok": False, "code": "permission_denied", "message": str(exc)}
         except DaemonUnavailableError as exc:
             return {"ok": False, "code": "daemon_unavailable", "message": str(exc)}
-        except (ValidationError, ValueError, UserNotFoundError) as exc:
+        except (ValidationError, ValueError, TypeError, UserNotFoundError) as exc:
             return {"ok": False, "code": "validation_error", "message": str(exc)}
         except (CurfewError, OSError) as exc:
             return {"ok": False, "code": "error", "message": str(exc)}
+
+    def _safe_optional_call(self, method_name: str, default: Any, *args: Any) -> Any:
+        fn = getattr(self._client, method_name, None)
+        if not callable(fn):
+            return default
+        try:
+            return fn(*args)
+        except CurfewError:
+            return default
 
     def _cmd_bootstrap(self, params: dict[str, Any]) -> dict[str, Any]:
         mode = str(params.get("mode", "admin")).strip().lower()
@@ -121,16 +143,17 @@ class UIBridge:
                     "version": __version__,
                     "current_user": self._current_user,
                 }
+            my_requests = self._safe_optional_call("list_my_time_requests", [])
             return {
                 "surface": "my_status",
                 "me": me,
                 "history7": history7,
+                "my_requests": my_requests,
                 "prefs": prefs,
                 "version": __version__,
                 "current_user": self._current_user,
             }
 
-        # Admin Control Center bootstrap — triggers Polkit org.curfewd.read if needed
         try:
             user_summaries = self._client.list_users()
             config = self._client.get_daemon_config()
@@ -157,16 +180,22 @@ class UIBridge:
             uname = summary["username"]
             try:
                 users[uname] = self._client.get_user_status(uname)
-                histories[uname] = self._client.get_usage_history(uname, days=14)
+                histories[uname] = self._client.get_usage_history(uname, days=30)
             except CurfewError:
                 continue
 
+        time_requests = self._safe_optional_call("list_time_requests", [], "pending")
+        parent_code = self._safe_optional_call(
+            "get_parent_code_status", {"enabled": False, "created_utc": ""}
+        )
         return {
             "surface": "admin",
             "users": users,
             "histories": histories,
             "config": config,
             "doctor": doctor,
+            "time_requests": time_requests,
+            "parent_code": parent_code,
             "installed_apps": self._app_scanner(),
             "prefs": prefs,
             "version": __version__,
@@ -175,7 +204,7 @@ class UIBridge:
 
     def _cmd_get_user_bundle(self, params: dict[str, Any]) -> dict[str, Any]:
         username = str(params.get("username", "")).strip()
-        days = max(1, min(30, int(params.get("days", 14))))
+        days = max(1, min(30, int(params.get("days", 30))))
         status = self._client.get_user_status(username)
         history = self._client.get_usage_history(username, days=days)
         return {"status": status, "history": history}
@@ -209,17 +238,137 @@ class UIBridge:
             "config": updated_config,
         }
 
+    def _cmd_grant_time(self, params: dict[str, Any]) -> dict[str, Any]:
+        username = str(params.get("username", "")).strip()
+        delta_seconds = int(params.get("delta_seconds", 900))
+        mode = str(params.get("mode", "add")).strip()
+        note = str(params.get("note", "")).strip()
+        res = self._client.grant_time(username, delta_seconds, mode=mode, note=note)
+        hist = self._safe_optional_call("get_usage_history", None, username, 30)
+        return {**res, "history": hist}
+
+    def _cmd_pause_user(self, params: dict[str, Any]) -> dict[str, Any]:
+        username = str(params.get("username", "")).strip()
+        until_utc = str(params.get("until_utc", "") or "")
+        reason = str(params.get("reason", "") or "")
+        hide_tray = bool(params.get("hide_tray", False))
+        status = self._client.pause_user(
+            username, until_utc=until_utc, reason=reason, hide_tray=hide_tray
+        )
+        hist = self._safe_optional_call("get_usage_history", None, username, 30)
+        return {"status": status, "history": hist}
+
+    def _cmd_resume_user(self, params: dict[str, Any]) -> dict[str, Any]:
+        username = str(params.get("username", "")).strip()
+        status = self._client.resume_user(username)
+        hist = self._safe_optional_call("get_usage_history", None, username, 30)
+        return {"status": status, "history": hist}
+
+    def _cmd_reset_today(self, params: dict[str, Any]) -> dict[str, Any]:
+        username = str(params.get("username", "")).strip()
+        status = self._client.set_today_override(username, reset=True)
+        hist = self._safe_optional_call("get_usage_history", None, username, 30)
+        return {"status": status, "history": hist}
+
+    def _cmd_set_homework_mode(self, params: dict[str, Any]) -> dict[str, Any]:
+        username = str(params.get("username", "")).strip()
+        raw_payload = params.get("payload")
+        payload: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else {}
+        status = self._client.set_homework_mode(username, payload)
+        hist = self._safe_optional_call("get_usage_history", None, username, 30)
+        return {"status": status, "history": hist}
+
     def _cmd_lock_user(self, params: dict[str, Any]) -> dict[str, Any]:
         username = str(params.get("username", "")).strip()
         result = self._client.lock_user(username)
         status = self._client.get_user_status(username)
         return {"result": result, "status": status}
 
+    def _cmd_test_lock(self, params: dict[str, Any]) -> dict[str, Any]:
+        username = str(params.get("username", "")).strip()
+        return self._client.test_lock(username)
+
     def _cmd_grant_app_time(self, params: dict[str, Any]) -> dict[str, Any]:
         username = str(params.get("username", "")).strip()
         pattern = str(params.get("pattern", "")).strip()
         delta_seconds = int(params.get("delta_seconds", 900))
         return self._client.grant_app_time(username, pattern, delta_seconds)
+
+    def _cmd_grant_category_time(self, params: dict[str, Any]) -> dict[str, Any]:
+        username = str(params.get("username", "")).strip()
+        category = str(params.get("category", "")).strip()
+        delta_seconds = int(params.get("delta_seconds", 900))
+        return self._client.grant_category_time(username, category, delta_seconds)
+
+    def _cmd_list_time_requests(self, params: dict[str, Any]) -> dict[str, Any]:
+        status_flt = str(params.get("status", "pending") or "")
+        return {"requests": self._client.list_time_requests(status_filter=status_flt)}
+
+    def _cmd_resolve_time_request(self, params: dict[str, Any]) -> dict[str, Any]:
+        req_id = int(params.get("request_id", 0))
+        approve = bool(params.get("approve", True))
+        grant_sec = int(params.get("grant_seconds", 0))
+        note = str(params.get("note", "") or "")
+        res = self._client.resolve_time_request(req_id, approve, grant_sec, note)
+        pending = self._safe_optional_call("list_time_requests", [], "pending")
+        return {**res, "pending_requests": pending}
+
+    def _cmd_quick_approve_request(self, params: dict[str, Any]) -> dict[str, Any]:
+        req_id = int(params.get("request_id", 0))
+        grant_sec = int(params.get("grant_seconds", 0))
+        note = str(params.get("note", "") or "")
+        return self._client.quick_approve_request(req_id, grant_sec, note)
+
+    def _cmd_request_more_time(self, params: dict[str, Any]) -> dict[str, Any]:
+        req = self._client.request_more_time(
+            requested_sec=int(params.get("requested_sec", 900)),
+            kind=str(params.get("kind", "daily")),
+            target=str(params.get("target", "")),
+            target_label=str(params.get("target_label", "")),
+            reason=str(params.get("reason", "")),
+        )
+        mine = self._safe_optional_call("list_my_time_requests", [req])
+        return {"request": req, "my_requests": mine}
+
+    def _cmd_claim_save_grace(self, _params: dict[str, Any]) -> dict[str, Any]:
+        return self._client.claim_save_grace()
+
+    def _cmd_approve_with_parent_code(self, params: dict[str, Any]) -> dict[str, Any]:
+        res = self._client.approve_with_parent_code(params)
+        mine = self._safe_optional_call("list_my_time_requests", [])
+        return {**res, "my_requests": mine}
+
+    def _cmd_get_parent_code_status(self, _params: dict[str, Any]) -> dict[str, Any]:
+        return self._client.get_parent_code_status()
+
+    def _cmd_setup_parent_code(self, params: dict[str, Any]) -> dict[str, Any]:
+        return self._client.setup_parent_code(
+            enable=bool(params.get("enable", True)),
+            rotate=bool(params.get("rotate", False)),
+        )
+
+    def _cmd_list_user_apps(self, params: dict[str, Any]) -> dict[str, Any]:
+        username = str(params.get("username", "")).strip()
+        apps = self._safe_optional_call("list_installed_apps", None, username)
+        if apps is None:
+            apps = self._app_scanner()
+        return {"apps": apps}
+
+    def _cmd_complete_setup(self, params: dict[str, Any]) -> dict[str, Any]:
+        updated_users: dict[str, dict[str, Any]] = {}
+        policies = params.get("policies") or {}
+        if isinstance(policies, dict):
+            for uname, pol in policies.items():
+                if isinstance(pol, dict):
+                    updated_users[uname] = self._client.set_user_policy(uname, pol)
+        doctor = None
+        if params.get("apply_fix"):
+            fixed = self._client.apply_doctor_fix()
+            doctor = fixed.get("doctor")
+        cfg = self._client.get_daemon_config()
+        cfg["setup_completed"] = True
+        updated_cfg = self._client.set_daemon_config(cfg)
+        return {"users": updated_users, "config": updated_cfg, "doctor": doctor}
 
     def _cmd_apply_doctor_fix(self, _params: dict[str, Any]) -> dict[str, Any]:
         return self._client.apply_doctor_fix()
@@ -231,6 +380,7 @@ class UIBridge:
         return self._prefs.save(
             theme=params.get("theme"),
             accent=params.get("accent"),
+            time_format=params.get("time_format"),
         )
 
     def _cmd_scan_apps(self, _params: dict[str, Any]) -> dict[str, Any]:

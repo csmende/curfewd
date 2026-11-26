@@ -391,6 +391,50 @@ class TestScreenLockEnforcer(unittest.TestCase):
         ok = enforcer.enforce_session_lock(self._make_ctx("X-Cinnamon"))
         self.assertFalse(ok)
 
+    def test_cinnamon_passes_sanitized_lock_message_over_dbus_and_cli(self):
+        dbus_calls = []
+
+        def fake_dbus_runner(cmd, **kwargs):
+            dbus_calls.append(cmd)
+            if "org.cinnamon.ScreenSaver.Lock" in cmd:
+                return _proc_result(0, "()\n")
+            return _proc_result(1)
+
+        enforcer = screenlock.ScreenLockEnforcer(
+            runner=fake_dbus_runner,
+            which_fn=lambda n: f"/usr/bin/{n}",
+            sleep_fn=lambda _s: None,
+        )
+        ok, method = enforcer.invoke_backend_lock(
+            self._make_ctx("X-Cinnamon"),
+            screenlock.BACKENDS["cinnamon"],
+            lock_message="Curfew time!\n\x07  Back at 08:00 tomorrow",
+        )
+        self.assertTrue(ok)
+        self.assertEqual(method, "dbus:org.cinnamon.ScreenSaver")
+        self.assertIn("--", dbus_calls[0])
+        self.assertEqual(dbus_calls[0][-1], "Curfew time! Back at 08:00 tomorrow")
+
+        cli_calls = []
+
+        def fake_cli_runner(cmd, **kwargs):
+            cli_calls.append(cmd)
+            return _proc_result(0)
+
+        cli_enforcer = screenlock.ScreenLockEnforcer(
+            runner=fake_cli_runner,
+            which_fn=lambda n: None if n == "gdbus" else f"/usr/bin/{n}",
+            sleep_fn=lambda _s: None,
+        )
+        ok2, method2 = cli_enforcer.invoke_backend_lock(
+            self._make_ctx("X-Cinnamon"),
+            screenlock.BACKENDS["cinnamon"],
+            lock_message="Screen time finished for today",
+        )
+        self.assertTrue(ok2)
+        self.assertEqual(method2, "cli:cinnamon-screensaver-command")
+        self.assertIn("--away-message=Screen time finished for today", cli_calls[0])
+
 
 class TestLiveDBusIntegration(unittest.TestCase):
     """End-to-end wire test against a real ephemeral dbus-daemon using real /usr/bin/gdbus."""

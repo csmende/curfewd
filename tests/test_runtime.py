@@ -200,6 +200,62 @@ class TestEnforcementRuntime(unittest.TestCase):
             self.assertFalse(store.load_user_policy("alice").pause.active)
             self.assertEqual(sess_mon.lockout_actions, [("lock", "alice")])
 
+    def test_time_requests_parent_code_walkup_and_save_grace(self):
+        import time as _time
+
+        from curfewd.auth_code import compute_totp
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AtomicJsonStore(
+                config_dir=os.path.join(tmp, "etc"),
+                state_dir=os.path.join(tmp, "var"),
+            )
+            store.ensure_dirs()
+            store.save_user_policy(
+                UserPolicy(
+                    username="alice",
+                    daily_limits=dict.fromkeys(WEEKDAYS, 3600),
+                    curfew_windows={d: [TimeWindow("08:00", "21:00")] for d in WEEKDAYS},
+                )
+            )
+            req_events: list[tuple[str, dict]] = []
+            with HistoryStore(os.path.join(tmp, "var", "history.db")) as hist:
+                rt = EnforcementRuntime(
+                    store=store,
+                    history=hist,
+                    session_monitor=_StubSessionMonitor("alice"),
+                    now_fn=lambda: datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc),
+                    on_time_request_updated=lambda u, r: req_events.append((u, r)),
+                )
+                # Upgraded install with existing policy auto-skips First-Run Setup Wizard
+                self.assertTrue(rt.config.setup_completed)
+
+                # Rate-limited kid requests (max 3 per 10m window)
+                r1 = rt.request_more_time("alice", {"requested_sec": 900, "reason": "homework"})
+                rt.request_more_time("alice", {"requested_sec": 900})
+                rt.request_more_time("alice", {"requested_sec": 900})
+                with self.assertRaises(ValueError):
+                    rt.request_more_time("alice", {"requested_sec": 900})
+                self.assertEqual(len(req_events), 3)
+
+                # Enroll offline TOTP Parent Access Code & approve r1 walk-up
+                enrolled = rt.parent_code.setup(enable=True, account="test-host")
+                step = int(_time.time() // 30)
+                code = compute_totp(enrolled["secret_b32"], step=step)
+                res = rt.approve_with_parent_code("alice", {"code": code, "request_id": r1["id"]})
+                self.assertEqual(res["request"]["status"], "approved")
+                self.assertEqual(res["status"]["bonus_today"], 900)
+
+                # Claim one-time-per-day 2-minute Save Grace (requires <= 60s remaining)
+                with self.assertRaises(ValueError):
+                    rt.claim_save_grace("alice")
+                rt.grant_time("alice", 30, mode="set", actor="parent")
+                grace = rt.claim_save_grace("alice")
+                self.assertEqual(grace["granted_sec"], 120)
+                self.assertTrue(grace["status"]["save_grace"]["active"])
+                with self.assertRaises(ValueError):
+                    rt.claim_save_grace("alice")
+
 
 if __name__ == "__main__":
     unittest.main()

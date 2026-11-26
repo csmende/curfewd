@@ -1,0 +1,14 @@
+[Unit]
+Description=curfewd desktop tray, countdown HUD & notification companion
+Documentation=https://github.com/csmende/curfewd
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/curfewd-tray
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical-session.target

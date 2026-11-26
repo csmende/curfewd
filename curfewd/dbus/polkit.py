@@ -30,11 +30,15 @@ class PolkitAuthorizer:
         admin_group: str = DEFAULT_ADMIN_GROUP,
         polkit_checker: Callable[[str, str, int], bool] | None = None,
         allow_same_uid_testing: bool = False,
+        polkit_timeout_sec: int = 120,
     ) -> None:
         self._bus = bus
         self._admin_group = admin_group
         self._polkit_checker = polkit_checker
         self._allow_same_uid_testing = allow_same_uid_testing
+        self._polkit_timeout_sec = max(15, int(polkit_timeout_sec))
+        self._inflight_cancel_ids: dict[int, str] = {}
+        self._cancel_seq = 0
 
     def resolve_sender_uid(self, sender: str) -> int:
         """Resolve a D-Bus unique sender name (e.g. ':1.42') to its real Unix UID."""
@@ -69,6 +73,29 @@ class PolkitAuthorizer:
         except KeyError:
             return False
 
+    def _fast_path_decision(
+        self, sender: str, action_id: str, uid: int, username: str
+    ) -> bool | None:
+        """Return True/False if decided synchronously without Polkit IPC, else None."""
+        if self._polkit_checker is not None:
+            return bool(self._polkit_checker(sender, action_id, uid))
+        if uid == 0 or self._is_in_admin_group(uid, username):
+            return True
+        if self._allow_same_uid_testing:
+            import os
+
+            if uid == os.geteuid():
+                return True
+        return None
+
+    def _denied_error(self, action_id: str, uid: int) -> AuthorizationError:
+        if self._polkit_checker is not None:
+            return AuthorizationError(f"Not authorized for {action_id} (uid={uid})")
+        return AuthorizationError(
+            f"Permission denied for {action_id}. Authenticate via Polkit, run with sudo, "
+            f"or join the '{self._admin_group}' group."
+        )
+
     def _check_polkit(self, sender: str, action_id: str) -> bool:
         import dbus
 
@@ -76,37 +103,25 @@ class PolkitAuthorizer:
         authority = dbus.Interface(proxy, _POLKIT_IF)
         subject = ("system-bus-name", {"name": dbus.String(sender)})
         details = dbus.Dictionary({}, signature="ss")
-        # flags=1 (AllowUserInteraction) enables desktop auth prompts for unprivileged UIs
         is_authorized, _is_challenge, _details = authority.CheckAuthorization(
             subject,
             action_id,
             details,
             dbus.UInt32(1),
             "",
+            timeout=self._polkit_timeout_sec,
         )
         return bool(is_authorized)
 
     def authorize(self, sender: str, action_id: str) -> tuple[int, str]:
         """Verify caller is authorized for action_id; return (uid, username) or raise."""
         uid, username = self.resolve_sender_user(sender)
-
-        # Injected Polkit checker (used in tests) takes priority so deny paths can be tested cleanly.
-        if self._polkit_checker is not None:
-            if self._polkit_checker(sender, action_id, uid):
-                return uid, username
-            raise AuthorizationError(f"Not authorized for {action_id} (uid={uid})")
-
-        # Fast path: root or member of curfewd admin group
-        if uid == 0 or self._is_in_admin_group(uid, username):
+        fast = self._fast_path_decision(sender, action_id, uid, username)
+        if fast is True:
             return uid, username
+        if fast is False:
+            raise self._denied_error(action_id, uid)
 
-        if self._allow_same_uid_testing:
-            import os
-
-            if uid == os.geteuid():
-                return uid, username
-
-        # Unprivileged desktop caller: delegate to Polkit Authority
         try:
             if self._check_polkit(sender, action_id):
                 return uid, username
@@ -115,7 +130,87 @@ class PolkitAuthorizer:
                 "Polkit CheckAuthorization(%s) failed for uid=%d: %s", action_id, uid, exc
             )
 
-        raise AuthorizationError(
-            f"Permission denied for {action_id}. Authenticate via Polkit, run with sudo, "
-            f"or join the '{self._admin_group}' group."
-        )
+        raise self._denied_error(action_id, uid)
+
+    def authorize_async(
+        self,
+        sender: str,
+        action_id: str,
+        on_ok: Callable[[int, str], None],
+        on_err: Callable[[AuthorizationError], None],
+    ) -> None:
+        """Non-blocking Polkit authorization on the GLib main loop with per-UID prompt cap."""
+        try:
+            uid, username = self.resolve_sender_user(sender)
+        except AuthorizationError as exc:
+            on_err(exc)
+            return
+
+        fast = self._fast_path_decision(sender, action_id, uid, username)
+        if fast is True:
+            on_ok(uid, username)
+            return
+        if fast is False:
+            on_err(self._denied_error(action_id, uid))
+            return
+
+        import dbus
+
+        try:
+            proxy = self._bus.get_object(_POLKIT_BUS, _POLKIT_PATH)
+            authority = dbus.Interface(proxy, _POLKIT_IF)
+            prev_cid = self._inflight_cancel_ids.pop(uid, None)
+            if prev_cid:
+                try:
+                    authority.CancelCheckAuthorization(
+                        prev_cid,
+                        reply_handler=lambda *_a: None,
+                        error_handler=lambda *_a: None,
+                    )
+                except Exception:
+                    logger.debug("Ignoring CancelCheckAuthorization error for %s", prev_cid)
+
+            self._cancel_seq += 1
+            cancel_id = f"curfewd-{uid}-{self._cancel_seq}"
+            self._inflight_cancel_ids[uid] = cancel_id
+            subject = ("system-bus-name", {"name": dbus.String(sender)})
+            details = dbus.Dictionary({}, signature="ss")
+
+            def _on_reply(result) -> None:
+                if self._inflight_cancel_ids.get(uid) == cancel_id:
+                    self._inflight_cancel_ids.pop(uid, None)
+                is_auth = bool(result[0]) if result else False
+                if is_auth:
+                    on_ok(uid, username)
+                else:
+                    on_err(self._denied_error(action_id, uid))
+
+            def _on_dbus_err(exc) -> None:
+                if self._inflight_cancel_ids.get(uid) == cancel_id:
+                    self._inflight_cancel_ids.pop(uid, None)
+                logger.warning(
+                    "Async Polkit CheckAuthorization(%s) failed for uid=%d: %s",
+                    action_id,
+                    uid,
+                    exc,
+                )
+                on_err(self._denied_error(action_id, uid))
+
+            authority.CheckAuthorization(
+                subject,
+                action_id,
+                details,
+                dbus.UInt32(1),
+                cancel_id,
+                timeout=self._polkit_timeout_sec,
+                reply_handler=_on_reply,
+                error_handler=_on_dbus_err,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Async Polkit CheckAuthorization(%s) dispatch failed for uid=%d: %s",
+                action_id,
+                uid,
+                exc,
+            )
+            on_err(self._denied_error(action_id, uid))

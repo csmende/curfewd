@@ -3,6 +3,22 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
+## [2.0.0] - 2026-11-26
+
+Family ergonomics, fair enforcement, Ask for More Time + offline Parent Access Code, Homework Mode, smart app intelligence, and multi-DE hardening (**Spec 006**, **Schema v3**).
+
+### Added
+- **Tactical Parent Controls & UI Parity:** 1-click `+15m`, `+30m`, and positive-note **Bonus** grants, **Pause / Resume**, **Homework Mode**, **Today Override** reset badge, **Weekly/Monthly Caps**, **Holidays & Vacation Overrides**, and an inline **Recent Activity** timeline in `curfewd-ui`.
+- **Ask for More Time & Walk-Up Parent Approval:** Kid-initiated time requests from `curfewd-tray` and `My Screen Time`, an **Offline 6-Digit Parent Access Code (RFC 6238 TOTP)** with 100% offline SVG QR enrollment (`curfewd/auth_code.py`, brute-force rate limit + single-use anti-replay), and a non-cached `org.curfewd.quick_grant` (`auth_admin`) Polkit action closing the shared-session `auth_admin_keep` cliff.
+- **Kid-Side Fairness & Anti-Rage UX:** Advance per-app & category warnings (`10m`/`5m`/`1m`) before termination, `logind IdleHint` + tray idle-pause accounting (`idle_pause_sec = 300`), informative Cinnamon lock-screen away messages, optional audio chimes and a non-focus-stealing 60s corner Countdown HUD (`curfewd/tray/hud.py`), one-time-per-day **2-Minute Save Grace**, and **Homework Mode** (pauses daily countdown while blocking Gaming/Social).
+- **Schedule Polish & First-Run Setup Wizard:** 3-way schedule mode (*Every Day / School Days & Weekends / Custom*), lossless multi-window split timelines (`+ Break` / `Block`), `Copy day`, Managed Child vs. Parent account roles, locale-aware 12h/24h time format, and a 60-second First-Run Setup Wizard (auto-skipped on existing v1.x upgrades).
+- **App Intelligence & Multi-DE Parity:** Single-pass `/proc` Flatpak cgroup, Steam `SteamAppId`, process ancestry, and optional foreground-window matching; shared **Category Budgets** + `0m` Always Blocked + weekend app limits; SQLite `daily_app_usage` rollups powering **Top Apps Used** with 1-click *Set Limit*; target-user home `.desktop` app scanning; KDE Plasma Kiosk & XFCE `doctor --fix` hardening; Wayland-aware System Health + `TestLock`; and a self-healing `systemd --user` unit (`curfewd-tray.service`).
+- **CLI Parity (`curfewctl`):** Added `--note` to `grant`, plus `role`, `homework`, `holiday`, `requests`, `parent-code`, `insights`, `test-lock`, and `app-limits category`.
+
+### Fixed
+- **UI Live Updates & Slider/Modal Polish:** Replaced full 3-second `#root.innerHTML` re-renders with surgical `patchLiveStatusDOM()`, fixed App Limit slider `oninput` DOM teardown during drags, fixed Add-App modal search resetting the limit dropdown, and stopped `extractRange()` from collapsing split multi-window schedules.
+- **Backward Clock-Jump Guard:** `rollover_state()` now rolls counters forward only (`date_str > state.date`), preventing dual-boot UTC drift or BIOS rollbacks from resetting `spent_today`.
+
 ## [1.2.0] - 2026-11-26
 
 Architectural modularization, non-blocking async admin D-Bus RPCs, single-pass enforcement runtime, runtime bug fixes, and automated Ruff/Mypy quality gates (**Spec 005**).

@@ -1,5 +1,6 @@
 """systemd-logind session monitor, desktop user discovery, and lockout actions."""
 
+import grp
 import logging
 import os
 import pwd
@@ -87,6 +88,27 @@ def lookup_user_record(username: str) -> dict[str, Any] | None:
         "full_name": gecos or entry.pw_name,
         "home_dir": entry.pw_dir,
     }
+
+
+_ADMIN_GROUPS = ("sudo", "wheel", "admin", "curfewd")
+
+
+def is_system_admin_user(username: str) -> bool:
+    """Return True if username belongs to a local administrator group (sudo/wheel/admin/curfewd)."""
+    try:
+        pw = pwd.getpwnam(username)
+    except KeyError:
+        return False
+    if pw.pw_uid == 0:
+        return True
+    for gname in _ADMIN_GROUPS:
+        try:
+            g = grp.getgrnam(gname)
+        except KeyError:
+            continue
+        if username in g.gr_mem or pw.pw_gid == g.gr_gid:
+            return True
+    return False
 
 
 class LogindSessionMonitor:
@@ -187,6 +209,7 @@ class LogindSessionMonitor:
                 desktop=s.get("desktop", ""),
                 active=bool(s.get("active", False)),
                 locked=bool(s.get("locked", False)),
+                idle=bool(s.get("idle", False)),
                 display=s.get("display", ""),
                 leader_pid=int(s.get("leader_pid", 0)),
             ).to_dict()
@@ -223,6 +246,7 @@ class LogindSessionMonitor:
         self,
         contexts: list[SessionContext],
         config: DaemonConfig,
+        lock_message: str = "",
     ) -> list[LockResult]:
         """Worker-safe phase: run Layers 2-3 privilege-dropped lock verification (no SystemBus)."""
         results: list[LockResult] = []
@@ -231,6 +255,7 @@ class LogindSessionMonitor:
                 res = self._screenlock.enforce_session_lock_detailed(
                     ctx,
                     release_x11_grab=config.release_x11_grab_on_lock,
+                    lock_message=lock_message,
                 )
                 results.append(res)
             else:
@@ -251,6 +276,7 @@ class LogindSessionMonitor:
         sessions: list[dict[str, Any]],
         config: DaemonConfig,
         async_mode: bool = True,
+        lock_message: str = "",
     ) -> list[LockResult]:
         """Invoke Layer 1 logind LockSession + Layers 2-3 verified multi-DE lock."""
         contexts = self.prepare_session_locks(sessions)
@@ -260,9 +286,10 @@ class LogindSessionMonitor:
                     self._screenlock.enforce_session_lock_async(
                         ctx,
                         release_x11_grab=config.release_x11_grab_on_lock,
+                        lock_message=lock_message,
                     )
             return []
-        return self.execute_fallback_locks(contexts, config)
+        return self.execute_fallback_locks(contexts, config, lock_message=lock_message)
 
     def enforce_lockout_action(
         self,
@@ -271,14 +298,15 @@ class LogindSessionMonitor:
         uid: int | None,
         sessions: list[dict[str, Any]],
         config: DaemonConfig,
+        lock_message: str = "",
     ) -> None:
         """Execute the configured lockout action ('lock', 'suspend', 'terminate', 'kill', 'shutdown')."""
         mgr = self._get_manager()
         if action == "lock":
-            self.lock_user_sessions(sessions, config, async_mode=True)
+            self.lock_user_sessions(sessions, config, async_mode=True, lock_message=lock_message)
             return
         if action == "suspend":
-            self.lock_user_sessions(sessions, config, async_mode=True)
+            self.lock_user_sessions(sessions, config, async_mode=True, lock_message=lock_message)
             if mgr is not None:
                 try:
                     mgr.Suspend(False)

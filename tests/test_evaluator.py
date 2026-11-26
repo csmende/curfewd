@@ -303,6 +303,127 @@ class TestPolicyEvaluator(unittest.TestCase):
         res2 = evaluate_tick(pol, st, cfg, t2, elapsed_sec=3, is_active=True, screen_locked=False)
         self.assertEqual(res2.crossed_warnings, [])
 
+    def test_per_app_and_category_advance_warnings_before_expiration(self):
+        from curfewd.models import CategoryLimitRule
+
+        cfg = DaemonConfig(app_limits_enabled=True, app_warning_thresholds_sec=[300, 60])
+        pol = _make_restricted_policy(7200)
+        pol.app_limits = AppLimitsPolicy(
+            enabled=True,
+            apps=[AppLimitRule("steam", "Steam", daily_limit_sec=600, category="Gaming")],
+            category_limits=[CategoryLimitRule("Gaming", daily_limit_sec=900)],
+        )
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            app_spent_today={"steam": 298},
+            category_spent_today={"Gaming": 838},
+        )
+        now = datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc)
+        res = evaluate_tick(
+            pol,
+            st,
+            cfg,
+            now,
+            elapsed_sec=3,
+            is_active=True,
+            screen_locked=False,
+            running_app_patterns=["steam"],
+            running_categories=["Gaming"],
+        )
+        kinds = {(w["kind"], w["threshold_sec"]) for w in res.crossed_app_warnings}
+        self.assertIn(("app_warning", 300), kinds)
+        self.assertIn(("category_warning", 60), kinds)
+        self.assertFalse(res.app_limits_should_kill)
+
+    def test_idle_pause_backward_clock_guard_homework_holiday_and_save_grace(self):
+        from curfewd.engine.evaluator import apply_save_grace
+        from curfewd.models import HolidayOverride, HomeworkModeState
+
+        cfg = DaemonConfig(idle_pause_sec=300, final_countdown_sec=15)
+        pol = _make_restricted_policy(3600)
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            spent_today=1200,
+            spent_balance=1200,
+        )
+        now = datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc)
+
+        # Idle pauses accounting unless track_inactive is enabled
+        res_idle = evaluate_tick(
+            pol, st, cfg, now, elapsed_sec=10, is_active=True, screen_locked=False, is_idle=True
+        )
+        self.assertTrue(res_idle.idle_paused)
+        self.assertEqual(res_idle.active_delta, 0)
+        self.assertEqual(st.spent_today, 1200)
+
+        # Backward clock jump does NOT wipe spent_today
+        rolled_back = rollover_state(st, datetime(2026, 11, 24, 16, 0, tzinfo=timezone.utc))
+        self.assertFalse(rolled_back)
+        self.assertEqual(st.spent_today, 1200)
+
+        # Homework mode pauses main clock while flagging Gaming as blocked
+        pol.homework_mode = HomeworkModeState(active=True, mode="indefinite")
+        pol.app_limits = AppLimitsPolicy(
+            enabled=True,
+            apps=[
+                AppLimitRule("steam", "Steam", daily_limit_sec=3600, category="Gaming"),
+                AppLimitRule(
+                    "code",
+                    "VS Code",
+                    daily_limit_sec=3600,
+                    category="Productivity",
+                    always_allowed=True,
+                ),
+            ],
+        )
+        res_hw = evaluate_tick(
+            pol,
+            st,
+            cfg,
+            now,
+            elapsed_sec=10,
+            is_active=True,
+            screen_locked=False,
+            running_app_patterns=["steam", "code"],
+            running_categories=["Gaming", "Productivity"],
+        )
+        self.assertEqual(res_hw.enforcement_state, "homework")
+        self.assertEqual(st.spent_today, 1200)
+        self.assertIn("steam", res_hw.expired_app_patterns)
+        self.assertNotIn("code", res_hw.expired_app_patterns)
+
+        # Holiday weekend override applies Saturday's schedule on a Wednesday
+        pol.homework_mode = HomeworkModeState(active=False)
+        pol.daily_limits["sat"] = 7200
+        pol.holidays = [
+            HolidayOverride(start_date="2026-11-25", end_date="2026-11-26", mode="weekend")
+        ]
+        res_hol = evaluate_tick(
+            pol, st, cfg, now, elapsed_sec=0, is_active=True, screen_locked=False
+        )
+        self.assertEqual(res_hol.daily_limit_today, 7200)
+        self.assertIsNotNone(res_hol.active_holiday)
+
+        # Save grace defers lockout for 120s and can only be claimed once per day
+        pol.holidays = []
+        st.spent_balance = 3600
+        grace = apply_save_grace(pol, st, now)
+        self.assertEqual(grace["granted_sec"], 120)
+        res_grace = evaluate_tick(
+            pol, st, cfg, now, elapsed_sec=0, is_active=True, screen_locked=False
+        )
+        self.assertTrue(res_grace.save_grace_active)
+        self.assertFalse(res_grace.should_enforce)
+        self.assertEqual(res_grace.enforcement_state, "countdown")
+        with self.assertRaises(ValueError):
+            apply_save_grace(pol, st, now)
+
 
 if __name__ == "__main__":
     unittest.main()

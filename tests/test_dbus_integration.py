@@ -1,5 +1,6 @@
 """Live ephemeral D-Bus integration tests for org.curfewd.Daemon1, Polkit, sender-UID, and tray auto-reconnect."""
 
+import contextlib
 import getpass
 import json
 import os
@@ -12,7 +13,7 @@ import unittest
 from datetime import datetime, timezone
 
 import dbus
-from dbus.mainloop.glib import DBusGMainLoop
+from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from gi.repository import GLib
 
 from curfewd.dbus.client import (
@@ -118,6 +119,7 @@ class _RecordingNotifier(DesktopNotifier):
 @unittest.skipUnless(shutil.which("dbus-daemon"), "dbus-daemon required for live D-Bus tests")
 class TestLiveDaemonDBusIntegration(unittest.TestCase):
     def setUp(self) -> None:
+        threads_init()
         DBusGMainLoop(set_as_default=True)
         self._tmpdir = tempfile.TemporaryDirectory()
         self._bus_proc = subprocess.Popen(
@@ -177,7 +179,14 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         return {"applied": True, "files": [], "dconf_updated": True, "detail": "stub ok"}
 
     def tearDown(self) -> None:
-        GLib.idle_add(self._loop.quit)
+        def _stop() -> bool:
+            with contextlib.suppress(Exception):
+                self._service.remove_from_connection()
+            self._service._bus_name = None
+            self._loop.quit()
+            return False
+
+        GLib.idle_add(_stop)
         self._thread.join(timeout=3.0)
         self._service.shutdown()
         self._history.close()
@@ -188,6 +197,10 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
             self._bus_proc.wait(timeout=3.0)
         except subprocess.TimeoutExpired:
             self._bus_proc.kill()
+        if self._bus_proc.stdout:
+            self._bus_proc.stdout.close()
+        if self._bus_proc.stderr:
+            self._bus_proc.stderr.close()
         self._tmpdir.cleanup()
 
     def test_admin_crud_grant_pause_resume_lock_history_doctor(self):
@@ -459,6 +472,66 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self.assertEqual(len(self._config_reloads), 1)
         self.assertEqual(self._config_reloads[0].poll_interval_sec, 5)
         self.assertEqual(self._config_reloads[0].log_level, "DEBUG")
+
+    def test_spec006_dbus_requests_parent_code_homework_telemetry_and_async_rpcs(self):
+        from curfewd.auth_code import compute_totp
+
+        # Grant with positive note
+        g = self._client.grant_time(self._current_user, 900, mode="add", note="Cleaned room")
+        self.assertEqual(g["note"], "Cleaned room")
+        self.assertEqual(g["status"]["last_bonus_note"], "Cleaned room")
+
+        # Homework Mode toggle
+        hw_on = self._client.set_homework_mode(
+            self._current_user, {"active": True, "mode": "indefinite", "reason": "math"}
+        )
+        self.assertEqual(hw_on["enforcement_state"], "homework")
+        hw_off = self._client.set_homework_mode(self._current_user, {"active": False})
+        self.assertNotEqual(hw_off["enforcement_state"], "homework")
+
+        # Unprivileged client: RequestMoreTime + ListMyTimeRequests + ClaimSaveGrace work even when Polkit denies admin
+        self._client.grant_time(self._current_user, 30, mode="set")
+        self._allow_polkit = False
+        req = self._client.request_more_time(900, kind="daily", reason="finishing quiz")
+        self.assertEqual(req["status"], "pending")
+        self.assertEqual(len(self._client.list_my_time_requests()), 1)
+        grace = self._client.claim_save_grace()
+        self.assertEqual(grace["granted_sec"], 120)
+
+        # ReportClientTelemetry validates CSPRNG nonce and updates telemetry for owned PID
+        my_pid = os.getpid()
+        self._service._pending_nonces[self._current_user] = "telemetry-nonce-xyz"
+        self.assertTrue(
+            self._client.report_client_telemetry(
+                "telemetry-nonce-xyz",
+                {"screensaver_active": False, "idle_sec": 45, "active_window_pid": my_pid},
+            )
+        )
+        self.assertEqual(self._service._runtime._tray_active_pid[self._current_user], my_pid)
+
+        # Admin sets up offline TOTP Parent Access Code, then unprivileged client approves walk-up with 6-digit code
+        self._allow_polkit = True
+        pc = self._client.setup_parent_code(enable=True, rotate=False)
+        self.assertTrue(pc["enabled"])
+        self.assertIn("<svg", pc["qr_svg"])
+        self.assertNotIn("secret_b32", self._client.get_parent_code_status())
+
+        self._allow_polkit = False
+        code = compute_totp(pc["secret_b32"], step=int(time.time() // 30))
+        approved = self._client.approve_with_parent_code({"code": code, "request_id": req["id"]})
+        self.assertEqual(approved["request"]["status"], "approved")
+
+        # Admin async ListInstalledApps & TestLock + QuickApproveRequest
+        self._allow_polkit = True
+        apps = self._client.list_installed_apps(self._current_user)
+        self.assertIsInstance(apps, list)
+        tlock = self._client.test_lock(self._current_user)
+        self.assertTrue(tlock["locked"])
+        self.assertTrue(tlock["verified"])
+
+        req2 = self._client.request_more_time(900, kind="daily", reason="extra")
+        q = self._client.quick_approve_request(req2["id"], 900, "ok")
+        self.assertEqual(q["request"]["status"], "approved")
 
 
 if __name__ == "__main__":

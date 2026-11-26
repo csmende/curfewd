@@ -36,4 +36,14 @@
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
+
+  <action id="org.curfewd.quick_grant">
+    <description>Single-use walk-up approval for extra screen time</description>
+    <message>Administrator password is required once to approve extra screen time</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
 </policyconfig>

@@ -26,6 +26,11 @@
     <binary>curfewctl</binary>
   </provides>
   <releases>
+    <release version="2.0.0" date="2026-11-26">
+      <description>
+        <p>Spec 006 major release: Ask for More Time with offline TOTP Parent Access Code QR enrollment and non-cached walk-up approval, Homework Mode, 2-minute Save Grace, per-app and category advance warnings, audio chimes and 60s countdown HUD, IdleHint pause, multi-window 3-way schedules and Holidays, Top Apps passive usage insights, Flatpak/Steam/foreground matching, KDE/XFCE lock hardening, and Wayland-aware System Health.</p>
+      </description>
+    </release>
     <release version="1.2.0" date="2026-11-26">
       <description>
         <p>Spec 005 architectural refactor: non-blocking async LockUser and Doctor D-Bus RPCs, single-pass EnforcementRuntime, live daemon config reload, modular offline Material Design 3 UI scripts, curfew warning and app-scanner fixes, and persistent SQLite WAL connection management.</p>
