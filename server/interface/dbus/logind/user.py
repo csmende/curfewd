@@ -171,9 +171,8 @@ class timekprUserManager(object):
                         # state used
                         self._sessionLockedStateAvailable = True
                         log.log(cons.TK_LOG_LEVEL_INFO, "INFO: session locked state is available for user \"%s\" and will be used for idle state detection (if it works correctly)" % (self._userName))
-                except:
-                    # nothing
-                    pass
+                except (dbus.DBusException, KeyError, StopIteration, ValueError) as exc:
+                    log.log(cons.TK_LOG_LEVEL_DEBUG, "LockedHint probe unavailable for user \"%s\": %s" % (self._userName, exc))
             else:
                 # locked state will not be used
                 self._sessionLockedStateAvailable = False

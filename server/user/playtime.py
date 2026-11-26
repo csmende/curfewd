@@ -359,7 +359,7 @@ class timekprPlayTimeConfig(object):
                 log.log(cons.TK_LOG_LEVEL_WARN, "sending kill signal to process %s" % (pPid))
                 # kill
                 psutil.Process(pid=int(pPid)).kill()
-        except:
+        except (psutil.Error, OSError, ValueError):
             # error in killing does not matter
             pass
 

@@ -19,7 +19,7 @@ from dataclasses import dataclass
 import os
 import pwd
 import shutil
-import subprocess
+import subprocess  # nosec B404 - privilege-dropped, trusted-PATH, list-argv helpers only
 import threading
 import time
 
@@ -215,11 +215,8 @@ def read_proc_environ(pid, proc_root="/proc"):
         if b"=" not in entry:
             continue
         k_bytes, v_bytes = entry.split(b"=", 1)
-        try:
-            key = k_bytes.decode("utf-8", errors="ignore")
-            val = v_bytes.decode("utf-8", errors="ignore")
-        except Exception:
-            continue
+        key = k_bytes.decode("utf-8", errors="ignore")
+        val = v_bytes.decode("utf-8", errors="ignore")
         if key in _SAFE_SESSION_ENV_KEYS and val:
             env[key] = val
     return env

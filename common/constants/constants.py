@@ -11,6 +11,7 @@ from timekpr.common.constants import messages as msg
 import dbus
 import locale
 import gettext
+import tempfile
 from datetime import datetime
 
 # ## constants ##
@@ -52,8 +53,8 @@ TK_LOG_L = "lvl"
 TK_LOG_D = "dir"
 TK_LOG_W = "who"
 TK_LOG_U = "user"
-TK_LOG_TEMP_DIR = "/tmp"
-TK_LOG_PID_DIRS = [ "$XDG_RUNTIME_DIR", "/var/run", "/run", "/tmp" ]
+TK_LOG_TEMP_DIR = tempfile.gettempdir()
+TK_LOG_PID_DIRS = [ "$XDG_RUNTIME_DIR", "/var/run", "/run", TK_LOG_TEMP_DIR ]
 TK_LOG_PID_EXT = "pid"
 # logging clients
 TK_LOG_OWNER_SRV = 0

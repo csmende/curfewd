@@ -309,7 +309,7 @@ def getTranslation(s, n=None, e=None):
             try:
                 resultCode = _messages[s]["e"]
                 resultMessage = _translatePlural(_messages[s]["s"], _messages[s]["p"], n) % {"n": n}
-            except Exception:
+            except (KeyError, TypeError, ValueError):
                 pass
         # if translation was not plural or plural failed
         if resultMessage is None:

@@ -60,7 +60,7 @@ class timekprSpeech(object):
                 lang = locale.getlocale()[0].split("_")[0]
             elif _USE_SPEECH_NG:
                 lang = locale.getlocale()[0].replace("_", "-").lower()
-        except Exception:
+        except (AttributeError, IndexError, TypeError, ValueError, locale.Error):
             pass
         # result
         return lang

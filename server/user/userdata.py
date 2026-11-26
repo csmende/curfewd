@@ -6,7 +6,8 @@ Created on Aug 28, 2018
 
 # import section
 from datetime import datetime, timedelta, timezone
-import random
+import hmac
+import secrets
 import string
 import math
 
@@ -805,8 +806,8 @@ class timekprUser(object):
             if pKey == "":
                 # logging
                 log.log(cons.TK_LOG_LEVEL_INFO, "session attributes request: %s" % (pWhat))
-                # generate random key
-                self._timekprUserData[cons.TK_CTRL_SCR_K] = "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+                # generate cryptographically random key
+                self._timekprUserData[cons.TK_CTRL_SCR_K] = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(16))
                 """
                 Clarification about re-validation.
                     Theoretically it's not that hard to fake these, if one desires. Just write a sofware that responds to requests.
@@ -820,7 +821,7 @@ class timekprUser(object):
                 # logging
                 log.log(cons.TK_LOG_LEVEL_INFO, "session attributes verify: %s,%s,%s" % (pWhat, "key", pValue))
                 # if verification is successful
-                if pKey == self._timekprUserData[cons.TK_CTRL_SCR_K]:
+                if hmac.compare_digest(str(pKey), str(self._timekprUserData[cons.TK_CTRL_SCR_K])):
                     # set up valid property
                     self._timekprUserData[cons.TK_CTRL_SCR_N] = True if str(pValue).lower() in ("true", "1") else False
                 # reset key anyway

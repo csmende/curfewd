@@ -134,6 +134,9 @@ def checkAndSetRunning(pAppName, pUserName=""):
 
     # determine the location to put pid/lock file in
     for rDir in cons.TK_LOG_PID_DIRS:
+        # never fall back to a shared temp directory when running as root
+        if os.geteuid() == 0 and rDir == cons.TK_LOG_TEMP_DIR:
+            continue
         # if path is variable, let's get it
         if rDir.startswith("$"):
             # get location
@@ -149,31 +152,43 @@ def checkAndSetRunning(pAppName, pUserName=""):
         try:
             with tempfile.TemporaryFile(dir=pidFile):
                 pass
-        except Exception:
+        except OSError:
             continue
 
         # assemble the final
         pidFile = os.path.join(pidFile, pidFileName)
 
-        # try to get the lock on the file
+        # try to get the lock on the file without following symlinks or truncating before locking
+        lockFlags = os.O_WRONLY | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+        lockMode = 0o600 if pUserName != "" else 0o644
+        candidateLock = None
         try:
-            # file
-            _LOCK_FILE = open(pidFile, "w")
-            # try lock
-            fcntl.flock(_LOCK_FILE, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fd = os.open(pidFile, lockFlags, lockMode)
+            candidateLock = os.fdopen(fd, "w")
+            # try lock before modifying file contents
+            fcntl.flock(candidateLock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            candidateLock.truncate(0)
             # write pid to it (not needed rly, but still)
-            _LOCK_FILE.write(str(os.getpid()))
+            candidateLock.write(str(os.getpid()))
             # write
-            _LOCK_FILE.flush()
+            candidateLock.flush()
+            _LOCK_FILE = candidateLock
             # msg
             log.log(cons.TK_LOG_LEVEL_WARN, "pid file written to %s" % (pidFile))
         except BlockingIOError:
+            if candidateLock is not None:
+                candidateLock.close()
             # we are running
             isAlreadyRunning = True
             # print this to console as well
             log.log(cons.TK_LOG_LEVEL_WARN, "Timekpr-nExT \"%s\" is already running for user \"%s\"" % (pAppName, pUserName if pUserName != "" else "root"))
             if pUserName != "":
                 print("Timekpr-nExT \"%s\" is already running for user \"%s\"" % (pAppName, pUserName if pUserName != "" else "root"))
+        except OSError as exc:
+            if candidateLock is not None:
+                candidateLock.close()
+            log.log(cons.TK_LOG_LEVEL_WARN, "WARNING: skipping unsafe/unwritable pid file %s: %s" % (pidFile, exc))
+            continue
 
         # fin
         break

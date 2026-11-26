@@ -31,7 +31,7 @@ if _LOG_FACILITY > cons.TK_LOG_FACILITY_TKL:
         # journald
         if _LOG_FACILITY > cons.TK_LOG_FACILITY_PYL:
             from systemd.journal import JournalHandler
-    except:
+    except ImportError:
         _LOG_FACILITY = cons.TK_LOG_FACILITY_TKL
 
 
@@ -171,8 +171,10 @@ def _flushLogFile():
         try:
             # timekpr logging
             if _LOG_FACILITY < cons.TK_LOG_FACILITY_PYL:
-                # open log file
-                with open(_LOG_FILE, "a") as logFile:
+                # open log file without following symlinks
+                logFlags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0)
+                fd = os.open(_LOG_FILE, logFlags, 0o640)
+                with os.fdopen(fd, "a") as logFile:
                     # loop
                     for rM in _LOG_BUFFER:
                         # write whole buffer to log file

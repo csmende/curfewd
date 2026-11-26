@@ -21,7 +21,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Bandit with SARIF formatter
         run: |
@@ -29,30 +29,20 @@ jobs:
           python3 -m pip install "bandit[sarif]"
 
       - name: Run Bandit across common, client, and server
-        id: bandit
-        continue-on-error: true
         run: |
           bandit -r common client server -f txt || true
-          bandit -r common client server -f sarif -o bandit.sarif -ll
-        # -ll exits non-zero only on Medium/High severity issues while writing full SARIF
-
-      - name: Ensure SARIF file exists for upload
-        if: always()
-        run: |
-          if [ ! -f bandit.sarif ]; then
-            bandit -r common client server -f sarif -o bandit.sarif || true
-          fi
+          bandit -r common client server -f sarif -o bandit.sarif || true
 
       - name: Upload Bandit SARIF to GitHub Code Scanning
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: bandit.sarif
           category: bandit
 
-      - name: Fail if Bandit reported High-severity findings
+      - name: Fail if Bandit reported Medium or High severity findings
         run: |
-          bandit -r common client server -lll --severity-level high
+          bandit -r common client server -ll
 
   shellcheck:
     name: ShellCheck Maintainer & Helper Scripts
@@ -61,7 +51,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run ShellCheck on root-executed scripts
         run: |

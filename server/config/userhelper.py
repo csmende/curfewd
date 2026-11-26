@@ -67,7 +67,7 @@ def isUserValid(pUserId, pValidateUIDOnly=False, pUserName=None, pUserShell=None
             # replace
             pUserName = userTmp.pw_name
             pUserShell = userTmp.pw_shell
-        except:
+        except (KeyError, TypeError, ValueError):
             # can not get user info
             pass
 
