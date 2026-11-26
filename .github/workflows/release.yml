@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g. v0.7.0)"
+        description: "Release tag (e.g. v2.0.0 or v2.0.0-rc1)"
         required: true
 
 permissions:
@@ -38,28 +38,116 @@ jobs:
             python3-psutil \
             zbar-tools
 
-      - name: Run test suite
+      - name: Resolve release metadata
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
+          set -euo pipefail
+          TAG="${REF_NAME}"
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="${INPUT_TAG}"
+          fi
+          if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "Invalid release tag format: ${TAG}" >&2
+            exit 1
+          fi
+
+          RAW_VER="${TAG#v}"
+          BASE_VER="${RAW_VER%%-*}"
+          CHANGELOG_VER="$(dpkg-parsechangelog -S Version)"
+          IS_PRERELEASE="false"
+          DEB_VER="${RAW_VER}"
+
+          if [[ "${RAW_VER}" == *-* ]]; then
+            IS_PRERELEASE="true"
+            PRE_SUFFIX="${RAW_VER#*-}"
+            # Debian tilde sorts strictly before final release (2.0.0~rc1 < 2.0.0)
+            DEB_VER="${BASE_VER}~${PRE_SUFFIX}"
+          fi
+
+          if [ "${CHANGELOG_VER}" != "${BASE_VER}" ] && [ "${CHANGELOG_VER}" != "${DEB_VER}" ]; then
+            echo "debian/changelog version (${CHANGELOG_VER}) does not match tag base (${BASE_VER})" >&2
+            exit 1
+          fi
+
+          {
+            echo "tag=${TAG}"
+            echo "raw_ver=${RAW_VER}"
+            echo "deb_ver=${DEB_VER}"
+            echo "is_prerelease=${IS_PRERELEASE}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Run full test suite
+        run: |
+          /usr/bin/python3 -m compileall -q curfewd tests
           /usr/bin/python3 -m unittest discover -s tests -v
 
       - name: Build .deb and checksums
+        env:
+          RAW_VER: ${{ steps.meta.outputs.raw_ver }}
+          DEB_VER: ${{ steps.meta.outputs.deb_ver }}
+          IS_PRERELEASE: ${{ steps.meta.outputs.is_prerelease }}
         run: |
+          set -euo pipefail
+          if [ "${IS_PRERELEASE}" = "true" ]; then
+            python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          p = pathlib.Path("debian/changelog")
+          deb_ver = os.environ["DEB_VER"]
+          text = p.read_text(encoding="utf-8")
+          updated, count = re.subn(
+              r"^(curfewd \()[^)]+(\))",
+              rf"\g<1>{deb_ver}\g<2>",
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Failed to stamp pre-release version in debian/changelog")
+          p.write_text(updated, encoding="utf-8")
+          PY
+            echo "Stamped pre-release Debian package version: $(dpkg-parsechangelog -S Version)"
+          fi
+
           dpkg-buildpackage -us -uc -b
           mkdir -p dist
-          mv ../curfewd_*.deb dist/
-          (cd dist && sha256sum curfewd_*.deb > SHA256SUMS)
+          # Use GitHub-safe filename (avoids GitHub rewriting '~' -> '.' on upload) while
+          # preserving Debian's internal Version: 2.0.0~rc1 for clean upgrades to 2.0.0.
+          ASSET_NAME="curfewd_${RAW_VER}_all.deb"
+          mv "../curfewd_${DEB_VER}_all.deb" "dist/${ASSET_NAME}"
+          dpkg-deb -I "dist/${ASSET_NAME}"
+          (cd dist && sha256sum "${ASSET_NAME}" > SHA256SUMS)
           ls -lh dist/
           cat dist/SHA256SUMS
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INPUT_TAG: ${{ github.event.inputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          TARGET_SHA: ${{ github.sha }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          RAW_VER: ${{ steps.meta.outputs.raw_ver }}
+          IS_PRERELEASE: ${{ steps.meta.outputs.is_prerelease }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            TAG="${INPUT_TAG}"
-          fi
-          gh release create "$TAG" dist/curfewd_*.deb dist/SHA256SUMS \
-            --title "curfewd $TAG" \
+          set -euo pipefail
+          ASSET_PATH="dist/curfewd_${RAW_VER}_all.deb"
+          TITLE="curfewd ${TAG}"
+          ARGS=(
+            "${TAG}"
+            "${ASSET_PATH}"
+            "dist/SHA256SUMS"
             --generate-notes
+          )
+          if [ "${IS_PRERELEASE}" = "true" ]; then
+            TITLE="curfewd ${TAG} (Pre-release)"
+            ARGS+=(--prerelease)
+          fi
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            ARGS+=(--target "${TARGET_SHA}")
+          fi
+          gh release create "${ARGS[@]}" --title "${TITLE}"
