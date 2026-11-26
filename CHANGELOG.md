@@ -3,13 +3,31 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
-## [Unreleased]
+## [1.0.0] - 2026-11-26
 
-### Documentation & Governance
-- Added spec-driven and AI-assisted development documentation in `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, and `docs/specs/` (starting with `001-multi-de-screen-locking.md`).
-- Updated `README.md` intro and UI/usability roadmap to reflect active multi-system development beyond initial Timekpr-nExT fixes.
-- Corrected log-viewing command in `README.md` to `journalctl -u timekpr -f` (systemd logs under the primary unit `timekpr.service` rather than the `curfewd.service` alias) following live validation on Linux Mint 22.3 Cinnamon.
-- Recorded live multi-system Linux Mint 22.3 Cinnamon verification notes in `docs/specs/001-multi-de-screen-locking.md`.
+First `1.0` release delivering **Spec 003**: a native, unprivileged Material Design 3 desktop application, Today-only schedule overrides, and individual per-app daily limits.
+
+### Added
+- **Native Material Design 3 Desktop UI (`curfewd-ui`):**
+  - Runs completely unprivileged via WebKitGTK (`gir1.2-webkit-6.0` on GTK4 with automatic fallback to `gir1.2-webkit2-4.1` on GTK3), custom offline `curfewd://` URI scheme, and worker-thread Polkit D-Bus RPC bridge (zero open TCP ports, zero Node/npm build step).
+  - **Admin Control Center:** Left user drawer with live status dots & remaining time, unified **Overview** (`Current Status` three horizontal stat pills, `Today's Time and Schedule` slider + draggable 24h allowed-window bar, and 7/14-day `Screen-Time & App Limits History` chart), per-day **Weekly Schedule** with `Same schedule every day` checkbox, **App Limits** with installed `.desktop`/Flatpak app picker, **System Health** with 1-click **Protect Lock Screen**, and **Settings** (Light/Dark/Auto + 4 Material 3 accent palettes saved to `~/.config/curfewd/ui.json`).
+  - **Passwordless `My Screen Time` (`curfewd-ui --my-status`):** Self-view accessible from `curfewd-tray` or the minimal **Authentication Required** gate using sender-UID-bound `GetMyStatus` and `GetMyHistory`.
+  - Floating **Unsaved Changes (`Discard` / `Save Changes`)** bar so mid-drag schedule edits never interrupt active users.
+- **Today-Only Overrides (`SetTodayOverride` / `curfewctl today`):** Override today's allowance and/or allowed window without altering the recurring weekly template; automatically resets at local midnight.
+- **Individual Per-App Daily Limits (`curfewctl app-limits` / `GrantAppTime`):** Each tracked app or game maintains its own daily allowance, live usage counter, `+15m` bonus grant, and isolated termination when it reaches `0m`.
+- **1-Click Lock-Screen Protection (`ApplyDoctorFix`):** Polkit-authorized D-Bus endpoint backed by `ReadWritePaths=... -/etc/dconf` in `curfewd.service`.
+- **Brand & Desktop Metadata:** Twilight Guard SVG icon (`curfewd.svg`), unprivileged `curfewd.desktop`, and AppStream metadata (`org.curfewd.curfewd.metainfo.xml`).
+
+### Changed / Removed
+- Removed the legacy `unaccounted` ("freeride") time-window concept from models, evaluator, CLI, tray, and UI (legacy `!hour` tokens are imported cleanly as normal allowed windows by `curfewctl migrate-timekpr`).
+
+## [0.7.0] - 2026-11-26
+
+Breaking control-plane overhaul (**Spec 002**): replaced legacy `timekpr.service` / `com.timekpr.server` / `/etc/timekpr` with hardened `curfewd.service`, Polkit-authorized `org.curfewd.Daemon1` D-Bus API, atomic JSON storage, SQLite usage history, native `pause`/`resume`/`lock`/`doctor`, modern `curfewctl` CLI with `--json`, and auto-reconnecting `curfewd-tray`.
+
+## [0.6.1] - 2026-11-26
+
+Security hardening release: CSPRNG verification keys with `hmac.compare_digest`, `O_NOFOLLOW` + lock-before-truncate PID/log writes, root `/tmp` avoidance, Bandit + ShellCheck + CodeQL CI workflows.
 
 ## [0.6.0] - 2026-11-25
 

@@ -2,33 +2,32 @@
 bin/curfewctl usr/bin/
 bin/curfewd usr/bin/
 bin/curfewd-tray usr/bin/
+bin/curfewd-ui usr/bin/
 
 # optional hardening & Xorg examples
 extras/90-curfewd-ungrab.conf usr/share/doc/curfewd/examples/
 extras/dconf-lock-screensaver.sh usr/share/doc/curfewd/examples/
 
-# systemd, D-Bus, Polkit, autostart
+# systemd, D-Bus, Polkit, desktop launchers & AppStream metadata
 resource/server/dbus/org.curfewd.Daemon1.conf usr/share/dbus-1/system.d/
 resource/server/polkit/org.curfewd.policy usr/share/polkit-1/actions/
 resource/server/systemd/curfewd.service usr/lib/systemd/system/
 resource/launchers/curfewd-tray.desktop etc/xdg/autostart/
+resource/launchers/curfewd.desktop usr/share/applications/
+resource/appstream/org.curfewd.curfewd.metainfo.xml usr/share/metainfo/
 
-# icons (used by curfewd-tray and desktop notifications)
-resource/icons/timekpr-128.png usr/share/icons/hicolor/128x128/apps/
-resource/icons/timekpr-48.png usr/share/icons/hicolor/48x48/apps/
-resource/icons/timekpr-64.png usr/share/icons/hicolor/64x64/apps/
-resource/icons/timekpr-client-128.png usr/share/icons/hicolor/128x128/apps/
-resource/icons/timekpr-client-48.png usr/share/icons/hicolor/48x48/apps/
-resource/icons/timekpr-client-64.png usr/share/icons/hicolor/64x64/apps/
-resource/icons/timekpr-client.svg usr/share/icons/hicolor/scalable/apps/
-resource/icons/timekpr.svg usr/share/icons/hicolor/scalable/apps/
-resource/icons/timekpr-client-logo.svg usr/share/curfewd/icons/
-resource/icons/timekpr-logo.svg usr/share/curfewd/icons/
+# icons (Twilight Guard brand icon + tray status padlocks)
+resource/icons/curfewd.svg usr/share/icons/hicolor/scalable/apps/
+resource/icons/curfewd.svg usr/share/curfewd/icons/
 resource/icons/timekpr-padlock-limited-green.svg usr/share/curfewd/icons/
 resource/icons/timekpr-padlock-limited-red.svg usr/share/curfewd/icons/
 resource/icons/timekpr-padlock-limited-yellow.svg usr/share/curfewd/icons/
-resource/icons/timekpr-padlock-limited-uacc.svg usr/share/curfewd/icons/
 resource/icons/timekpr-padlock-unlimited-green.svg usr/share/curfewd/icons/
+
+# offline Material Design 3 UI static assets
+curfewd/ui/web/index.html usr/share/curfewd/ui/
+curfewd/ui/web/styles.css usr/share/curfewd/ui/
+curfewd/ui/web/app.js usr/share/curfewd/ui/
 
 # python package (curfewd)
 curfewd/__init__.py usr/lib/python3/dist-packages/curfewd/
@@ -54,3 +53,8 @@ curfewd/engine/sessions.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/tray/__init__.py usr/lib/python3/dist-packages/curfewd/tray/
 curfewd/tray/__main__.py usr/lib/python3/dist-packages/curfewd/tray/
 curfewd/tray/app.py usr/lib/python3/dist-packages/curfewd/tray/
+curfewd/ui/__init__.py usr/lib/python3/dist-packages/curfewd/ui/
+curfewd/ui/__main__.py usr/lib/python3/dist-packages/curfewd/ui/
+curfewd/ui/app.py usr/lib/python3/dist-packages/curfewd/ui/
+curfewd/ui/appscan.py usr/lib/python3/dist-packages/curfewd/ui/
+curfewd/ui/bridge.py usr/lib/python3/dist-packages/curfewd/ui/

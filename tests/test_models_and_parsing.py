@@ -62,17 +62,18 @@ class TestParsers(unittest.TestCase):
             parse_days("funday")
 
     def test_parse_windows(self):
-        wins = parse_windows("08:00-12:00,15:30-21:00,!21:00-22:00")
+        wins = parse_windows("08:00-12:00,15:30-21:00")
         self.assertEqual(
             wins,
             [
-                {"start": "08:00", "end": "12:00", "unaccounted": False},
-                {"start": "15:30", "end": "21:00", "unaccounted": False},
-                {"start": "21:00", "end": "22:00", "unaccounted": True},
+                {"start": "08:00", "end": "12:00"},
+                {"start": "15:30", "end": "21:00"},
             ],
         )
         self.assertEqual(parse_windows("none"), [])
-        self.assertEqual(parse_windows("all"), [{"start": "00:00", "end": "24:00", "unaccounted": False}])
+        self.assertEqual(parse_windows("all"), [{"start": "00:00", "end": "24:00"}])
+        with self.assertRaises(ValueError):
+            parse_windows("!21:00-22:00")
         with self.assertRaises(ValueError):
             parse_windows("10:00-14:00,13:00-16:00")
         with self.assertRaises(ValueError):
@@ -95,13 +96,28 @@ class TestModels(unittest.TestCase):
             weekly_limit=25200,
             curfew_windows={"mon": [TimeWindow("08:00", "21:00")]},
             pause=PauseState(active=True, mode="until", until_utc="2026-11-26T00:00:00+00:00", reason="homework"),
-            playtime=PlayTimePolicy(enabled=True, apps=[PlayTimeApp("steam", "Steam")]),
+            playtime=PlayTimePolicy(
+                enabled=True,
+                apps=[PlayTimeApp("steam", "Steam", daily_limit_sec=2700, category="Gaming")],
+            ),
         )
         rebuilt = UserPolicy.from_dict(pol.to_dict())
         self.assertEqual(rebuilt.to_dict(), pol.to_dict())
         self.assertEqual(rebuilt.lockout_action, "lock")
+        self.assertEqual(rebuilt.playtime.apps[0].daily_limit_sec, 2700)
+        self.assertEqual(rebuilt.playtime.apps[0].category, "Gaming")
         self.assertTrue(rebuilt.pause.is_effective(datetime(2026, 11, 25, 23, 0, tzinfo=timezone.utc)))
         self.assertFalse(rebuilt.pause.is_effective(datetime(2026, 11, 26, 0, 1, tzinfo=timezone.utc)))
+
+        # Backward-compat load ignores legacy unaccounted & migrates shared daily_limits onto apps
+        legacy_pt = PlayTimePolicy.from_dict({
+            "enabled": True,
+            "allow_unaccounted": True,
+            "daily_limits": {"mon": 1800},
+            "apps": [{"pattern": "minecraft", "label": "Minecraft"}],
+        })
+        self.assertEqual(legacy_pt.apps[0].daily_limit_sec, 1800)
+        self.assertEqual(TimeWindow.from_dict({"start": "08:00", "end": "20:00", "unaccounted": True}).to_dict(), {"start": "08:00", "end": "20:00"})
 
     def test_daemon_config_validation(self):
         cfg = DaemonConfig(poll_interval_sec=5, log_level="debug")
@@ -111,7 +127,17 @@ class TestModels(unittest.TestCase):
             DaemonConfig(log_level="BOGUS")
 
     def test_accounting_state_roundtrip(self):
-        st = UserAccountingState(username="alice", date="2026-11-25", spent_today=1200, spent_balance=600, bonus_today=600)
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            spent_today=1200,
+            spent_balance=600,
+            bonus_today=600,
+            app_spent_today={"steam": 900},
+            app_bonus_today={"steam": 900},
+            today_limit_override=5400,
+            today_windows_override=[{"start": "08:00", "end": "22:30"}],
+        )
         self.assertEqual(UserAccountingState.from_dict(st.to_dict()).to_dict(), st.to_dict())
 
 

@@ -143,6 +143,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         )
         self._store.save_user_policy(pol)
 
+        self._doctor_fix_calls = 0
         self._service = CurfewDaemonService(
             bus=self._server_bus,
             store=self._store,
@@ -150,12 +151,17 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
             session_monitor=self._sessions,
             authorizer=self._authorizer,
             now_fn=lambda: self._fixed_now,
+            doctor_fixer=self._fake_doctor_fix,
         )
 
         self._loop = GLib.MainLoop()
         self._thread = threading.Thread(target=self._loop.run, daemon=True)
         self._thread.start()
         self._client = CurfewClient(bus=self._client_bus)
+
+    def _fake_doctor_fix(self):
+        self._doctor_fix_calls += 1
+        return {"applied": True, "files": [], "dconf_updated": True, "detail": "stub ok"}
 
     def tearDown(self) -> None:
         GLib.idle_add(self._loop.quit)
@@ -184,6 +190,34 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self.assertEqual(grant_res["applied_sec"], 1800)
         self.assertEqual(grant_res["status"]["time_left_today"], 5400)
 
+        # Today-only override does not alter weekly template
+        ovr_st = self._client.set_today_override(
+            self._current_user,
+            limit_sec=7200,
+            windows=[{"start": "08:00", "end": "22:30"}],
+        )
+        self.assertTrue(ovr_st["today_override"]["active"])
+        self.assertEqual(ovr_st["daily_limit_today"], 7200)
+        self.assertEqual(ovr_st["today_windows"], [{"start": "08:00", "end": "22:30"}])
+        self.assertEqual(ovr_st["policy"]["daily_limits"]["wed"], 3600)
+
+        # Reset today override restores weekly template
+        rst_st = self._client.set_today_override(self._current_user, reset=True)
+        self.assertFalse(rst_st["today_override"]["active"])
+        self.assertEqual(rst_st["daily_limit_today"], 3600)
+
+        # Per-app limits + GrantAppTime
+        pol = dict(st["policy"])
+        pol["playtime"] = {
+            "enabled": True,
+            "override_main": False,
+            "apps": [{"pattern": "steam", "label": "Steam", "daily_limit_sec": 2700, "category": "Gaming"}],
+        }
+        self._client.set_user_policy(self._current_user, pol)
+        app_grant = self._client.grant_app_time(self._current_user, "steam", 900)
+        self.assertEqual(app_grant["applied_sec"], 900)
+        self.assertEqual(app_grant["status"]["playtime_status"]["apps"][0]["allotted_today"], 3600)
+
         # Pause & verify schedule untouched
         paused = self._client.pause_user(self._current_user, until_utc="", reason="test", hide_tray=True)
         self.assertEqual(paused["enforcement_state"], "paused")
@@ -199,13 +233,13 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self.assertTrue(lock_res["verified"])
         self.assertEqual(lock_res["sessions"][0]["backend"], "dbus:org.cinnamon.ScreenSaver")
 
-        # Usage history records grant, pause, resume, lock_manual events
+        # Usage history records grant, today_override, app_grant, pause, resume, lock_manual events
         hist = self._client.get_usage_history(self._current_user, days=7)
         kinds = [ev["kind"] for ev in hist["events"]]
-        for expected in ("grant", "pause", "resume", "lock_manual"):
+        for expected in ("grant", "today_override", "app_grant", "pause", "resume", "lock_manual"):
             self.assertIn(expected, kinds)
 
-        # Daemon config & doctor
+        # Daemon config & doctor + ApplyDoctorFix
         cfg = self._client.get_daemon_config()
         cfg["log_level"] = "DEBUG"
         updated_cfg = self._client.set_daemon_config(cfg)
@@ -214,16 +248,25 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         doc = self._client.run_doctor()
         self.assertEqual(doc["checks"][1]["status"], "ok")
 
+        fix_resp = self._client.apply_doctor_fix()
+        self.assertTrue(fix_resp["fix_applied"]["applied"])
+        self.assertEqual(self._doctor_fix_calls, 1)
+
     def test_polkit_deny_and_validation_errors(self):
         self._allow_polkit = False
         with self.assertRaises(PermissionDeniedError):
             self._client.list_users()
         with self.assertRaises(PermissionDeniedError):
             self._client.lock_user(self._current_user)
+        with self.assertRaises(PermissionDeniedError):
+            self._client.apply_doctor_fix()
 
-        # Unprivileged client self-status STILL works via sender-UID binding even when Polkit denies admin!
+        # Unprivileged client self-status & self-history STILL work via sender-UID binding even when Polkit denies admin!
         my_st = self._client.get_my_status()
         self.assertEqual(my_st["username"], self._current_user)
+        my_hist = self._client.get_my_history(days=7)
+        self.assertEqual(my_hist["username"], self._current_user)
+        self.assertEqual(my_hist["events"], [])  # admin audit events omitted
 
         self._allow_polkit = True
         with self.assertRaises(UserNotFoundError):

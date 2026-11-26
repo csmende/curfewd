@@ -5,13 +5,16 @@ import getpass
 import json
 import logging
 import os
+import shutil
 import signal
+# Subprocess is strictly limited to launching the trusted curfewd-ui binary (shell=False).
+import subprocess  # nosec B404
 import sys
 from typing import Any
 
 from curfewd import __version__
 from curfewd.dbus.client import CurfewClient, CurfewError
-from curfewd.engine.screenlock import select_backends
+from curfewd.engine.screenlock import TRUSTED_BIN_PATH, select_backends
 from curfewd.parsing import format_duration
 
 logger = logging.getLogger("curfewd.tray")
@@ -24,7 +27,6 @@ _ICON_MAP = {
     "locked_out": "timekpr-padlock-limited-red",
     "paused": "timekpr-padlock-unlimited-green",
     "unrestricted": "timekpr-padlock-unlimited-green",
-    "unaccounted": "timekpr-padlock-limited-uacc",
 }
 
 
@@ -88,7 +90,7 @@ class DesktopNotifier:
         self._iface = None
         self._last_id = 0
 
-    def send(self, summary: str, body: str, urgency: int = 1, icon: str = "timekpr-client") -> None:
+    def send(self, summary: str, body: str, urgency: int = 1, icon: str = "curfewd") -> None:
         try:
             import dbus
 
@@ -221,6 +223,16 @@ class TrayController:
                 self.notifier.send("Bonus screen time added", f"+{format_duration(applied)} added today.", urgency=1)
             else:
                 self.notifier.send("Screen time adjusted", f"{format_duration(applied)} adjusted today.", urgency=1)
+        elif kind == "app_time_granted":
+            applied = int(payload.get("applied_sec", 0))
+            label = str(payload.get("label") or payload.get("pattern") or "App")
+            if applied >= 0:
+                self.notifier.send("Bonus app time added", f"+{format_duration(applied)} added for {label} today.", urgency=1)
+            else:
+                self.notifier.send("App time adjusted", f"{format_duration(applied)} adjusted for {label} today.", urgency=1)
+        elif kind == "app_limit_reached":
+            labels = ", ".join(str(x) for x in (payload.get("apps") or []) if x) or "Tracked app"
+            self.notifier.send("App time limit reached", f"{labels} reached its daily time limit and was closed.", urgency=1)
         elif kind == "paused":
             self.notifier.send("Screen time limits paused", "Limits have been temporarily paused.", urgency=0)
         elif kind == "resumed":
@@ -231,13 +243,29 @@ class TrayController:
     @staticmethod
     def select_icon_name(status: dict[str, Any] | None) -> str:
         if not status:
-            return "timekpr-client"
-        if status.get("unaccounted_now"):
-            return _ICON_MAP["unaccounted"]
-        return _ICON_MAP.get(status.get("enforcement_state", "ok"), "timekpr-client")
+            return "curfewd"
+        return _ICON_MAP.get(status.get("enforcement_state", "ok"), "curfewd")
 
 
-def _try_build_indicator(controller: TrayController, quit_fn):
+def _launch_my_screen_time(session_bus: bool = False) -> None:
+    """Launch `curfewd-ui --my-status` without blocking the tray event loop."""
+    ui_bin = shutil.which("curfewd-ui", path=TRUSTED_BIN_PATH)
+    argv = [ui_bin, "--my-status"] if ui_bin else [sys.executable, "-m", "curfewd.ui", "--my-status"]
+    if session_bus:
+        argv.append("--session-bus")
+    try:
+        subprocess.Popen(  # nosec B603
+            argv,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        logger.warning("Could not launch curfewd-ui: %s", exc)
+
+
+def _try_build_indicator(controller: TrayController, quit_fn, session_bus: bool = False):
     """Build an AyatanaAppIndicator3 / AppIndicator3 tray icon if available."""
     try:
         import gi
@@ -258,7 +286,7 @@ def _try_build_indicator(controller: TrayController, quit_fn):
 
         indicator = indicator_mod.Indicator.new(
             "curfewd-tray",
-            "timekpr-client",
+            "curfewd",
             indicator_mod.IndicatorCategory.APPLICATION_STATUS,
         )
         if os.path.isdir(ICONS_DIR):
@@ -270,7 +298,11 @@ def _try_build_indicator(controller: TrayController, quit_fn):
         item_time.set_sensitive(False)
         item_curfew = Gtk.MenuItem(label="")
         item_curfew.set_sensitive(False)
+        item_open_ui = Gtk.MenuItem(label="Open My Screen Time")
         item_summary = Gtk.MenuItem(label="Show Status Notification")
+
+        def _open_ui(_widget):
+            _launch_my_screen_time(session_bus=session_bus)
 
         def _show_summary(_widget):
             st = controller.last_status
@@ -285,10 +317,12 @@ def _try_build_indicator(controller: TrayController, quit_fn):
             spent = format_duration(st["time_spent_today"])
             controller.notifier.send("curfewd Status", f"Remaining: {left} | Spent today: {spent}", urgency=0)
 
+        item_open_ui.connect("activate", _open_ui)
         item_summary.connect("activate", _show_summary)
         menu.append(item_time)
         menu.append(item_curfew)
         menu.append(Gtk.SeparatorMenuItem())
+        menu.append(item_open_ui)
         menu.append(item_summary)
         menu.show_all()
         indicator.set_menu(menu)
@@ -356,7 +390,7 @@ def main(argv: list[str] | None = None) -> int:
         screensaver=SessionScreensaverProbe(),
         notifier=DesktopNotifier(),
     )
-    ui_cb = _try_build_indicator(controller, loop.quit)
+    ui_cb = _try_build_indicator(controller, loop.quit, session_bus=bool(args.session_bus))
     controller.ui_callback = ui_cb
     controller.attach()
 

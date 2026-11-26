@@ -54,12 +54,11 @@ def parse_legacy_allowed_hours(raw: str | None) -> list[TimeWindow]:
     if not tokens:
         return []
 
-    raw_intervals: list[tuple[int, int, bool]] = []
+    raw_intervals: list[tuple[int, int]] = []
     for tok in tokens:
         match = _HOUR_TOKEN_RE.match(tok)
         if not match:
             continue
-        unaccounted = bool(match.group(1))
         hour = int(match.group(2))
         if not (0 <= hour <= 23):
             continue
@@ -69,22 +68,22 @@ def parse_legacy_allowed_hours(raw: str | None) -> list[TimeWindow]:
         e_min = max(1, min(60, e_min))
         if e_min <= s_min:
             continue
-        raw_intervals.append((hour * 60 + s_min, hour * 60 + e_min, unaccounted))
+        raw_intervals.append((hour * 60 + s_min, hour * 60 + e_min))
 
     if not raw_intervals:
         return []
 
     raw_intervals.sort(key=lambda item: (item[0], item[1]))
-    merged: list[list[Any]] = []
-    for start_m, end_m, uacc in raw_intervals:
-        if merged and merged[-1][2] == uacc and start_m <= merged[-1][1]:
+    merged: list[list[int]] = []
+    for start_m, end_m in raw_intervals:
+        if merged and start_m <= merged[-1][1]:
             merged[-1][1] = max(merged[-1][1], end_m)
         else:
-            merged.append([start_m, end_m, uacc])
+            merged.append([start_m, end_m])
 
     return [
-        TimeWindow(start=minutes_to_hhmm(s), end=minutes_to_hhmm(e), unaccounted=u)
-        for s, e, u in merged
+        TimeWindow(start=minutes_to_hhmm(s), end=minutes_to_hhmm(e))
+        for s, e in merged
     ]
 
 
@@ -161,17 +160,20 @@ def convert_legacy_user_policy(username: str, legacy_user_conf_path: str) -> Use
     week_lim = _parse_int(get(safe, "LIMIT_PER_WEEK", "604800"), 604800)
     month_lim = _parse_int(get(safe, "LIMIT_PER_MONTH", "2678400"), 2678400)
 
-    # PlayTime section
+    # PlayTime / App Limits section
     pt_section = f"{safe}.PLAYTIME"
     pt_policy = PlayTimePolicy()
     if cp.has_section(pt_section):
         pt_days = _split_semicolon(get(pt_section, "PLAYTIME_ALLOWED_WEEKDAYS", ""))
         pt_lims = _split_semicolon(get(pt_section, "PLAYTIME_LIMITS_PER_WEEKDAYS", ""))
-        pt_daily = {d: 0 for d in WEEKDAYS}
+        legacy_limit_sec = 3600
         for idx, iso_day in enumerate(pt_days):
             day_name = ISO_NUM_TO_WEEKDAY.get(iso_day)
             if day_name and idx < len(pt_lims):
-                pt_daily[day_name] = max(0, min(SECONDS_PER_DAY, _parse_int(pt_lims[idx], 0)))
+                val = max(0, min(SECONDS_PER_DAY, _parse_int(pt_lims[idx], 0)))
+                if val > 0:
+                    legacy_limit_sec = val
+                    break
         apps: list[PlayTimeApp] = []
         for k, v in cp.items(pt_section):
             if k.lower().startswith("playtime_activity_") and v.strip():
@@ -179,12 +181,10 @@ def convert_legacy_user_policy(username: str, legacy_user_conf_path: str) -> Use
                 if match and match.group(1).strip():
                     pat = match.group(1).strip()
                     lbl = (match.group(2) or pat).strip()
-                    apps.append(PlayTimeApp(pattern=pat, label=lbl))
+                    apps.append(PlayTimeApp(pattern=pat, label=lbl, daily_limit_sec=legacy_limit_sec))
         pt_policy = PlayTimePolicy(
             enabled=_parse_bool(get(pt_section, "PLAYTIME_ENABLED", "False"), False),
             override_main=_parse_bool(get(pt_section, "PLAYTIME_LIMIT_OVERRIDE_ENABLED", "False"), False),
-            allow_unaccounted=_parse_bool(get(pt_section, "PLAYTIME_UNACCOUNTED_INTERVALS_ENABLED", "False"), False),
-            daily_limits=pt_daily,
             apps=apps,
         )
 

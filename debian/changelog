@@ -1,3 +1,26 @@
+curfewd (1.0.0) unstable; urgency=medium
+
+  * Spec 003: Native Material Design 3 UI (`curfewd-ui`) & Per-App Limits
+    - Add unprivileged WebKitGTK desktop application (`curfewd-ui`, supporting
+      GTK4/WebKit 6.0 with GTK3/WebKit2 4.1 fallback) over a custom offline
+      `curfewd://` URI scheme and worker-thread Polkit D-Bus bridge
+    - Add passwordless `My Screen Time` view (`curfewd-ui --my-status`, also
+      accessible from `curfewd-tray`) backed by sender-UID `GetMyHistory(days)`
+    - Upgrade App Limits from shared PlayTime pool to individual per-app daily
+      limits with installed `.desktop`/Flatpak app scanning, per-app `+15m`
+      bonuses (`GrantAppTime`), and isolated per-app termination
+    - Add Today-only overrides (`SetTodayOverride` / `curfewctl today`) that
+      adjust today's allowance and allowed window without altering the weekly
+      schedule and reset automatically at local midnight
+    - Remove legacy `unaccounted` time-window concept (legacy `!hour` tokens
+      migrated cleanly as normal allowed windows)
+    - Add Polkit-authorized `ApplyDoctorFix()` D-Bus endpoint and `- /etc/dconf`
+      ReadWritePaths in `curfewd.service` for 1-click lock-screen hardening
+    - Add Twilight Guard SVG icon (`curfewd.svg`), `curfewd.desktop`, and
+      AppStream metainfo (`org.curfewd.curfewd.metainfo.xml`)
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 05:00:00 +0000
+
 curfewd (0.7.0) unstable; urgency=medium
 
   * Breaking (Spec 002): clean native curfewd control plane & package layout

@@ -22,10 +22,12 @@ from curfewd import (
     POLKIT_ACTION_READ,
 )
 from curfewd.dbus.polkit import AuthorizationError, PolkitAuthorizer
-from curfewd.engine.doctor import run_doctor
+from curfewd.engine.doctor import apply_dconf_lock_fix, run_doctor
 from curfewd.engine.evaluator import (
     EvaluationResult,
+    apply_app_grant,
     apply_grant,
+    apply_today_override,
     build_user_status_dict,
     evaluate_tick,
 )
@@ -76,6 +78,7 @@ class CurfewDaemonService(dbus.service.Object):
         playtime_monitor: PlayTimeMonitor | None = None,
         authorizer: PolkitAuthorizer | None = None,
         now_fn: Callable[[], datetime] | None = None,
+        doctor_fixer: Callable[[], dict[str, Any]] | None = None,
         bus_name_str: str = DBUS_BUS_NAME,
         own_name: bool = True,
     ) -> None:
@@ -86,6 +89,7 @@ class CurfewDaemonService(dbus.service.Object):
         self._playtime = playtime_monitor or PlayTimeMonitor()
         self._authorizer = authorizer or PolkitAuthorizer(bus)
         self._now_fn = now_fn or (lambda: datetime.now().astimezone())
+        self._doctor_fixer = doctor_fixer or apply_dconf_lock_fix
 
         self._store.ensure_dirs()
         self._config: DaemonConfig = self._store.load_daemon_config()
@@ -98,6 +102,7 @@ class CurfewDaemonService(dbus.service.Object):
         self._last_eval: dict[str, EvaluationResult] = {}
         self._last_sessions: dict[str, list[dict[str, Any]]] = {}
         self._active_playtime_apps: dict[str, list[str]] = {}
+        self._active_playtime_patterns: dict[str, list[str]] = {}
 
         # Client screensaver challenge/response state
         self._pending_nonces: dict[str, str] = {}
@@ -164,6 +169,7 @@ class CurfewDaemonService(dbus.service.Object):
         locked_hint = any(s.get("locked", False) for s in sessions) if self._config.use_locked_hint else False
         screen_locked = locked_hint or self._tray_screensaver_active.get(safe, False)
         pt_apps = self._active_playtime_apps.get(safe, [])
+        pt_patterns = self._active_playtime_patterns.get(safe, [])
 
         eval_res = evaluate_tick(
             policy=policy,
@@ -174,6 +180,7 @@ class CurfewDaemonService(dbus.service.Object):
             is_active=any_active,
             screen_locked=screen_locked,
             playtime_active=bool(pt_apps),
+            running_app_patterns=pt_patterns,
         )
         self._last_eval[safe] = eval_res
         rec = lookup_user_record(safe) or {}
@@ -219,11 +226,13 @@ class CurfewDaemonService(dbus.service.Object):
             locked_hint = any(s.get("locked", False) for s in sessions) if self._config.use_locked_hint else False
             screen_locked = locked_hint or self._tray_screensaver_active.get(safe, False)
 
-            # PlayTime process check
+            # App Limits process check (individual per-app tracking)
             pt_matches = []
             if self._config.playtime_enabled and policy.playtime.enabled and any_active and not screen_locked:
                 pt_matches = self._playtime.find_matching_processes(uid, policy.playtime.apps)
             self._active_playtime_apps[safe] = sorted({m["label"] for m in pt_matches})
+            running_patterns = sorted({m["pattern"] for m in pt_matches})
+            self._active_playtime_patterns[safe] = running_patterns
 
             eval_res = evaluate_tick(
                 policy=policy,
@@ -234,6 +243,7 @@ class CurfewDaemonService(dbus.service.Object):
                 is_active=any_active,
                 screen_locked=screen_locked,
                 playtime_active=bool(pt_matches),
+                running_app_patterns=running_patterns,
             )
             self._last_eval[safe] = eval_res
 
@@ -266,12 +276,22 @@ class CurfewDaemonService(dbus.service.Object):
                     ),
                 )
 
-            # Enforce PlayTime app limits
-            if eval_res.playtime_should_kill:
-                killed = self._playtime.enforce_kill(uid, policy.playtime.apps)
+            # Enforce individual per-app limits (terminate ONLY expired apps)
+            if eval_res.expired_app_patterns:
+                expired_set = set(eval_res.expired_app_patterns)
+                expired_apps = [a for a in policy.playtime.apps if a.pattern in expired_set]
+                killed = self._playtime.enforce_kill(uid, expired_apps)
                 if killed:
+                    expired_labels = [a.label for a in expired_apps]
                     self._history.record_event(
-                        safe, "playtime_kill", actor="daemon", detail={"pids": killed}
+                        safe,
+                        "playtime_kill",
+                        actor="daemon",
+                        detail={"pids": killed, "apps": expired_labels},
+                    )
+                    self.ClientNotification(
+                        safe,
+                        json.dumps({"kind": "app_limit_reached", "apps": expired_labels}),
                     )
 
             # Enforce main session lockout
@@ -511,6 +531,65 @@ class CurfewDaemonService(dbus.service.Object):
         self._store.save_daemon_config(cfg)
         return json.dumps(cfg.to_dict())
 
+    @dbus.service.method(DBUS_ADMIN_INTERFACE, in_signature="ss", out_signature="s", sender_keyword="sender")
+    def SetTodayOverride(self, username: str, override_json: str, sender: str = "") -> str:
+        _, actor = self._require_auth(sender, POLKIT_ACTION_MANAGE)
+        safe, _ = self._ensure_known_user(str(username))
+        policy = self._get_policy(safe)
+        state = self._get_state(safe)
+        now_local = self._now_fn()
+        try:
+            raw = json.loads(str(override_json))
+            if not isinstance(raw, dict):
+                raise ValueError("Override payload must be a JSON object")
+            res = apply_today_override(
+                policy=policy,
+                state=state,
+                now_local=now_local,
+                limit_sec=raw.get("limit_sec"),
+                windows=raw.get("windows"),
+                reset=bool(raw.get("reset", False)),
+            )
+        except (ValueError, KeyError, TypeError) as exc:
+            raise _DBusTypedError(DBUS_ERR_VALIDATION, f"Invalid today override: {exc}") from exc
+
+        self._store.save_user_state(state)
+        self._countdowns.pop(safe, None)
+        self._history.record_event(safe, "today_override", actor=actor, detail=res)
+        status = self._compute_status(safe)
+        self.UserStatusChanged(safe, json.dumps(status))
+        self.ClientNotification(safe, json.dumps({"kind": "policy_changed"}))
+        return json.dumps(status)
+
+    @dbus.service.method(DBUS_ADMIN_INTERFACE, in_signature="ssi", out_signature="s", sender_keyword="sender")
+    def GrantAppTime(self, username: str, pattern: str, delta_seconds: int, sender: str = "") -> str:
+        _, actor = self._require_auth(sender, POLKIT_ACTION_MANAGE)
+        safe, _ = self._ensure_known_user(str(username))
+        policy = self._get_policy(safe)
+        state = self._get_state(safe)
+        now_local = self._now_fn()
+        try:
+            applied = apply_app_grant(policy, state, str(pattern), int(delta_seconds), now_local)
+        except ValueError as exc:
+            raise _DBusTypedError(DBUS_ERR_VALIDATION, str(exc)) from exc
+
+        app = next((a for a in policy.playtime.apps if a.pattern == str(pattern).strip()), None)
+        label = app.label if app else str(pattern)
+        self._store.save_user_state(state)
+        self._history.record_event(
+            safe,
+            "app_grant",
+            actor=actor,
+            detail={"pattern": str(pattern), "label": label, "applied_sec": applied},
+        )
+        status = self._compute_status(safe)
+        self.UserStatusChanged(safe, json.dumps(status))
+        self.ClientNotification(
+            safe,
+            json.dumps({"kind": "app_time_granted", "pattern": str(pattern), "label": label, "applied_sec": applied}),
+        )
+        return json.dumps({"applied_sec": applied, "status": status})
+
     @dbus.service.method(DBUS_ADMIN_INTERFACE, in_signature="", out_signature="s", sender_keyword="sender")
     def RunDoctor(self, sender: str = "") -> str:
         self._require_auth(sender, POLKIT_ACTION_READ)
@@ -523,6 +602,25 @@ class CurfewDaemonService(dbus.service.Object):
         )
         return json.dumps(report)
 
+    @dbus.service.method(DBUS_ADMIN_INTERFACE, in_signature="", out_signature="s", sender_keyword="sender")
+    def ApplyDoctorFix(self, sender: str = "") -> str:
+        self._require_auth(sender, POLKIT_ACTION_MANAGE)
+        try:
+            fix_result = self._doctor_fixer()
+        except PermissionError as exc:
+            raise _DBusTypedError(DBUS_ERR_PERMISSION, str(exc)) from exc
+        except OSError as exc:
+            raise _DBusTypedError(DBUS_ERR_INTERNAL, f"Failed to apply lock-screen protection: {exc}") from exc
+
+        sessions_by_user = self._sessions.list_user_sessions(self._config.tracked_session_types)
+        report = run_doctor(
+            config_dir=self._store.config_dir,
+            state_dir=self._store.state_dir,
+            sessions_by_user=sessions_by_user,
+            dbus_connected=True,
+        )
+        return json.dumps({"fix_applied": fix_result, "doctor": report})
+
     # ---------------- org.curfewd.Daemon1.Client (sender-UID bound) ---------------- #
 
     @dbus.service.method(DBUS_CLIENT_INTERFACE, in_signature="", out_signature="s", sender_keyword="sender")
@@ -532,6 +630,18 @@ class CurfewDaemonService(dbus.service.Object):
         except AuthorizationError as exc:
             raise _DBusTypedError(DBUS_ERR_PERMISSION, str(exc)) from exc
         return json.dumps(self._compute_status(caller_user))
+
+    @dbus.service.method(DBUS_CLIENT_INTERFACE, in_signature="i", out_signature="s", sender_keyword="sender")
+    def GetMyHistory(self, days: int, sender: str = "") -> str:
+        try:
+            _, caller_user = self._authorizer.resolve_sender_user(sender)
+        except AuthorizationError as exc:
+            raise _DBusTypedError(DBUS_ERR_PERMISSION, str(exc)) from exc
+        safe_days = max(1, min(30, int(days)))
+        hist = self._history.get_usage_history(caller_user, days=safe_days, now_local=self._now_fn())
+        # Omit admin audit events from unprivileged self-view
+        hist["events"] = []
+        return json.dumps(hist)
 
     @dbus.service.method(DBUS_CLIENT_INTERFACE, in_signature="sb", out_signature="b", sender_keyword="sender")
     def ReportScreensaverState(self, nonce: str, active: bool, sender: str = "") -> bool:

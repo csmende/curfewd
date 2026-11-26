@@ -76,9 +76,9 @@ class TestTimekprMigration(unittest.TestCase):
         self.assertEqual(
             [w.to_dict() for w in wins],
             [
-                TimeWindow("08:00", "11:00", False).to_dict(),
-                TimeWindow("20:00", "20:30", False).to_dict(),
-                TimeWindow("21:00", "22:15", True).to_dict(),
+                TimeWindow("08:00", "11:00").to_dict(),
+                TimeWindow("20:00", "20:30").to_dict(),
+                TimeWindow("21:00", "22:15").to_dict(),
             ],
         )
 
@@ -133,10 +133,11 @@ class TestTimekprMigration(unittest.TestCase):
             pol = store.load_user_policy("alice")
             self.assertEqual(pol.daily_limits["mon"], 3600)
             self.assertEqual(pol.daily_limits["sat"], 7200)
-            self.assertEqual(pol.curfew_windows["mon"][0].to_dict(), {"start": "08:00", "end": "21:00", "unaccounted": False})
-            self.assertEqual(pol.curfew_windows["fri"][0].to_dict(), {"start": "08:00", "end": "22:30", "unaccounted": False})
+            self.assertEqual(pol.curfew_windows["mon"][0].to_dict(), {"start": "08:00", "end": "21:00"})
+            self.assertEqual(pol.curfew_windows["fri"][0].to_dict(), {"start": "08:00", "end": "22:30"})
             self.assertTrue(pol.playtime.enabled)
             self.assertEqual(pol.playtime.apps[0].pattern, "steam")
+            self.assertEqual(pol.playtime.apps[0].daily_limit_sec, 1800)
             self.assertEqual(store.load_user_state("alice").spent_today, 1234)
 
 

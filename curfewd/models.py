@@ -33,7 +33,6 @@ class TimeWindow:
 
     start: str = "00:00"
     end: str = "24:00"
-    unaccounted: bool = False
 
     def __post_init__(self) -> None:
         s_min = parse_hhmm_to_minutes(self.start)
@@ -42,7 +41,6 @@ class TimeWindow:
             raise ValueError(f"Window end must exceed start: {self.start}-{self.end}")
         self.start = minutes_to_hhmm(s_min)
         self.end = minutes_to_hhmm(e_min)
-        self.unaccounted = bool(self.unaccounted)
 
     @property
     def start_minutes(self) -> int:
@@ -53,14 +51,13 @@ class TimeWindow:
         return parse_hhmm_to_minutes(self.end)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"start": self.start, "end": self.end, "unaccounted": self.unaccounted}
+        return {"start": self.start, "end": self.end}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TimeWindow":
         return cls(
             start=str(data["start"]),
             end=str(data["end"]),
-            unaccounted=bool(data.get("unaccounted", False)),
         )
 
 
@@ -120,46 +117,54 @@ class PauseState:
 
 @dataclass
 class PlayTimeApp:
-    """A tracked application or game pattern for PlayTime limits."""
+    """A tracked application or game rule with its own daily time limit."""
 
     pattern: str
     label: str = ""
+    daily_limit_sec: int = 3600
+    category: str = ""
 
     def __post_init__(self) -> None:
         self.pattern = str(self.pattern).strip()
         if not self.pattern:
-            raise ValueError("PlayTime app pattern cannot be empty")
+            raise ValueError("App limit pattern cannot be empty")
         self.label = str(self.label or self.pattern).strip()
+        self.daily_limit_sec = int(self.daily_limit_sec)
+        if self.daily_limit_sec < 0 or self.daily_limit_sec > SECONDS_PER_DAY:
+            raise ValueError(f"App daily_limit_sec out of range (0..86400): {self.daily_limit_sec}")
+        self.category = str(self.category or "").strip()
 
-    def to_dict(self) -> dict[str, str]:
-        return {"pattern": self.pattern, "label": self.label}
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "pattern": self.pattern,
+            "label": self.label,
+            "daily_limit_sec": self.daily_limit_sec,
+            "category": self.category,
+        }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PlayTimeApp":
-        return cls(pattern=str(data["pattern"]), label=str(data.get("label", "")))
+    def from_dict(cls, data: dict[str, Any], default_limit_sec: int = 3600) -> "PlayTimeApp":
+        raw_lim = data.get("daily_limit_sec")
+        limit_sec = default_limit_sec if raw_lim is None else int(raw_lim)
+        return cls(
+            pattern=str(data["pattern"]),
+            label=str(data.get("label", "")),
+            daily_limit_sec=limit_sec,
+            category=str(data.get("category", "")),
+        )
 
 
 @dataclass
 class PlayTimePolicy:
-    """Per-user PlayTime (application/game) limit configuration."""
+    """Per-user App Limits configuration (individual daily limits per tracked app)."""
 
     enabled: bool = False
     override_main: bool = False
-    allow_unaccounted: bool = False
-    daily_limits: dict[str, int] = field(default_factory=lambda: {d: 0 for d in WEEKDAYS})
     apps: list[PlayTimeApp] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.enabled = bool(self.enabled)
         self.override_main = bool(self.override_main)
-        self.allow_unaccounted = bool(self.allow_unaccounted)
-        normalized_limits: dict[str, int] = {}
-        for day in WEEKDAYS:
-            val = int(self.daily_limits.get(day, 0))
-            if val < 0 or val > SECONDS_PER_DAY:
-                raise ValueError(f"PlayTime limit for {day} out of range: {val}")
-            normalized_limits[day] = val
-        self.daily_limits = normalized_limits
         self.apps = [
             a if isinstance(a, PlayTimeApp) else PlayTimeApp.from_dict(a)
             for a in self.apps
@@ -169,8 +174,6 @@ class PlayTimePolicy:
         return {
             "enabled": self.enabled,
             "override_main": self.override_main,
-            "allow_unaccounted": self.allow_unaccounted,
-            "daily_limits": dict(self.daily_limits),
             "apps": [a.to_dict() for a in self.apps],
         }
 
@@ -178,12 +181,22 @@ class PlayTimePolicy:
     def from_dict(cls, data: dict[str, Any] | None) -> "PlayTimePolicy":
         if not data:
             return cls()
+        # Preserve legacy v0.7.0 shared daily_limits as fallback for apps lacking daily_limit_sec
+        default_limit = 3600
+        legacy_limits = data.get("daily_limits")
+        if isinstance(legacy_limits, dict):
+            for day in WEEKDAYS:
+                val = int(legacy_limits.get(day, 0) or 0)
+                if 0 < val <= SECONDS_PER_DAY:
+                    default_limit = val
+                    break
         return cls(
             enabled=bool(data.get("enabled", False)),
             override_main=bool(data.get("override_main", False)),
-            allow_unaccounted=bool(data.get("allow_unaccounted", False)),
-            daily_limits=dict(data.get("daily_limits", {})),
-            apps=[PlayTimeApp.from_dict(a) for a in data.get("apps", [])],
+            apps=[
+                a if isinstance(a, PlayTimeApp) else PlayTimeApp.from_dict(a, default_limit_sec=default_limit)
+                for a in data.get("apps", [])
+            ],
         )
 
 
@@ -192,7 +205,7 @@ def default_daily_limits(seconds: int = SECONDS_PER_DAY) -> dict[str, int]:
 
 
 def default_curfew_windows() -> dict[str, list[TimeWindow]]:
-    return {day: [TimeWindow("00:00", "24:00", False)] for day in WEEKDAYS}
+    return {day: [TimeWindow("00:00", "24:00")] for day in WEEKDAYS}
 
 
 @dataclass
@@ -238,7 +251,7 @@ class UserPolicy:
         for day in WEEKDAYS:
             raw_list = self.curfew_windows.get(day)
             if raw_list is None:
-                norm_windows[day] = [TimeWindow("00:00", "24:00", False)]
+                norm_windows[day] = [TimeWindow("00:00", "24:00")]
             else:
                 parsed = [
                     w if isinstance(w, TimeWindow) else TimeWindow.from_dict(w)
@@ -310,6 +323,10 @@ class UserAccountingState:
     bonus_today: int = 0
     playtime_spent_today: int = 0
     playtime_balance: int = 0
+    app_spent_today: dict[str, int] = field(default_factory=dict)
+    app_bonus_today: dict[str, int] = field(default_factory=dict)
+    today_limit_override: int | None = None
+    today_windows_override: list[dict[str, str]] | None = None
     last_checked_utc: str = ""
 
     def __post_init__(self) -> None:
@@ -322,6 +339,31 @@ class UserAccountingState:
         self.bonus_today = int(self.bonus_today)
         self.playtime_spent_today = max(0, int(self.playtime_spent_today))
         self.playtime_balance = int(self.playtime_balance)
+        self.app_spent_today = {
+            str(k).strip(): max(0, int(v))
+            for k, v in (self.app_spent_today or {}).items()
+            if str(k).strip()
+        }
+        self.app_bonus_today = {
+            str(k).strip(): int(v)
+            for k, v in (self.app_bonus_today or {}).items()
+            if str(k).strip()
+        }
+        if self.today_limit_override is not None:
+            lim = int(self.today_limit_override)
+            if lim < 0 or lim > SECONDS_PER_DAY:
+                raise ValueError(f"today_limit_override out of range (0..86400): {lim}")
+            self.today_limit_override = lim
+        if self.today_windows_override is not None:
+            parsed = [
+                w if isinstance(w, TimeWindow) else TimeWindow.from_dict(w)
+                for w in self.today_windows_override
+            ]
+            parsed.sort(key=lambda w: (w.start_minutes, w.end_minutes))
+            for prev, curr in zip(parsed, parsed[1:]):
+                if curr.start_minutes < prev.end_minutes:
+                    raise ValueError(f"Overlapping today_windows_override: {prev.start}-{prev.end} vs {curr.start}-{curr.end}")
+            self.today_windows_override = [w.to_dict() for w in parsed]
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -341,6 +383,10 @@ class UserAccountingState:
             bonus_today=int(data.get("bonus_today", 0)),
             playtime_spent_today=int(data.get("playtime_spent_today", 0)),
             playtime_balance=int(data.get("playtime_balance", 0)),
+            app_spent_today=dict(data.get("app_spent_today", {}) or {}),
+            app_bonus_today=dict(data.get("app_bonus_today", {}) or {}),
+            today_limit_override=data.get("today_limit_override"),
+            today_windows_override=data.get("today_windows_override"),
             last_checked_utc=str(data.get("last_checked_utc", "")),
         )
 

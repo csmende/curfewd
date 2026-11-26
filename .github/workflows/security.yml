@@ -59,6 +59,7 @@ jobs:
             bin/curfewctl \
             bin/curfewd \
             bin/curfewd-tray \
+            bin/curfewd-ui \
             debian/postinst \
             debian/postrm \
             extras/dconf-lock-screensaver.sh

@@ -20,7 +20,7 @@ _DAY_ALIASES = {
 _USERNAME_RE = re.compile(r"^[a-z_][a-z0-9._-]{0,31}$")
 _DURATION_TOKEN_RE = re.compile(r"(\d+)\s*([dhms])", re.IGNORECASE)
 _HHMM_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
-_WINDOW_RE = re.compile(r"^(!)?(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$")
+_WINDOW_RE = re.compile(r"^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$")
 
 SECONDS_PER_DAY = 86400
 
@@ -172,14 +172,14 @@ def minutes_to_hhmm(minutes: int) -> str:
 
 
 def parse_windows(raw: str) -> list[dict]:
-    """Parse comma-separated windows like '08:00-22:00,!22:00-22:30' or 'none'/'all'."""
+    """Parse comma-separated windows like '08:00-22:00' or '07:30-08:30,15:00-21:00' or 'none'/'all'."""
     if not isinstance(raw, str):
         raise ValueError(f"Invalid window specification: {raw!r}")
     text = raw.strip().lower()
     if text in ("none", "off", "blocked", ""):
         return []
     if text in ("all", "24/7", "always", "00:00-24:00"):
-        return [{"start": "00:00", "end": "24:00", "unaccounted": False}]
+        return [{"start": "00:00", "end": "24:00"}]
 
     windows = []
     for part in raw.split(","):
@@ -188,17 +188,15 @@ def parse_windows(raw: str) -> list[dict]:
             continue
         match = _WINDOW_RE.match(token)
         if not match:
-            raise ValueError(f"Invalid window {token!r}; expected [!]HH:MM-HH:MM")
-        unaccounted = bool(match.group(1))
-        start_min = parse_hhmm_to_minutes(match.group(2))
-        end_min = parse_hhmm_to_minutes(match.group(3))
+            raise ValueError(f"Invalid window {token!r}; expected HH:MM-HH:MM")
+        start_min = parse_hhmm_to_minutes(match.group(1))
+        end_min = parse_hhmm_to_minutes(match.group(2))
         if end_min <= start_min:
             raise ValueError(f"Window end must be after start: {token!r}")
         windows.append(
             {
                 "start": minutes_to_hhmm(start_min),
                 "end": minutes_to_hhmm(end_min),
-                "unaccounted": unaccounted,
             }
         )
 

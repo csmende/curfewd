@@ -8,6 +8,7 @@
 |---|---|---|---|
 | `001` | [Multi-DE Screen Locking & X11 Fullscreen Grab Release](001-multi-de-screen-locking.md) | Implemented | `v0.6.0` |
 | `002` | [Native Control Plane, `org.curfewd.Daemon1` D-Bus API & Modern `curfewctl` CLI](002-curfewd-control-plane-and-cli.md) | Implemented | `v0.7.0` |
+| `003` | [Native Material Design 3 Desktop UI (`curfewd-ui`) & Per-App Limits](003-material-design-ui.md) | Implemented | `v1.0.0` |
 
 ## Adding a New Spec
 

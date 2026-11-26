@@ -7,8 +7,8 @@ CURFEWD_UNIT="curfewd.service"
 # Create system admin group for headless curfewctl access without sudo
 getent group curfewd >/dev/null || groupadd -r curfewd
 
-# Ensure config and state directories exist with safe ownership and modes
-install -d -m 0755 -o root -g root /etc/curfewd
+# Ensure config, state, and dconf directories exist with safe ownership and modes
+install -d -m 0755 -o root -g root /etc/curfewd /etc/dconf
 install -d -m 0750 -o root -g curfewd /var/lib/curfewd /var/lib/curfewd/users /var/lib/curfewd/state
 
 # One-way migration from legacy Timekpr-nExT / curfewd 0.6.x on first install
@@ -35,6 +35,10 @@ fi
 if command -v gtk-update-icon-cache >/dev/null 2>&1 && [ -d /usr/share/icons/hicolor ]; then
     touch --no-create /usr/share/icons/hicolor || true
     gtk-update-icon-cache -f -q /usr/share/icons/hicolor || true
+fi
+
+if command -v update-desktop-database >/dev/null 2>&1 && [ -d /usr/share/applications ]; then
+    update-desktop-database -q /usr/share/applications || true
 fi
 
 #DEBHELPER#

@@ -137,13 +137,44 @@ class CurfewClient:
     def set_daemon_config(self, config: dict[str, Any]) -> dict[str, Any]:
         return self._call_json(DBUS_ADMIN_INTERFACE, "SetDaemonConfig", json.dumps(config))
 
+    def set_today_override(
+        self,
+        username: str,
+        limit_sec: int | None = None,
+        windows: list[dict[str, str]] | None = None,
+        reset: bool = False,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"reset": bool(reset)}
+        if limit_sec is not None:
+            payload["limit_sec"] = int(limit_sec)
+        if windows is not None:
+            payload["windows"] = list(windows)
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE, "SetTodayOverride", str(username), json.dumps(payload)
+        )
+
+    def grant_app_time(self, username: str, pattern: str, delta_seconds: int) -> dict[str, Any]:
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE,
+            "GrantAppTime",
+            str(username),
+            str(pattern),
+            dbus.Int32(int(delta_seconds)),
+        )
+
     def run_doctor(self) -> dict[str, Any]:
         return self._call_json(DBUS_ADMIN_INTERFACE, "RunDoctor")
+
+    def apply_doctor_fix(self) -> dict[str, Any]:
+        return self._call_json(DBUS_ADMIN_INTERFACE, "ApplyDoctorFix")
 
     # --- Unprivileged Self-Client API ---
 
     def get_my_status(self) -> dict[str, Any]:
         return self._call_json(DBUS_CLIENT_INTERFACE, "GetMyStatus")
+
+    def get_my_history(self, days: int = 7) -> dict[str, Any]:
+        return self._call_json(DBUS_CLIENT_INTERFACE, "GetMyHistory", dbus.Int32(int(days)))
 
     def report_screensaver_state(self, nonce: str, active: bool) -> bool:
         res = self._call(DBUS_CLIENT_INTERFACE, "ReportScreensaverState", str(nonce), dbus.Boolean(bool(active)))

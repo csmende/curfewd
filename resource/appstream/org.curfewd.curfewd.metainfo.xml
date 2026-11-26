@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.curfewd.curfewd</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>curfewd</name>
+  <summary>Screen time limits, curfews, and per-app timers for Linux</summary>
+  <description>
+    <p>
+      curfewd is a modern Linux screen-time enforcement daemon and Material Design 3
+      desktop application. Manage daily allowances, allowed hours, curfews, and
+      individual per-app daily timers without running the graphical interface as root.
+    </p>
+    <p>
+      Includes verified multi-DE screen locking (Cinnamon, GNOME, KDE, XFCE, MATE),
+      non-destructive fullscreen game lock compatibility, one-click lock-screen
+      hardening, and a passwordless My Screen Time view for standard users.
+    </p>
+  </description>
+  <launchable type="desktop-id">curfewd.desktop</launchable>
+  <url type="homepage">https://github.com/csmende/curfewd</url>
+  <url type="bugtracker">https://github.com/csmende/curfewd/issues</url>
+  <developer_name>Christopher Mende</developer_name>
+  <provides>
+    <binary>curfewd-ui</binary>
+    <binary>curfewctl</binary>
+  </provides>
+  <releases>
+    <release version="1.0.0" date="2026-11-26">
+      <description>
+        <p>First 1.0 release with native Material Design 3 desktop UI, Today-only overrides, individual per-app daily limits, and one-click lock-screen protection.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1" />
+</component>

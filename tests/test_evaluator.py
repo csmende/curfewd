@@ -3,7 +3,13 @@
 from datetime import datetime, timezone
 import unittest
 
-from curfewd.engine.evaluator import apply_grant, evaluate_tick, rollover_state
+from curfewd.engine.evaluator import (
+    apply_app_grant,
+    apply_grant,
+    apply_today_override,
+    evaluate_tick,
+    rollover_state,
+)
 from curfewd.models import (
     DaemonConfig,
     PauseState,
@@ -86,17 +92,33 @@ class TestPolicyEvaluator(unittest.TestCase):
         self.assertEqual(res2.enforcement_state, "locked_out")
         self.assertEqual(pol.daily_limits["wed"], 3600)
 
-    def test_unaccounted_window_does_not_charge_or_enforce(self):
+    def test_today_override_preserves_weekly_template_and_clears_at_midnight(self):
         cfg = DaemonConfig()
         pol = _make_restricted_policy(3600)
-        pol.curfew_windows["wed"] = [TimeWindow("08:00", "15:00", unaccounted=True), TimeWindow("15:00", "21:00", unaccounted=False)]
-        st = UserAccountingState(username="alice", date="2026-11-25", week_key="2026-W48", month_key="2026-11", spent_today=3600, spent_balance=3600)
-        now = datetime(2026, 11, 25, 10, 0, tzinfo=timezone.utc)
+        st = UserAccountingState(username="alice", date="2026-11-25", week_key="2026-W48", month_key="2026-11", spent_today=1200, spent_balance=1200)
+        now = datetime(2026, 11, 25, 21, 30, tzinfo=timezone.utc)
 
-        res = evaluate_tick(pol, st, cfg, now, elapsed_sec=10, is_active=True, screen_locked=False)
-        self.assertTrue(res.unaccounted_now)
-        self.assertFalse(res.should_enforce)
-        self.assertEqual(st.spent_balance, 3600)
+        # Without override, 21:30 is outside 08:00-21:00 curfew
+        res_before = evaluate_tick(pol, st, cfg, now, elapsed_sec=0, is_active=True, screen_locked=False)
+        self.assertEqual(res_before.enforcement_state, "locked_out")
+
+        # Extend today's allowance to 2h and curfew to 22:30 without mutating weekly template
+        apply_today_override(pol, st, now, limit_sec=7200, windows=[{"start": "08:00", "end": "22:30"}])
+        self.assertEqual(pol.daily_limits["wed"], 3600)
+        self.assertEqual(pol.curfew_windows["wed"][0].end, "21:00")
+
+        res_after = evaluate_tick(pol, st, cfg, now, elapsed_sec=0, is_active=True, screen_locked=False)
+        self.assertEqual(res_after.enforcement_state, "ok")
+        self.assertEqual(res_after.daily_limit_today, 7200)
+        self.assertEqual(res_after.time_left_today, 6000)
+
+        # Next day midnight rollover clears the today override automatically
+        next_day = datetime(2026, 11, 26, 9, 0, tzinfo=timezone.utc)
+        res_next = evaluate_tick(pol, st, cfg, next_day, elapsed_sec=0, is_active=True, screen_locked=False)
+        self.assertIsNone(st.today_limit_override)
+        self.assertIsNone(st.today_windows_override)
+        self.assertEqual(res_next.daily_limit_today, 3600)
+        self.assertEqual(res_next.today_windows, [{"start": "08:00", "end": "21:00"}])
 
     def test_grant_add_subtract_and_set(self):
         pol = _make_restricted_policy(3600)
@@ -122,6 +144,10 @@ class TestPolicyEvaluator(unittest.TestCase):
             spent_balance=3600,
             spent_week=12000,
             spent_month=40000,
+            app_spent_today={"steam": 1800},
+            app_bonus_today={"steam": 900},
+            today_limit_override=7200,
+            today_windows_override=[{"start": "08:00", "end": "23:00"}],
             last_checked_utc="2026-11-29T20:00:00+00:00",
         )
         # Tuesday Dec 1 -> new day, new ISO week W49, new month 2026-12
@@ -130,21 +156,61 @@ class TestPolicyEvaluator(unittest.TestCase):
         self.assertEqual(st.spent_today, 0)
         self.assertEqual(st.spent_week, 0)
         self.assertEqual(st.spent_month, 0)
+        self.assertEqual(st.app_spent_today, {})
+        self.assertEqual(st.app_bonus_today, {})
+        self.assertIsNone(st.today_limit_override)
+        self.assertIsNone(st.today_windows_override)
 
-    def test_playtime_triggers_kill_when_exhausted(self):
+    def test_per_app_limits_isolate_expired_app_and_support_bonus_grant(self):
         cfg = DaemonConfig(playtime_enabled=True)
         pol = _make_restricted_policy(7200)
         pol.playtime = PlayTimePolicy(
             enabled=True,
-            daily_limits={d: 600 for d in WEEKDAYS},
-            apps=[PlayTimeApp("steam", "Steam")],
+            apps=[
+                PlayTimeApp("steam", "Steam", daily_limit_sec=600, category="Gaming"),
+                PlayTimeApp("discord", "Discord", daily_limit_sec=1800, category="Social"),
+            ],
         )
-        st = UserAccountingState(username="alice", date="2026-11-25", week_key="2026-W48", month_key="2026-11", playtime_spent_today=598, playtime_balance=598)
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            app_spent_today={"steam": 598, "discord": 300},
+        )
         now = datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc)
 
-        res = evaluate_tick(pol, st, cfg, now, elapsed_sec=3, is_active=True, screen_locked=False, playtime_active=True)
-        self.assertEqual(res.playtime_left_today, 0)
+        res = evaluate_tick(
+            pol,
+            st,
+            cfg,
+            now,
+            elapsed_sec=3,
+            is_active=True,
+            screen_locked=False,
+            running_app_patterns=["steam", "discord"],
+        )
         self.assertTrue(res.playtime_should_kill)
+        # ONLY steam expired; discord remains running untouched!
+        self.assertEqual(res.expired_app_patterns, ["steam"])
+        self.assertEqual(st.app_spent_today["steam"], 601)
+        self.assertEqual(st.app_spent_today["discord"], 303)
+
+        # Grant +15m bonus strictly to steam -> steam is allowed again
+        applied = apply_app_grant(pol, st, "steam", 900, now)
+        self.assertEqual(applied, 900)
+        res2 = evaluate_tick(
+            pol,
+            st,
+            cfg,
+            now,
+            elapsed_sec=0,
+            is_active=True,
+            screen_locked=False,
+            running_app_patterns=["steam", "discord"],
+        )
+        self.assertFalse(res2.playtime_should_kill)
+        self.assertEqual(res2.expired_app_patterns, [])
 
 
 if __name__ == "__main__":

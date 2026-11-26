@@ -68,11 +68,7 @@ def _print_json(data: Any, stream=None) -> None:
 def _format_windows_human(windows: list[dict[str, Any]]) -> str:
     if not windows:
         return "blocked"
-    parts = []
-    for w in windows:
-        prefix = "!" if w.get("unaccounted") else ""
-        parts.append(f"{prefix}{w['start']}-{w['end']}")
-    return ", ".join(parts)
+    return ", ".join(f"{w['start']}-{w['end']}" for w in windows)
 
 
 def _print_users_table(users: list[dict[str, Any]], stream) -> None:
@@ -109,6 +105,10 @@ def _print_user_status(st: dict[str, Any], stream) -> None:
         f"{'unlimited' if st['daily_limit_today'] >= 86400 else format_duration(st['daily_limit_today'])}"
         f" | Bonus: {format_duration(st['bonus_today'])}\n"
     )
+    ovr = st.get("today_override") or {}
+    if ovr.get("active"):
+        win_txt = _format_windows_human(st.get("today_windows") or [])
+        stream.write(f"Today override: ACTIVE (windows={win_txt})\n")
     stream.write(
         f"Totals: week={format_duration(st['time_spent_week'])} "
         f"month={format_duration(st['time_spent_month'])} | "
@@ -126,11 +126,15 @@ def _print_user_status(st: dict[str, Any], stream) -> None:
         stream.write(f"  {day}: limit={lim_s:<10} windows={win_s}\n")
     pt = st.get("playtime_status", {})
     if pt.get("enabled"):
-        apps = ", ".join(pt.get("active_apps") or []) or "none"
-        stream.write(
-            f"PlayTime: left={format_duration(pt.get('time_left_today', 0))} "
-            f"spent={format_duration(pt.get('time_spent_today', 0))} active_apps={apps}\n"
-        )
+        apps_list = pt.get("apps") or []
+        stream.write(f"App Limits: enabled ({len(apps_list)} tracked)\n")
+        for a in apps_list:
+            run_tag = " [running]" if a.get("running") else ""
+            stream.write(
+                f"  - {a['label']} ({a['pattern']}): "
+                f"{format_duration(a.get('time_left_today', 0))} left / "
+                f"{format_duration(a.get('allotted_today', a.get('daily_limit_sec', 0)))}{run_tag}\n"
+            )
 
 
 def _print_history(hist: dict[str, Any], stream) -> None:
@@ -225,19 +229,30 @@ def build_parser() -> argparse.ArgumentParser:
     p_hist.add_argument("user", help="Linux username")
     p_hist.add_argument("--days", type=int, default=7, help="Number of days (1..365, default 7)")
 
-    p_pt = sub.add_parser("playtime", parents=[common], help="Manage per-app PlayTime limits")
+    p_today = sub.add_parser("today", parents=[common], help="Override today's allowance or allowed window without altering the weekly schedule")
+    p_today.add_argument("user", help="Linux username")
+    p_today.add_argument("--limit", dest="today_limit", default=None, help="Today-only daily allowance (e.g. 2h, 45m, unlimited)")
+    p_today.add_argument("--window", dest="today_window", default=None, help="Today-only allowed window (e.g. '08:00-22:30', 'all', 'none')")
+    p_today.add_argument("--reset", action="store_true", help="Clear today's override and revert to the weekly schedule")
+
+    p_pt = sub.add_parser("app-limits", aliases=["playtime"], parents=[common], help="Manage individual per-app daily limits")
     p_pt.add_argument("user", help="Linux username")
     pt_sub = p_pt.add_subparsers(dest="pt_action", required=True)
     pt_sub.add_parser("status", parents=[common])
     pt_sub.add_parser("enable", parents=[common])
     pt_sub.add_parser("disable", parents=[common])
-    p_pt_lim = pt_sub.add_parser("limit", parents=[common])
-    p_pt_lim.add_argument("duration", help="PlayTime daily limit (e.g. 1h, 45m)")
-    p_pt_lim.add_argument("--days", default="all")
-    p_pt_add = pt_sub.add_parser("add", parents=[common])
+    p_pt_lim = pt_sub.add_parser("limit", parents=[common], help="Set daily limit for an app pattern (or all tracked apps)")
+    p_pt_lim.add_argument("target", help="App pattern (or duration if setting all tracked apps)")
+    p_pt_lim.add_argument("duration", nargs="?", default=None, help="Daily limit duration (e.g. 45m, 1h)")
+    p_pt_add = pt_sub.add_parser("add", parents=[common], help="Track an app or game with its own daily limit")
     p_pt_add.add_argument("pattern", help="Process name or regex pattern")
     p_pt_add.add_argument("label", nargs="?", default="", help="Friendly app label")
-    p_pt_rm = pt_sub.add_parser("remove", parents=[common])
+    p_pt_add.add_argument("--limit", dest="app_limit", default="45m", help="Daily time limit for this app (default: 45m)")
+    p_pt_add.add_argument("--category", default="", help="Optional category (e.g. Gaming, Social, Media)")
+    p_pt_grant = pt_sub.add_parser("grant", parents=[common], help="Add or subtract bonus time today for one app")
+    p_pt_grant.add_argument("pattern", help="Tracked app pattern")
+    p_pt_grant.add_argument("delta", help="Adjustment such as +15m or -15m")
+    p_pt_rm = pt_sub.add_parser("remove", parents=[common], help="Remove an app limit rule")
     p_pt_rm.add_argument("pattern", help="Pattern to remove")
 
     p_cfg = sub.add_parser("config", parents=[common], help="Inspect or update global daemon configuration")
@@ -332,11 +347,18 @@ def run_cli(
         if cmd == "doctor":
             fix_result = None
             if args.fix:
-                fix_result = apply_dconf_lock_fix()
-            try:
-                report = _make_client().run_doctor()
-            except DaemonUnavailableError:
-                report = run_doctor(dbus_connected=False)
+                try:
+                    fixed = _make_client().apply_doctor_fix()
+                    fix_result = fixed.get("fix_applied")
+                    report = fixed.get("doctor") or run_doctor(dbus_connected=True)
+                except DaemonUnavailableError:
+                    fix_result = apply_dconf_lock_fix()
+                    report = run_doctor(dbus_connected=False)
+            else:
+                try:
+                    report = _make_client().run_doctor()
+                except DaemonUnavailableError:
+                    report = run_doctor(dbus_connected=False)
             if fix_result is not None:
                 report["fix_applied"] = fix_result
             if as_json:
@@ -484,7 +506,31 @@ def run_cli(
                 _print_history(hist, out)
             return EXIT_OK
 
-        if cmd == "playtime":
+        if cmd == "today":
+            if not args.reset and args.today_limit is None and args.today_window is None:
+                raise ValueError("Specify at least one of --limit, --window, or --reset")
+            lim_sec = parse_duration(args.today_limit) if args.today_limit is not None else None
+            wins = parse_windows(args.today_window) if args.today_window is not None else None
+            updated = client.set_today_override(
+                args.user,
+                limit_sec=lim_sec,
+                windows=wins,
+                reset=bool(args.reset),
+            )
+            if as_json:
+                _print_json(updated, out)
+            else:
+                if args.reset:
+                    out.write(f"Cleared today's override for {args.user}; reverted to weekly schedule.\n")
+                else:
+                    out.write(
+                        f"Updated today's schedule for {args.user}: "
+                        f"allowance={'unlimited' if updated['daily_limit_today'] >= 86400 else format_duration(updated['daily_limit_today'])}, "
+                        f"windows={_format_windows_human(updated.get('today_windows') or [])}\n"
+                    )
+            return EXIT_OK
+
+        if cmd in ("app-limits", "playtime"):
             st = client.get_user_status(args.user)
             policy = dict(st["policy"])
             pt = dict(policy["playtime"])
@@ -493,22 +539,52 @@ def run_cli(
                 if as_json:
                     _print_json(payload, out)
                 else:
-                    out.write(f"PlayTime for {args.user}: enabled={pt['enabled']} apps={len(pt['apps'])}\n")
-                    for a in pt["apps"]:
-                        out.write(f"  - {a['label']} ({a['pattern']})\n")
+                    out.write(f"App Limits for {args.user}: enabled={pt['enabled']} apps={len(pt['apps'])}\n")
+                    for a in st["playtime_status"].get("apps", pt["apps"]):
+                        lim_s = format_duration(a.get("allotted_today", a.get("daily_limit_sec", 0)))
+                        rem_s = format_duration(a.get("time_left_today", a.get("daily_limit_sec", 0)))
+                        out.write(f"  - {a['label']} ({a['pattern']}): {rem_s} left / {lim_s}\n")
+                return EXIT_OK
+            if args.pt_action == "grant":
+                mode, delta_sec = parse_delta(args.delta)
+                if mode == "set":
+                    raise ValueError("app-limits grant supports relative deltas like +15m or -15m")
+                res = client.grant_app_time(args.user, args.pattern, delta_sec)
+                if as_json:
+                    _print_json(res, out)
+                else:
+                    out.write(
+                        f"Updated {args.pattern} for {args.user}: applied {format_duration(res['applied_sec'], include_seconds=True)}\n"
+                    )
                 return EXIT_OK
             if args.pt_action == "enable":
                 pt["enabled"] = True
             elif args.pt_action == "disable":
                 pt["enabled"] = False
             elif args.pt_action == "limit":
-                days = parse_days(args.days)
-                sec = parse_duration(args.duration)
-                pt["daily_limits"] = dict(pt["daily_limits"])
-                for d in days:
-                    pt["daily_limits"][d] = sec
+                apps = [dict(a) for a in pt["apps"]]
+                if args.duration is None:
+                    sec = parse_duration(args.target)
+                    for a in apps:
+                        a["daily_limit_sec"] = sec
+                else:
+                    sec = parse_duration(args.duration)
+                    matched = False
+                    for a in apps:
+                        if a["pattern"] == args.target:
+                            a["daily_limit_sec"] = sec
+                            matched = True
+                    if not matched:
+                        raise ValueError(f"Tracked app pattern not found: {args.target!r}")
+                pt["apps"] = apps
             elif args.pt_action == "add":
-                app = PlayTimeApp(pattern=args.pattern, label=args.label or args.pattern).to_dict()
+                lim_sec = parse_duration(args.app_limit)
+                app = PlayTimeApp(
+                    pattern=args.pattern,
+                    label=args.label or args.pattern,
+                    daily_limit_sec=lim_sec,
+                    category=args.category,
+                ).to_dict()
                 apps = [a for a in pt["apps"] if a["pattern"] != app["pattern"]]
                 apps.append(app)
                 pt["apps"] = apps
@@ -519,7 +595,7 @@ def run_cli(
             if as_json:
                 _print_json(updated, out)
             else:
-                out.write(f"Updated PlayTime for {args.user} (enabled={updated['policy']['playtime']['enabled']}).\n")
+                out.write(f"Updated App Limits for {args.user} (enabled={updated['policy']['playtime']['enabled']}).\n")
             return EXIT_OK
 
         if cmd == "config":

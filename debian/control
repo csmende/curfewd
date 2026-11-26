@@ -27,6 +27,7 @@ Depends: libglib2.0-bin,
 Recommends: dconf-cli,
             gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1,
             gir1.2-gtk-3.0,
+            gir1.2-webkit-6.0 | gir1.2-webkit2-4.1,
             wmctrl,
             xdotool
 Suggests: gnome-shell-extension-appindicator,
@@ -39,12 +40,14 @@ Replaces: timekpr,
           timekpr-beta,
           timekpr-next,
           timekpr-next-beta
-Description: Modern Linux screen-time enforcement daemon, control plane & CLI
+Description: Modern Linux screen-time enforcement daemon, Material Design 3 UI & CLI
  curfewd tracks and limits desktop usage for user accounts on Linux systems
- with verified multi-DE screen locking (Cinnamon, XFCE, MATE, GNOME, KDE),
- X11 fullscreen-game grab release, Polkit-authorized D-Bus API
- (org.curfewd.Daemon1), atomic JSON policy storage, SQLite usage history,
- modern curfewctl CLI with --json output, and a lightweight tray companion.
+ with a native unprivileged Material Design 3 desktop UI (curfewd-ui),
+ verified multi-DE screen locking (Cinnamon, XFCE, MATE, GNOME, KDE),
+ X11 fullscreen-game grab release, individual per-app daily timers,
+ Polkit-authorized D-Bus API (org.curfewd.Daemon1), atomic JSON policy storage,
+ SQLite usage history, modern curfewctl CLI with --json output, and a
+ lightweight auto-reconnecting tray companion.
  .
  Originally forked from Timekpr-nExT; includes `curfewctl migrate-timekpr`
  for one-way migration of legacy configurations.

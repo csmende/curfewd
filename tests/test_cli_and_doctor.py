@@ -30,6 +30,8 @@ class _StubClient:
         self.bonus = 0
         self.config = {"log_level": "INFO", "poll_interval_sec": 3, "session_lock_fallback": True}
         self.last_grant = None
+        self.today_override = {"active": False, "limit_sec": None, "windows": None}
+        self.app_grants = []
 
     def _status(self):
         return {
@@ -39,21 +41,41 @@ class _StubClient:
             "active": True,
             "screen_locked": False,
             "enforcement_state": "paused" if self.policy["pause"]["active"] else "ok",
-            "unaccounted_now": False,
             "hide_tray_effective": self.policy["pause"]["active"],
             "time_left_today": self.time_left,
             "time_left_continuous": self.time_left,
-            "daily_limit_today": self.policy["daily_limits"]["wed"],
+            "daily_limit_today": self.today_override["limit_sec"] if self.today_override["limit_sec"] is not None else self.policy["daily_limits"]["wed"],
             "time_spent_today": 0,
             "time_spent_balance": 0,
             "time_spent_week": 1200,
             "time_spent_month": 3600,
             "bonus_today": self.bonus,
+            "today_windows": self.today_override["windows"] or self.policy["curfew_windows"]["wed"],
+            "today_override": dict(self.today_override),
             "next_curfew_at": "2026-11-25T21:00:00+00:00",
             "next_allowed_at": None,
             "sessions": [],
             "pause": self.policy["pause"],
-            "playtime_status": {"enabled": self.policy["playtime"]["enabled"], "time_left_today": 0, "time_spent_today": 0, "active_apps": []},
+            "playtime_status": {
+                "enabled": self.policy["playtime"]["enabled"],
+                "time_left_today": 0,
+                "time_spent_today": 0,
+                "active_apps": [],
+                "apps": [
+                    {
+                        "pattern": a["pattern"],
+                        "label": a["label"],
+                        "category": a.get("category", ""),
+                        "daily_limit_sec": a["daily_limit_sec"],
+                        "bonus_today": 0,
+                        "allotted_today": a["daily_limit_sec"],
+                        "spent_today": 0,
+                        "time_left_today": a["daily_limit_sec"],
+                        "running": False,
+                    }
+                    for a in self.policy["playtime"]["apps"]
+                ],
+            },
             "policy": self.policy,
         }
 
@@ -76,6 +98,21 @@ class _StubClient:
     def set_user_policy(self, username, policy):
         self.policy = policy
         return self._status()
+
+    def set_today_override(self, username, limit_sec=None, windows=None, reset=False):
+        if reset:
+            self.today_override = {"active": False, "limit_sec": None, "windows": None}
+        else:
+            if limit_sec is not None:
+                self.today_override["limit_sec"] = limit_sec
+            if windows is not None:
+                self.today_override["windows"] = windows
+            self.today_override["active"] = True
+        return self._status()
+
+    def grant_app_time(self, username, pattern, delta_seconds):
+        self.app_grants.append((username, pattern, delta_seconds))
+        return {"applied_sec": delta_seconds, "status": self._status()}
 
     def grant_time(self, username, delta, mode="add"):
         self.last_grant = (username, delta, mode)
@@ -108,7 +145,10 @@ class _StubClient:
         return dict(self.config)
 
     def run_doctor(self):
-        return {"version": "0.7.0", "overall": "ok", "checks": [{"name": "dbus_service", "status": "ok", "detail": "ok", "fixable": False}], "active_sessions": []}
+        return {"version": "1.0.0", "overall": "ok", "checks": [{"name": "dbus_service", "status": "ok", "detail": "ok", "fixable": False}], "active_sessions": []}
+
+    def apply_doctor_fix(self):
+        return {"fix_applied": {"applied": True, "detail": "dconf update succeeded"}, "doctor": self.run_doctor()}
 
 
 class TestCurfewctlCLI(unittest.TestCase):
@@ -143,7 +183,7 @@ class TestCurfewctlCLI(unittest.TestCase):
         self.assertEqual(stub.last_grant, ("alice", 7200, "set"))
         self.assertIn("2h", out)
 
-    def test_limit_window_lockout_pause_resume_lock_playtime_history_config(self):
+    def test_limit_window_today_lockout_pause_resume_lock_app_limits_history_config(self):
         stub = _StubClient()
         self.assertEqual(self._run(["limit", "alice", "1h30m", "--days", "mon-fri"], stub)[0], EXIT_OK)
         self.assertEqual(stub.policy["daily_limits"]["mon"], 5400)
@@ -151,6 +191,13 @@ class TestCurfewctlCLI(unittest.TestCase):
 
         self.assertEqual(self._run(["window", "alice", "07:30-20:30", "--days", "sun-thu"], stub)[0], EXIT_OK)
         self.assertEqual(stub.policy["curfew_windows"]["sun"][0]["start"], "07:30")
+
+        # Today-only override and reset
+        self.assertEqual(self._run(["today", "alice", "--limit", "2h", "--window", "08:00-22:30"], stub)[0], EXIT_OK)
+        self.assertTrue(stub.today_override["active"])
+        self.assertEqual(stub.today_override["limit_sec"], 7200)
+        self.assertEqual(self._run(["today", "alice", "--reset"], stub)[0], EXIT_OK)
+        self.assertFalse(stub.today_override["active"])
 
         self.assertEqual(self._run(["lockout", "alice", "suspend"], stub)[0], EXIT_OK)
         self.assertEqual(stub.policy["lockout_action"], "suspend")
@@ -166,11 +213,15 @@ class TestCurfewctlCLI(unittest.TestCase):
         self.assertEqual(rc, EXIT_OK)
         self.assertTrue(json.loads(out)["locked"])
 
-        self.assertEqual(self._run(["playtime", "alice", "enable"], stub)[0], EXIT_OK)
-        self.assertEqual(self._run(["playtime", "alice", "add", "steam", "Steam"], stub)[0], EXIT_OK)
-        self.assertEqual(self._run(["playtime", "alice", "limit", "45m", "--days", "all"], stub)[0], EXIT_OK)
+        # Per-app limits (both `app-limits` and `playtime` alias)
+        self.assertEqual(self._run(["app-limits", "alice", "enable"], stub)[0], EXIT_OK)
+        self.assertEqual(self._run(["app-limits", "alice", "add", "steam", "Steam", "--limit", "45m", "--category", "Gaming"], stub)[0], EXIT_OK)
         self.assertEqual(stub.policy["playtime"]["apps"][0]["pattern"], "steam")
-        self.assertEqual(stub.policy["playtime"]["daily_limits"]["mon"], 2700)
+        self.assertEqual(stub.policy["playtime"]["apps"][0]["daily_limit_sec"], 2700)
+        self.assertEqual(self._run(["playtime", "alice", "limit", "steam", "1h"], stub)[0], EXIT_OK)
+        self.assertEqual(stub.policy["playtime"]["apps"][0]["daily_limit_sec"], 3600)
+        self.assertEqual(self._run(["app-limits", "alice", "grant", "steam", "+15m"], stub)[0], EXIT_OK)
+        self.assertEqual(stub.app_grants, [("alice", "steam", 900)])
 
         rc, out, _, _ = self._run(["history", "alice", "--days", "7"], stub)
         self.assertEqual(rc, EXIT_OK)
@@ -179,6 +230,10 @@ class TestCurfewctlCLI(unittest.TestCase):
         rc, out, _, _ = self._run(["config", "set", "session_lock_fallback", "false", "--json"], stub)
         self.assertEqual(rc, EXIT_OK)
         self.assertFalse(json.loads(out)["session_lock_fallback"])
+
+        rc, out, _, _ = self._run(["doctor", "--fix", "--json"], stub)
+        self.assertEqual(rc, EXIT_OK)
+        self.assertTrue(json.loads(out)["fix_applied"]["applied"])
 
     def test_standardized_exit_codes(self):
         class _DeniedClient(_StubClient):

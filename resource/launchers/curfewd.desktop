@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=curfewd
+GenericName=Screen Time Control
+Comment=Manage screen time limits, curfews, and app limits
+Exec=/usr/bin/curfewd-ui
+Icon=curfewd
+Terminal=false
+Type=Application
+Categories=Settings;System;GTK;
+Keywords=parental;screen time;curfew;limits;timekpr;
+StartupNotify=true
+StartupWMClass=org.curfewd.curfewd
