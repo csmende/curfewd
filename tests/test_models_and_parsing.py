@@ -1,7 +1,7 @@
 """Unit tests for curfewd parsers and typed schema-v2 models."""
 
-from datetime import datetime, timezone
 import unittest
+from datetime import datetime, timezone
 
 from curfewd.models import (
     AppLimitRule,
@@ -92,10 +92,12 @@ class TestModels(unittest.TestCase):
         pol = UserPolicy(
             username="alice",
             lockout_action="lock",
-            daily_limits={d: 3600 for d in ("mon", "tue", "wed", "thu", "fri", "sat", "sun")},
+            daily_limits=dict.fromkeys(("mon", "tue", "wed", "thu", "fri", "sat", "sun"), 3600),
             weekly_limit=25200,
             curfew_windows={"mon": [TimeWindow("08:00", "21:00")]},
-            pause=PauseState(active=True, mode="until", until_utc="2026-11-26T00:00:00+00:00", reason="homework"),
+            pause=PauseState(
+                active=True, mode="until", until_utc="2026-11-26T00:00:00+00:00", reason="homework"
+            ),
             app_limits=AppLimitsPolicy(
                 enabled=True,
                 apps=[AppLimitRule("steam", "Steam", daily_limit_sec=2700, category="Gaming")],
@@ -107,19 +109,25 @@ class TestModels(unittest.TestCase):
         self.assertEqual(rebuilt.lockout_action, "lock")
         self.assertEqual(rebuilt.app_limits.apps[0].daily_limit_sec, 2700)
         self.assertEqual(rebuilt.app_limits.apps[0].category, "Gaming")
-        self.assertTrue(rebuilt.pause.is_effective(datetime(2026, 11, 25, 23, 0, tzinfo=timezone.utc)))
-        self.assertFalse(rebuilt.pause.is_effective(datetime(2026, 11, 26, 0, 1, tzinfo=timezone.utc)))
+        self.assertTrue(
+            rebuilt.pause.is_effective(datetime(2026, 11, 25, 23, 0, tzinfo=timezone.utc))
+        )
+        self.assertFalse(
+            rebuilt.pause.is_effective(datetime(2026, 11, 26, 0, 1, tzinfo=timezone.utc))
+        )
 
         # Schema v1 forward-migration: legacy `playtime` policy, `playtime_enabled` config & `playtime_*` state
-        v1_pol = UserPolicy.from_dict({
-            "schema_version": 1,
-            "username": "alice",
-            "playtime": {
-                "enabled": True,
-                "daily_limits": {"mon": 1800},
-                "apps": [{"pattern": "minecraft", "label": "Minecraft"}],
-            },
-        })
+        v1_pol = UserPolicy.from_dict(
+            {
+                "schema_version": 1,
+                "username": "alice",
+                "playtime": {
+                    "enabled": True,
+                    "daily_limits": {"mon": 1800},
+                    "apps": [{"pattern": "minecraft", "label": "Minecraft"}],
+                },
+            }
+        )
         self.assertEqual(v1_pol.schema_version, 2)
         self.assertTrue(v1_pol.app_limits.enabled)
         self.assertEqual(v1_pol.app_limits.apps[0].daily_limit_sec, 1800)
@@ -130,16 +138,21 @@ class TestModels(unittest.TestCase):
         self.assertEqual(v1_cfg.schema_version, 2)
         self.assertFalse(v1_cfg.app_limits_enabled)
 
-        v1_st = UserAccountingState.from_dict({
-            "schema_version": 1,
-            "username": "alice",
-            "playtime_spent_today": 420,
-            "playtime_balance": 420,
-        })
+        v1_st = UserAccountingState.from_dict(
+            {
+                "schema_version": 1,
+                "username": "alice",
+                "playtime_spent_today": 420,
+                "playtime_balance": 420,
+            }
+        )
         self.assertEqual(v1_st.schema_version, 2)
         self.assertEqual(v1_st.app_limits_spent_today, 420)
         self.assertEqual(v1_st.app_limits_balance, 420)
-        self.assertEqual(TimeWindow.from_dict({"start": "08:00", "end": "20:00", "unaccounted": True}).to_dict(), {"start": "08:00", "end": "20:00"})
+        self.assertEqual(
+            TimeWindow.from_dict({"start": "08:00", "end": "20:00", "unaccounted": True}).to_dict(),
+            {"start": "08:00", "end": "20:00"},
+        )
 
     def test_daemon_config_validation(self):
         cfg = DaemonConfig(poll_interval_sec=5, log_level="debug")

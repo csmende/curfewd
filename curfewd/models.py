@@ -1,7 +1,8 @@
 """Typed schema-versioned data models for curfewd policies, state, and telemetry."""
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from itertools import pairwise
 from typing import Any
 
 from curfewd import SCHEMA_VERSION
@@ -18,7 +19,16 @@ ENFORCEMENT_STATES = ("ok", "warning", "countdown", "locked_out", "paused", "unr
 DEFAULT_WARNING_THRESHOLDS = [3600, 1800, 600, 300, 60]
 DEFAULT_TRACKED_SESSION_TYPES = ["x11", "wayland", "mir"]
 DEFAULT_EXCLUDED_USERS = [
-    "gdm", "gdm3", "lightdm", "sddm", "lxdm", "mdm", "xdm", "kdm", "root", "nobody",
+    "gdm",
+    "gdm3",
+    "lightdm",
+    "sddm",
+    "lxdm",
+    "mdm",
+    "xdm",
+    "kdm",
+    "root",
+    "nobody",
 ]
 
 
@@ -166,8 +176,7 @@ class AppLimitsPolicy:
         self.enabled = bool(self.enabled)
         self.override_main = bool(self.override_main)
         self.apps = [
-            a if isinstance(a, AppLimitRule) else AppLimitRule.from_dict(a)
-            for a in self.apps
+            a if isinstance(a, AppLimitRule) else AppLimitRule.from_dict(a) for a in self.apps
         ]
 
     def to_dict(self) -> dict[str, Any]:
@@ -194,14 +203,16 @@ class AppLimitsPolicy:
             enabled=bool(data.get("enabled", False)),
             override_main=bool(data.get("override_main", False)),
             apps=[
-                a if isinstance(a, AppLimitRule) else AppLimitRule.from_dict(a, default_limit_sec=default_limit)
+                a
+                if isinstance(a, AppLimitRule)
+                else AppLimitRule.from_dict(a, default_limit_sec=default_limit)
                 for a in data.get("apps", [])
             ],
         )
 
 
 def default_daily_limits(seconds: int = SECONDS_PER_DAY) -> dict[str, int]:
-    return {day: seconds for day in WEEKDAYS}
+    return dict.fromkeys(WEEKDAYS, seconds)
 
 
 def default_curfew_windows() -> dict[str, list[TimeWindow]]:
@@ -230,7 +241,9 @@ class UserPolicy:
         self.schema_version = max(SCHEMA_VERSION, int(self.schema_version))
         self.enabled = bool(self.enabled)
         if self.lockout_action not in LOCKOUT_ACTIONS:
-            raise ValueError(f"Invalid lockout_action {self.lockout_action!r}; expected one of {LOCKOUT_ACTIONS}")
+            raise ValueError(
+                f"Invalid lockout_action {self.lockout_action!r}; expected one of {LOCKOUT_ACTIONS}"
+            )
         norm_limits: dict[str, int] = {}
         for day in WEEKDAYS:
             val = int(self.daily_limits.get(day, SECONDS_PER_DAY))
@@ -254,13 +267,14 @@ class UserPolicy:
                 norm_windows[day] = [TimeWindow("00:00", "24:00")]
             else:
                 parsed = [
-                    w if isinstance(w, TimeWindow) else TimeWindow.from_dict(w)
-                    for w in raw_list
+                    w if isinstance(w, TimeWindow) else TimeWindow.from_dict(w) for w in raw_list
                 ]
                 parsed.sort(key=lambda w: (w.start_minutes, w.end_minutes))
-                for prev, curr in zip(parsed, parsed[1:]):
+                for prev, curr in pairwise(parsed):
                     if curr.start_minutes < prev.end_minutes:
-                        raise ValueError(f"Overlapping curfew windows on {day}: {prev.start}-{prev.end} vs {curr.start}-{curr.end}")
+                        raise ValueError(
+                            f"Overlapping curfew windows on {day}: {prev.start}-{prev.end} vs {curr.start}-{curr.end}"
+                        )
                 norm_windows[day] = parsed
         self.curfew_windows = norm_windows
         self.track_inactive = bool(self.track_inactive)
@@ -280,8 +294,7 @@ class UserPolicy:
             "weekly_limit": self.weekly_limit,
             "monthly_limit": self.monthly_limit,
             "curfew_windows": {
-                day: [w.to_dict() for w in self.curfew_windows[day]]
-                for day in WEEKDAYS
+                day: [w.to_dict() for w in self.curfew_windows[day]] for day in WEEKDAYS
             },
             "track_inactive": self.track_inactive,
             "hide_tray_icon": self.hide_tray_icon,
@@ -317,11 +330,13 @@ class UserAccountingState:
 
     username: str
     schema_version: int = SCHEMA_VERSION
-    date: str = ""       # YYYY-MM-DD (local)
-    week_key: str = ""   # YYYY-Www (ISO week)
+    date: str = ""  # YYYY-MM-DD (local)
+    week_key: str = ""  # YYYY-Www (ISO week)
     month_key: str = ""  # YYYY-MM
     spent_today: int = 0
-    spent_balance: int = 0  # effective spent after bonus grants (can be negative when bonus > spent)
+    spent_balance: int = (
+        0  # effective spent after bonus grants (can be negative when bonus > spent)
+    )
     spent_week: int = 0
     spent_month: int = 0
     bonus_today: int = 0
@@ -364,9 +379,11 @@ class UserAccountingState:
                 for w in self.today_windows_override
             ]
             parsed.sort(key=lambda w: (w.start_minutes, w.end_minutes))
-            for prev, curr in zip(parsed, parsed[1:]):
+            for prev, curr in pairwise(parsed):
                 if curr.start_minutes < prev.end_minutes:
-                    raise ValueError(f"Overlapping today_windows_override: {prev.start}-{prev.end} vs {curr.start}-{curr.end}")
+                    raise ValueError(
+                        f"Overlapping today_windows_override: {prev.start}-{prev.end} vs {curr.start}-{curr.end}"
+                    )
             self.today_windows_override = [w.to_dict() for w in parsed]
 
     def to_dict(self) -> dict[str, Any]:
@@ -411,13 +428,17 @@ class DaemonConfig:
     schema_version: int = SCHEMA_VERSION
     poll_interval_sec: int = 3
     save_interval_sec: int = 30
-    warning_thresholds_sec: list[int] = field(default_factory=lambda: list(DEFAULT_WARNING_THRESHOLDS))
+    warning_thresholds_sec: list[int] = field(
+        default_factory=lambda: list(DEFAULT_WARNING_THRESHOLDS)
+    )
     final_countdown_sec: int = 15
     session_lock_fallback: bool = True
     release_x11_grab_on_lock: bool = True
     use_locked_hint: bool = True
     app_limits_enabled: bool = True
-    tracked_session_types: list[str] = field(default_factory=lambda: list(DEFAULT_TRACKED_SESSION_TYPES))
+    tracked_session_types: list[str] = field(
+        default_factory=lambda: list(DEFAULT_TRACKED_SESSION_TYPES)
+    )
     excluded_users: list[str] = field(default_factory=lambda: list(DEFAULT_EXCLUDED_USERS))
     history_retention_days: int = 365
     event_retention_days: int = 90
@@ -436,7 +457,9 @@ class DaemonConfig:
         self.release_x11_grab_on_lock = bool(self.release_x11_grab_on_lock)
         self.use_locked_hint = bool(self.use_locked_hint)
         self.app_limits_enabled = bool(self.app_limits_enabled)
-        self.tracked_session_types = [str(s).strip().lower() for s in self.tracked_session_types if str(s).strip()]
+        self.tracked_session_types = [
+            str(s).strip().lower() for s in self.tracked_session_types if str(s).strip()
+        ]
         self.excluded_users = [str(u).strip() for u in self.excluded_users if str(u).strip()]
         self.history_retention_days = max(7, min(3650, int(self.history_retention_days)))
         self.event_retention_days = max(7, min(3650, int(self.event_retention_days)))
@@ -462,13 +485,17 @@ class DaemonConfig:
             schema_version=SCHEMA_VERSION,
             poll_interval_sec=int(data.get("poll_interval_sec", 3)),
             save_interval_sec=int(data.get("save_interval_sec", 30)),
-            warning_thresholds_sec=list(data.get("warning_thresholds_sec", DEFAULT_WARNING_THRESHOLDS)),
+            warning_thresholds_sec=list(
+                data.get("warning_thresholds_sec", DEFAULT_WARNING_THRESHOLDS)
+            ),
             final_countdown_sec=int(data.get("final_countdown_sec", 15)),
             session_lock_fallback=bool(data.get("session_lock_fallback", True)),
             release_x11_grab_on_lock=bool(data.get("release_x11_grab_on_lock", True)),
             use_locked_hint=bool(data.get("use_locked_hint", True)),
             app_limits_enabled=bool(raw_al_enabled),
-            tracked_session_types=list(data.get("tracked_session_types", DEFAULT_TRACKED_SESSION_TYPES)),
+            tracked_session_types=list(
+                data.get("tracked_session_types", DEFAULT_TRACKED_SESSION_TYPES)
+            ),
             excluded_users=list(data.get("excluded_users", DEFAULT_EXCLUDED_USERS)),
             history_retention_days=int(data.get("history_retention_days", 365)),
             event_retention_days=int(data.get("event_retention_days", 90)),

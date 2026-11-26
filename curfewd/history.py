@@ -1,12 +1,16 @@
 """SQLite WAL-mode usage history and audit event store (/var/lib/curfewd/history.db)."""
 
-from datetime import datetime, timedelta, timezone
 import json
 import os
 import sqlite3
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager, suppress
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from curfewd import DEFAULT_STATE_DIR
+from curfewd.models import utc_now_iso
 from curfewd.parsing import validate_username
 
 _SCHEMA_SQL = """
@@ -44,26 +48,50 @@ class HistoryStore:
         os.makedirs(parent, mode=0o750, exist_ok=True)
         if os.path.islink(self.db_path):
             raise OSError(f"Refusing to open symlinked history database: {self.db_path}")
+        self._lock = threading.RLock()
+        self._conn: sqlite3.Connection | None = None
         self._init_db()
 
-    def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, timeout=5.0)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
-        return conn
+    def _get_conn(self) -> sqlite3.Connection:
+        if self._conn is None:
+            conn = sqlite3.connect(self.db_path, timeout=5.0, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            self._conn = conn
+        return self._conn
+
+    @contextmanager
+    def _transaction(self) -> Iterator[sqlite3.Connection]:
+        with self._lock:
+            conn = self._get_conn()
+            with conn:
+                yield conn
+
+    def close(self) -> None:
+        """Close the underlying SQLite connection cleanly."""
+        with self._lock:
+            if self._conn is not None:
+                self._conn.close()
+                self._conn = None
+
+    def __enter__(self) -> "HistoryStore":
+        return self
+
+    def __exit__(self, _exc_type, _exc, _tb) -> None:
+        self.close()
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with self._transaction() as conn:
             conn.executescript(_SCHEMA_SQL)
             # Forward-migrate schema v1 `playtime_sec` column cleanly without data loss
-            cols = {row["name"] for row in conn.execute("PRAGMA table_info(daily_usage)").fetchall()}
+            cols = {
+                row["name"] for row in conn.execute("PRAGMA table_info(daily_usage)").fetchall()
+            }
             if "playtime_sec" in cols and "app_limits_sec" not in cols:
                 conn.execute("ALTER TABLE daily_usage RENAME COLUMN playtime_sec TO app_limits_sec")
-        try:
+        with suppress(OSError):
             os.chmod(self.db_path, 0o640)
-        except OSError:
-            pass
 
     def record_daily_delta(
         self,
@@ -76,7 +104,7 @@ class HistoryStore:
         lockouts: int = 0,
     ) -> None:
         safe = validate_username(username)
-        with self._connect() as conn:
+        with self._transaction() as conn:
             conn.execute(
                 """
                 INSERT INTO daily_usage (date, username, active_sec, inactive_sec, app_limits_sec, bonus_sec, lockouts)
@@ -108,9 +136,9 @@ class HistoryStore:
         ts_utc: str | None = None,
     ) -> None:
         safe = validate_username(username)
-        ts = ts_utc or datetime.now(timezone.utc).isoformat()
+        ts = ts_utc or utc_now_iso()
         detail_json = json.dumps(detail or {}, sort_keys=True)
-        with self._connect() as conn:
+        with self._transaction() as conn:
             conn.execute(
                 """
                 INSERT INTO events (ts_utc, username, kind, actor, detail_json)
@@ -131,7 +159,7 @@ class HistoryStore:
         ref = now_local or datetime.now().astimezone()
         start_date = (ref.date() - timedelta(days=span - 1)).isoformat()
 
-        with self._connect() as conn:
+        with self._transaction() as conn:
             daily_rows = conn.execute(
                 """
                 SELECT date, active_sec, inactive_sec, app_limits_sec, bonus_sec, lockouts
@@ -199,7 +227,7 @@ class HistoryStore:
         ref = now_utc or datetime.now(timezone.utc)
         daily_cutoff = (ref.date() - timedelta(days=max(7, int(daily_retention_days)))).isoformat()
         event_cutoff = (ref - timedelta(days=max(7, int(event_retention_days)))).isoformat()
-        with self._connect() as conn:
+        with self._transaction() as conn:
             c1 = conn.execute("DELETE FROM daily_usage WHERE date < ?", (daily_cutoff,))
             c2 = conn.execute("DELETE FROM events WHERE ts_utc < ?", (event_cutoff,))
             return c1.rowcount, c2.rowcount

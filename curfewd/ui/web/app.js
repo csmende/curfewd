@@ -9,7 +9,8 @@ function rpc(action, params = {}) {
   return new Promise((resolve, reject) => {
     const id = String(++_rpcSeq);
     _rpcPending.set(id, { resolve, reject });
-    const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.curfewd;
+    const handler =
+      window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.curfewd;
     if (!handler) {
       _rpcPending.delete(id);
       reject(new Error("Desktop bridge unavailable"));
@@ -55,7 +56,15 @@ const ICONS = {
 };
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const DAY_FULL = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
+const DAY_FULL = {
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+  sat: "Saturday",
+  sun: "Sunday",
+};
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SLIDER_UNLIMITED_VAL = 495; // 0..480 = 0m..8h in 15m steps; 495 = Unlimited (86400s)
 
@@ -87,7 +96,7 @@ const state = {
 /* ----------------- Pure Formatting & Escaping Helpers ----------------- */
 
 function escHtml(val) {
-  return String(val == null ? "" : val)
+  return String(val === null || val === undefined ? "" : val)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -171,29 +180,40 @@ function extractRange(windows) {
 
 function checkSameEveryDay(days) {
   const ref = days.mon;
-  return DAYS.every(d => days[d].limit === ref.limit && days[d].startMin === ref.startMin && days[d].endMin === ref.endMin);
+  return DAYS.every(
+    (d) =>
+      days[d].limit === ref.limit &&
+      days[d].startMin === ref.startMin &&
+      days[d].endMin === ref.endMin
+  );
 }
 
 function normalizeUserStatus(st) {
   const pol = st.policy || {};
   const days = {};
   for (const d of DAYS) {
-    const lim = Number((pol.daily_limits && pol.daily_limits[d] != null) ? pol.daily_limits[d] : 86400);
+    const rawLim = pol.daily_limits ? pol.daily_limits[d] : undefined;
+    const lim = Number(rawLim !== null && rawLim !== undefined ? rawLim : 86400);
     const rng = extractRange(pol.curfew_windows && pol.curfew_windows[d]);
     days[d] = { limit: lim, startMin: rng.startMin, endMin: rng.endMin };
   }
-  const todayRng = extractRange(st.today_windows || (pol.curfew_windows && pol.curfew_windows[getTodayKey()]));
+  const todayRng = extractRange(
+    st.today_windows || (pol.curfew_windows && pol.curfew_windows[getTodayKey()])
+  );
   const alStatus = st.app_limits_status || {};
   const alPol = pol.app_limits || {};
   const statusByPat = new Map();
-  (alStatus.apps || []).forEach(a => statusByPat.set(a.pattern, a));
-  const apps = (alPol.apps || []).map(a => {
+  (alStatus.apps || []).forEach((a) => statusByPat.set(a.pattern, a));
+  const apps = (alPol.apps || []).map((a) => {
     const live = statusByPat.get(a.pattern) || {};
+    const rawAppLim = a.daily_limit_sec;
     return {
       pattern: a.pattern,
       label: a.label || a.pattern,
       category: a.category || live.category || "App",
-      dailyLimit: Number(a.daily_limit_sec != null ? a.daily_limit_sec : (live.daily_limit_sec || 3600)),
+      dailyLimit: Number(
+        rawAppLim !== null && rawAppLim !== undefined ? rawAppLim : live.daily_limit_sec || 3600
+      ),
       spentToday: Number(live.spent_today || 0),
       bonusToday: Number(live.bonus_today || 0),
       running: Boolean(live.running),
@@ -201,6 +221,7 @@ function normalizeUserStatus(st) {
   });
 
   const fullName = (st.full_name || st.username || "").trim();
+  const rawTodayLim = st.daily_limit_today;
   return {
     username: st.username,
     fullName: fullName || st.username,
@@ -215,7 +236,9 @@ function normalizeUserStatus(st) {
     lockoutAction: pol.lockout_action || "lock",
     sameEveryDay: checkSameEveryDay(days),
     days,
-    todayLimitSec: Number(st.daily_limit_today != null ? st.daily_limit_today : days[getTodayKey()].limit),
+    todayLimitSec: Number(
+      rawTodayLim !== null && rawTodayLim !== undefined ? rawTodayLim : days[getTodayKey()].limit
+    ),
     todayStartMin: todayRng.startMin,
     todayEndMin: todayRng.endMin,
     todayOverrideActive: Boolean(st.today_override && st.today_override.active),
@@ -229,7 +252,7 @@ function normalizeUserStatus(st) {
 
 function buildHistorySeries(histObj, spanDays) {
   const byDate = new Map();
-  ((histObj && histObj.daily) || []).forEach(row => {
+  ((histObj && histObj.daily) || []).forEach((row) => {
     byDate.set(row.date, {
       act: Math.round(Number(row.active_sec || 0) / 60),
       pt: Math.round(Number(row.app_limits_sec || 0) / 60),
@@ -242,9 +265,12 @@ function buildHistorySeries(histObj, spanDays) {
     const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset);
     const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const entry = byDate.get(iso) || { act: 0, pt: 0 };
-    const lbl = offset === 0
-      ? "Today"
-      : (spanDays <= 7 ? DAY_SHORT[d.getDay()] : `${d.getMonth() + 1}/${d.getDate()}`);
+    const lbl =
+      offset === 0
+        ? "Today"
+        : spanDays <= 7
+          ? DAY_SHORT[d.getDay()]
+          : `${d.getMonth() + 1}/${d.getDate()}`;
     out.push({ d: lbl, iso, act: entry.act, pt: entry.pt });
   }
   return out;
@@ -282,7 +308,7 @@ if (_darkMedia && _darkMedia.addEventListener) {
 
 function resolvedTheme(prefTheme) {
   if (prefTheme === "light" || prefTheme === "dark") return prefTheme;
-  return (_darkMedia && _darkMedia.matches) ? "dark" : "light";
+  return _darkMedia && _darkMedia.matches ? "dark" : "light";
 }
 
 function applyThemeAndAccent() {
@@ -354,7 +380,7 @@ function serializeUserPolicy(u) {
   base.app_limits = {
     enabled: Boolean(u.appLimits.enabled),
     override_main: Boolean(base.app_limits && base.app_limits.override_main),
-    apps: u.appLimits.apps.map(a => ({
+    apps: u.appLimits.apps.map((a) => ({
       pattern: a.pattern,
       label: a.label,
       daily_limit_sec: a.dailyLimit,
@@ -371,7 +397,7 @@ async function commitChanges() {
 
   const policies = {};
   const today_overrides = {};
-  state.dirtyPolicies.forEach(uname => {
+  state.dirtyPolicies.forEach((uname) => {
     const u = state.users[uname];
     if (!u) return;
     policies[uname] = serializeUserPolicy(u);
@@ -380,7 +406,7 @@ async function commitChanges() {
     }
   });
 
-  state.dirtyToday.forEach(uname => {
+  state.dirtyToday.forEach((uname) => {
     const u = state.users[uname];
     if (!u) return;
     today_overrides[uname] = {
@@ -411,7 +437,11 @@ async function commitChanges() {
     render();
     showToast("Changes saved");
   } catch (err) {
-    showToast(err.code === "permission_denied" ? "Administrator approval cancelled" : `Could not save: ${err.message}`);
+    showToast(
+      err.code === "permission_denied"
+        ? "Administrator approval cancelled"
+        : `Could not save: ${err.message}`
+    );
   } finally {
     state.saving = false;
     updateUnsavedBar();
@@ -437,8 +467,8 @@ function applyLiveStatusPush(username, rawStatus) {
     existing.spentToday = fresh.spentToday;
     existing.spentWeek = fresh.spentWeek;
     existing.enforcementState = fresh.enforcementState;
-    const freshApps = new Map(fresh.appLimits.apps.map(a => [a.pattern, a]));
-    existing.appLimits.apps.forEach(a => {
+    const freshApps = new Map(fresh.appLimits.apps.map((a) => [a.pattern, a]));
+    existing.appLimits.apps.forEach((a) => {
       const fa = freshApps.get(a.pattern);
       if (fa) {
         a.spentToday = fa.spentToday;
@@ -456,7 +486,7 @@ function applyLiveStatusPush(username, rawStatus) {
 
 function translateDoctorChecks(doc) {
   const checks = (doc && doc.checks) || [];
-  const byName = new Map(checks.map(c => [c.name, c]));
+  const byName = new Map(checks.map((c) => [c.name, c]));
   const isOk = (name) => (byName.get(name) || {}).status === "ok";
 
   const svcOk = isOk("systemd_service") || isOk("dbus_service");
@@ -468,12 +498,16 @@ function translateDoctorChecks(doc) {
     {
       name: "Background Service",
       ok: svcOk,
-      detail: svcOk ? "Screen-time monitoring service is running normally" : "Screen-time monitoring service is not running",
+      detail: svcOk
+        ? "Screen-time monitoring service is running normally"
+        : "Screen-time monitoring service is not running",
     },
     {
       name: "Administrator Approval",
       ok: authOk,
-      detail: authOk ? "Changes require an administrator password" : "Administrator protection policy files are missing",
+      detail: authOk
+        ? "Changes require an administrator password"
+        : "Administrator protection policy files are missing",
     },
     {
       name: "Lock-Screen Protection",
@@ -495,11 +529,11 @@ function translateDoctorChecks(doc) {
 
 function doctorNeedsLockFix() {
   const checks = translateDoctorChecks(state.doctor);
-  return checks.some(c => c.fixable && !c.ok);
+  return checks.some((c) => c.fixable && !c.ok);
 }
 
 function doctorIssueCount() {
-  return translateDoctorChecks(state.doctor).filter(c => !c.ok).length;
+  return translateDoctorChecks(state.doctor).filter((c) => !c.ok).length;
 }
 
 /* ----------------- Component Renderers ----------------- */
@@ -527,24 +561,31 @@ function renderRing(u, size = 152) {
 
 function renderUsageChart(histObj, spanDays) {
   const rows = buildHistorySeries(histObj, spanDays);
-  const maxVal = Math.max(60, ...rows.map(r => r.act));
-  const w = 640, h = 158, padL = 36, padB = 26, padT = 12;
-  const cw = w - padL - 8, ch = h - padB - padT;
+  const maxVal = Math.max(60, ...rows.map((r) => r.act));
+  const w = 640,
+    h = 158,
+    padL = 36,
+    padB = 26,
+    padT = 12;
+  const cw = w - padL - 8,
+    ch = h - padB - padT;
   const step = cw / Math.max(1, rows.length);
   const bw = Math.min(34, step * 0.52);
 
-  const bars = rows.map((row, idx) => {
-    const x = padL + idx * step + (step - bw) / 2;
-    const bh = row.act > 0 ? Math.max(4, (row.act / maxVal) * ch) : 2;
-    const y = padT + ch - bh;
-    const pth = row.pt > 0 ? Math.min(bh, Math.max(3, (row.pt / maxVal) * ch)) : 0;
-    const pty = padT + ch - pth;
-    return `<g><title>${escHtml(row.d)}: ${row.act}m total${row.pt > 0 ? ` (${row.pt}m App Limits)` : ""}</title>
+  const bars = rows
+    .map((row, idx) => {
+      const x = padL + idx * step + (step - bw) / 2;
+      const bh = row.act > 0 ? Math.max(4, (row.act / maxVal) * ch) : 2;
+      const y = padT + ch - bh;
+      const pth = row.pt > 0 ? Math.min(bh, Math.max(3, (row.pt / maxVal) * ch)) : 0;
+      const pty = padT + ch - pth;
+      return `<g><title>${escHtml(row.d)}: ${row.act}m total${row.pt > 0 ? ` (${row.pt}m App Limits)` : ""}</title>
       <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="6" fill="var(--p)" opacity="${row.act > 0 ? ".78" : ".22"}"/>
       ${pth > 0 ? `<rect x="${(x + 3).toFixed(1)}" y="${pty.toFixed(1)}" width="${Math.max(4, bw - 6).toFixed(1)}" height="${pth.toFixed(1)}" rx="4" fill="var(--on-pc)" opacity=".5"/>` : ""}
       <text x="${(x + bw / 2).toFixed(1)}" y="${h - 7}" text-anchor="middle" fill="var(--fg-muted)" font-size="10.5" font-family="var(--font-mono)">${escHtml(row.d)}</text>
     </g>`;
-  }).join("");
+    })
+    .join("");
 
   return `<svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
     <line x1="${padL}" y1="${padT}" x2="${w - 8}" y2="${padT}" stroke="var(--out-var)" stroke-dasharray="3 4"/>
@@ -556,18 +597,25 @@ function renderUsageChart(histObj, spanDays) {
   </svg>`;
 }
 
-function renderWindowBar(key, startMin, endMin, { editable = false, showNow = false, compact = false, showTicks = true } = {}) {
+function renderWindowBar(
+  key,
+  startMin,
+  endMin,
+  { editable = false, showNow = false, compact = false, showTicks = true } = {}
+) {
   const sp = (startMin / 1440) * 100;
   const ep = (endMin / 1440) * 100;
   const wp = Math.max(0, ep - sp);
   const nowPct = (nowMinutes() / 1440) * 100;
-  const handles = editable ? `
+  const handles = editable
+    ? `
     <button type="button" class="timeline-handle" data-edge="start" style="left:${sp}%" aria-label="Adjust start time">
       <span class="handle-tip">${fmtMin(startMin)}</span>
     </button>
     <button type="button" class="timeline-handle" data-edge="end" style="left:${ep}%" aria-label="Adjust end time">
       <span class="handle-tip">${fmtMin(endMin)}</span>
-    </button>` : "";
+    </button>`
+    : "";
 
   return `<div>
     <div class="timeline-bar ${editable ? "editable" : ""} ${compact ? "compact" : ""}" ${editable ? `data-winbar="${escHtml(key)}"` : ""}>
@@ -582,8 +630,11 @@ function renderWindowBar(key, startMin, endMin, { editable = false, showNow = fa
 function renderOverviewTab(u) {
   const left = timeLeftSec(u);
   const leftCls = left === 0 ? "err" : left <= 600 ? "warn" : "primary";
-  const alertPill = u.locked ? `<span class="pill p-err">Screen Locked</span>`
-    : !u.loggedIn ? `<span class="pill p-muted">Offline</span>` : "";
+  const alertPill = u.locked
+    ? `<span class="pill p-err">Screen Locked</span>`
+    : !u.loggedIn
+      ? `<span class="pill p-muted">Offline</span>`
+      : "";
 
   return `<div class="card">
     <div class="card-hdr">
@@ -676,10 +727,18 @@ function renderScheduleTab(u) {
         ["lock", "Lock Screen", "Locks the desktop without closing open games or homework"],
         ["suspend", "Lock & Suspend PC", "Locks the screen and puts the computer to sleep"],
         ["terminate", "Log Out Session", "Closes open apps and ends the session"],
-      ].map(([v, t, d]) => `<button type="button" class="lockout-opt ${u.lockoutAction === v ? "active" : ""}" data-lockout="${v}">
+      ]
+        .map(
+          ([
+            v,
+            t,
+            d,
+          ]) => `<button type="button" class="lockout-opt ${u.lockoutAction === v ? "active" : ""}" data-lockout="${v}">
         <div style="font-weight:600;margin-bottom:3px">${t}</div>
         <div style="font-size:12px;opacity:.85">${d}</div>
-      </button>`).join("")}
+      </button>`
+        )
+        .join("")}
     </div>
   </div>`;
 }
@@ -699,13 +758,16 @@ function renderAppLimitsTab(u) {
       <button type="button" class="btn btn-tonal btn-sm" id="btnAddApp">${ICONS.plus} Add App / Game</button>
     </div>
     <div class="app-list" style="${al.enabled ? "" : "opacity:.55"}">
-      ${al.apps.length ? al.apps.map((a, idx) => {
-        const allotted = Math.max(0, a.dailyLimit + (a.bonusToday || 0));
-        const rem = Math.max(0, allotted - a.spentToday);
-        const pct = Math.min(100, Math.round((a.spentToday / Math.max(1, allotted)) * 100));
-        const col = rem === 0 ? "var(--err)" : rem <= 600 ? "var(--warn)" : "var(--p)";
-        const pCls = rem === 0 ? "p-err" : rem <= 600 ? "p-warn" : "p-ok";
-        return `<div class="app-card">
+      ${
+        al.apps.length
+          ? al.apps
+              .map((a, idx) => {
+                const allotted = Math.max(0, a.dailyLimit + (a.bonusToday || 0));
+                const rem = Math.max(0, allotted - a.spentToday);
+                const pct = Math.min(100, Math.round((a.spentToday / Math.max(1, allotted)) * 100));
+                const col = rem === 0 ? "var(--err)" : rem <= 600 ? "var(--warn)" : "var(--p)";
+                const pCls = rem === 0 ? "p-err" : rem <= 600 ? "p-warn" : "p-ok";
+                return `<div class="app-card">
           <div class="app-top">
             <div>
               <div style="font-weight:600;display:flex;align-items:center;gap:6px">${escHtml(a.label)} ${a.running ? `<span class="pill p-info">Running</span>` : ""}</div>
@@ -729,7 +791,10 @@ function renderAppLimitsTab(u) {
             </div>
           </div>
         </div>`;
-      }).join("") : `<div class="card-sub">No limited apps configured yet. Click "Add App / Game" to pick an installed app and set its daily limit.</div>`}
+              })
+              .join("")
+          : `<div class="card-sub">No limited apps configured yet. Click "Add App / Game" to pick an installed app and set its daily limit.</div>`
+      }
     </div>
   </div>`;
 }
@@ -737,21 +802,33 @@ function renderAppLimitsTab(u) {
 function renderDoctorView() {
   const checks = translateDoctorChecks(state.doctor);
   const needsFix = doctorNeedsLockFix();
-  const allOk = checks.every(c => c.ok);
+  const allOk = checks.every((c) => c.ok);
   return `<div class="page-hdr">
     <div><h1 class="page-title">System Health</h1><div class="page-sub">Quick checks to make sure limits and screen locking work reliably</div></div>
-    ${allOk ? `<span class="pill p-ok">All Checks Passing</span>`
-      : needsFix ? `<button type="button" class="btn btn-filled" id="btnDocFix" ${state.busyFix ? "disabled" : ""}>${ICONS.doctor} ${state.busyFix ? "Protecting..." : "Protect Lock Screen"}</button>`
-      : `<button type="button" class="btn btn-outlined" id="btnDocRefresh">Re-check</button>`}
+    ${
+      allOk
+        ? `<span class="pill p-ok">All Checks Passing</span>`
+        : needsFix
+          ? `<button type="button" class="btn btn-filled" id="btnDocFix" ${state.busyFix ? "disabled" : ""}>${ICONS.doctor} ${state.busyFix ? "Protecting..." : "Protect Lock Screen"}</button>`
+          : `<button type="button" class="btn btn-outlined" id="btnDocRefresh">Re-check</button>`
+    }
   </div>
-  <div class="card"><div class="check-list">${checks.map(c => `<div class="check-row">
+  <div class="card"><div class="check-list">${checks
+    .map(
+      (c) => `<div class="check-row">
     <div><div style="font-weight:600;font-size:13.5px">${escHtml(c.name)}</div><div class="card-sub">${escHtml(c.detail)}</div></div>
     <span class="pill ${c.ok ? "p-ok" : "p-warn"}">${c.ok ? "OK" : "Action Needed"}</span>
-  </div>`).join("")}</div></div>`;
+  </div>`
+    )
+    .join("")}</div></div>`;
 }
 
 function renderSettingsView() {
-  const cfg = state.config || { session_lock_fallback: true, release_x11_grab_on_lock: true, final_countdown_sec: 15 };
+  const cfg = state.config || {
+    session_lock_fallback: true,
+    release_x11_grab_on_lock: true,
+    final_countdown_sec: 15,
+  };
   const curTheme = state.prefs.theme || "auto";
   const curAcc = state.prefs.accent || "indigo";
 
@@ -788,9 +865,17 @@ function renderSettingsView() {
       <div class="rule-row">
         <div><strong>Accent Color</strong><div class="card-sub">Choose your preferred highlight color</div></div>
         <div style="display:flex;gap:8px">
-          ${[["indigo", "#536dfe"], ["emerald", "#158f5e"], ["slate", "#3870a8"], ["amber", "#c27b0e"]].map(([k, hx]) =>
-            `<button type="button" class="swatch ${curAcc === k ? "active" : ""}" data-accent="${k}" title="${k}" style="background:${hx}"></button>`
-          ).join("")}
+          ${[
+            ["indigo", "#536dfe"],
+            ["emerald", "#158f5e"],
+            ["slate", "#3870a8"],
+            ["amber", "#c27b0e"],
+          ]
+            .map(
+              ([k, hx]) =>
+                `<button type="button" class="swatch ${curAcc === k ? "active" : ""}" data-accent="${k}" title="${k}" style="background:${hx}"></button>`
+            )
+            .join("")}
         </div>
       </div>
     </div>
@@ -803,19 +888,27 @@ function renderAdminShell() {
   const issues = doctorIssueCount();
   const needsLockFix = doctorNeedsLockFix();
 
-  const items = userList.map(usr => {
-    const active = state.nav === `user:${usr.username}`;
-    const left = timeLeftSec(usr);
-    const dot = !usr.loggedIn ? "dot-off" : usr.locked ? "dot-lock" : left <= 600 ? "dot-warn" : "dot-ok";
-    const rt = usr.locked ? "Locked" : fmtDur(left);
-    return `<button type="button" class="nav-item ${active ? "active" : ""}" data-nav="user:${escHtml(usr.username)}">
+  const items = userList
+    .map((usr) => {
+      const active = state.nav === `user:${usr.username}`;
+      const left = timeLeftSec(usr);
+      const dot = !usr.loggedIn
+        ? "dot-off"
+        : usr.locked
+          ? "dot-lock"
+          : left <= 600
+            ? "dot-warn"
+            : "dot-ok";
+      const rt = usr.locked ? "Locked" : fmtDur(left);
+      return `<button type="button" class="nav-item ${active ? "active" : ""}" data-nav="user:${escHtml(usr.username)}">
       <div class="avatar">${escHtml(usr.initials)}<span class="sdot ${dot}"></span></div>
       <div class="nav-meta">
         <div class="nav-uname"><span>${escHtml(usr.fullName)}</span><span style="font-size:12px;font-family:var(--font-mono)" data-navleft="${escHtml(usr.username)}">${rt}</span></div>
         <div class="nav-usub">@${escHtml(usr.username)} · ${usr.loggedIn ? "Signed in" : "Offline"}</div>
       </div>
     </button>`;
-  }).join("");
+    })
+    .join("");
 
   let content = "";
   if (state.nav === "doctor") {
@@ -826,10 +919,14 @@ function renderAdminShell() {
     content = `<div class="card"><h3 class="card-title">No Users Found</h3><div class="card-sub">No desktop user accounts were detected on this computer.</div></div>`;
   } else {
     content = `
-      ${needsLockFix && !state.bannerDismissed ? `<div class="doctor-banner">
+      ${
+        needsLockFix && !state.bannerDismissed
+          ? `<div class="doctor-banner">
         <div class="doctor-left">${ICONS.warn}<div><div style="font-weight:700;font-size:13.5px">Lock-screen protection needed</div><div style="font-size:12.5px;opacity:.9">Standard users can currently turn off screen locking in system settings. Protect this setting with one click.</div></div></div>
         <div style="display:flex;gap:8px;flex-shrink:0"><button type="button" class="btn btn-filled btn-sm" id="btnBanFix" ${state.busyFix ? "disabled" : ""}>${state.busyFix ? "Protecting..." : "Protect Now"}</button><button type="button" class="btn btn-outlined btn-sm" id="btnBanDismiss">Dismiss</button></div>
-      </div>` : ""}
+      </div>`
+          : ""
+      }
       <div class="page-hdr"><div>
         <h1 class="page-title">${escHtml(u.fullName)} <span style="font-weight:500;font-size:16px;color:var(--fg-muted)">@${escHtml(u.username)}</span></h1>
         <div class="page-sub">Daily allowance <span id="hdrLimit">${fmtDur(u.todayLimitSec)}</span> · Curfew <span id="hdrCurfew">${todayCurfew(u)}</span></div>
@@ -860,23 +957,29 @@ function renderMyScreenTime() {
   const u = state.me;
   if (!u) return renderUnavailable("Unable to load your screen-time status.");
   const firstName = (u.fullName || u.username).split(/\s+/)[0];
-  const appRows = u.appLimits.enabled && u.appLimits.apps.length ? `<div>
+  const appRows =
+    u.appLimits.enabled && u.appLimits.apps.length
+      ? `<div>
     <div class="card-sub" style="font-weight:600;margin-bottom:6px">My App Limits</div>
-    <div class="mini-app-list">${u.appLimits.apps.map(a => {
-      const allotted = Math.max(0, a.dailyLimit + (a.bonusToday || 0));
-      const rem = Math.max(0, allotted - a.spentToday);
-      const pct = Math.min(100, Math.round((a.spentToday / Math.max(1, allotted)) * 100));
-      const col = rem === 0 ? "var(--err)" : rem <= 600 ? "var(--warn)" : "var(--p)";
-      return `<div class="mini-app-row">
+    <div class="mini-app-list">${u.appLimits.apps
+      .map((a) => {
+        const allotted = Math.max(0, a.dailyLimit + (a.bonusToday || 0));
+        const rem = Math.max(0, allotted - a.spentToday);
+        const pct = Math.min(100, Math.round((a.spentToday / Math.max(1, allotted)) * 100));
+        const col = rem === 0 ? "var(--err)" : rem <= 600 ? "var(--warn)" : "var(--p)";
+        return `<div class="mini-app-row">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><strong>${escHtml(a.label)}</strong><span style="font-family:var(--font-mono);font-size:12px"><strong>${fmtDur(rem)}</strong> left of ${fmtDur(allotted)}</span></div>
         <div class="app-prog"><div class="app-prog-fill" style="width:${pct}%;background:${col}"></div></div>
       </div>`;
-    }).join("")}</div></div>` : "";
+      })
+      .join("")}</div></div>`
+      : "";
 
   const curfewTxt = todayCurfew(u);
-  const subInfo = curfewTxt === "None" && u.todayLimitSec >= 86400
-    ? "No screen-time limits are currently active for your account."
-    : `Your screen locks automatically at <strong>${curfewTxt}</strong> or when your daily allowance reaches 0m. Open apps stay saved!`;
+  const subInfo =
+    curfewTxt === "None" && u.todayLimitSec >= 86400
+      ? "No screen-time limits are currently active for your account."
+      : `Your screen locks automatically at <strong>${curfewTxt}</strong> or when your daily allowance reaches 0m. Open apps stay saved!`;
 
   return `<div class="centered-view"><div class="my-card">
     <div style="display:flex;align-items:center;gap:10px">${ICONS.brand}<div><div style="font-size:17px;font-weight:700">My Screen Time</div><div class="card-sub">Signed in as @${escHtml(u.username)}</div></div></div>
@@ -943,7 +1046,9 @@ function openAddAppModal(u) {
 
   const drawModal = () => {
     const q = filterText.trim().toLowerCase();
-    const filtered = allApps.filter(a => !q || a.label.toLowerCase().includes(q) || a.category.toLowerCase().includes(q));
+    const filtered = allApps.filter(
+      (a) => !q || a.label.toLowerCase().includes(q) || a.category.toLowerCase().includes(q)
+    );
     openModal(`<h3 style="margin:0">Add App / Game Limit</h3>
       <div class="card-sub">Choose a daily time limit and pick an installed app.</div>
       <div class="rule-row">
@@ -959,10 +1064,21 @@ function openAddAppModal(u) {
       </div>
       <input class="text-in" id="appSearch" type="search" placeholder="Search installed apps..." value="${escHtml(filterText)}"/>
       <div id="appPickList" style="display:flex;flex-direction:column;gap:6px;max-height:210px;overflow-y:auto">
-        ${filtered.length ? filtered.map((a, idx) => `<button type="button" class="pick-row" data-pickpat="${escHtml(a.pattern)}" data-pickidx="${idx}">
+        ${
+          filtered.length
+            ? filtered
+                .map(
+                  (
+                    a,
+                    idx
+                  ) => `<button type="button" class="pick-row" data-pickpat="${escHtml(a.pattern)}" data-pickidx="${idx}">
           <span><strong>${escHtml(a.label)}</strong></span>
           <span class="pick-cat">${escHtml(a.category || "App")}</span>
-        </button>`).join("") : `<div class="card-sub" style="padding:8px 2px">No matching installed apps found.</div>`}
+        </button>`
+                )
+                .join("")
+            : `<div class="card-sub" style="padding:8px 2px">No matching installed apps found.</div>`
+        }
       </div>
       <div style="border-top:1px solid var(--out-var);padding-top:10px;display:flex;gap:8px;align-items:center">
         <input class="text-in" id="customAppName" type="text" placeholder="Or enter an app name (e.g. minecraft)"/>
@@ -980,16 +1096,18 @@ function openAddAppModal(u) {
         const next = document.getElementById("appSearch");
         if (next) {
           next.focus();
-          if (pos != null) next.setSelectionRange(pos, pos);
+          if (pos !== null && pos !== undefined) next.setSelectionRange(pos, pos);
         }
       };
     }
 
     const addRule = (pattern, label, category) => {
       const lim = Number((limSel && limSel.value) || 2700);
-      const cleanPat = String(pattern || "").trim().toLowerCase();
+      const cleanPat = String(pattern || "")
+        .trim()
+        .toLowerCase();
       if (!cleanPat) return;
-      if (!u.appLimits.apps.some(x => x.pattern.toLowerCase() === cleanPat)) {
+      if (!u.appLimits.apps.some((x) => x.pattern.toLowerCase() === cleanPat)) {
         u.appLimits.apps.push({
           pattern: cleanPat,
           label: label || pattern,
@@ -1008,10 +1126,10 @@ function openAddAppModal(u) {
       showToast(`Added ${label || pattern} (${fmtDur(lim)}/day)`);
     };
 
-    document.querySelectorAll("[data-pickpat]").forEach(btn => {
+    document.querySelectorAll("[data-pickpat]").forEach((btn) => {
       btn.onclick = () => {
         const pat = btn.dataset.pickpat;
-        const found = allApps.find(x => x.pattern === pat);
+        const found = allApps.find((x) => x.pattern === pat);
         if (found) addRule(found.pattern, found.label, found.category);
       };
     });
@@ -1035,14 +1153,23 @@ function openAddAppModal(u) {
 }
 
 function wireEvents() {
-  document.querySelectorAll("[data-nav]").forEach(b => {
-    b.onclick = () => { state.nav = b.dataset.nav; render(); };
+  document.querySelectorAll("[data-nav]").forEach((b) => {
+    b.onclick = () => {
+      state.nav = b.dataset.nav;
+      render();
+    };
   });
-  document.querySelectorAll("[data-utab]").forEach(b => {
-    b.onclick = () => { state.userTab = b.dataset.utab; render(); };
+  document.querySelectorAll("[data-utab]").forEach((b) => {
+    b.onclick = () => {
+      state.userTab = b.dataset.utab;
+      render();
+    };
   });
-  document.querySelectorAll("[data-hspan]").forEach(b => {
-    b.onclick = () => { state.historySpan = Number(b.dataset.hspan); render(); };
+  document.querySelectorAll("[data-hspan]").forEach((b) => {
+    b.onclick = () => {
+      state.historySpan = Number(b.dataset.hspan);
+      render();
+    };
   });
 
   const btnAuth = document.getElementById("btnAuth");
@@ -1096,13 +1223,19 @@ function wireEvents() {
             state.users[u.username].locked = true;
             showToast(`Locked ${u.fullName}'s screen`);
           } else {
-            showToast((res && res.result && res.result.detail) || `No active session for ${u.fullName}`);
+            showToast(
+              (res && res.result && res.result.detail) || `No active session for ${u.fullName}`
+            );
           }
           closeModal();
           render();
         } catch (err) {
           closeModal();
-          showToast(err.code === "permission_denied" ? "Administrator approval cancelled" : `Could not lock: ${err.message}`);
+          showToast(
+            err.code === "permission_denied"
+              ? "Administrator approval cancelled"
+              : `Could not lock: ${err.message}`
+          );
         }
       };
     };
@@ -1115,7 +1248,9 @@ function wireEvents() {
       u.sameEveryDay = chkSame.checked;
       if (u.sameEveryDay) {
         const ref = Object.assign({}, u.days.mon);
-        DAYS.forEach(d => { u.days[d] = Object.assign({}, ref); });
+        DAYS.forEach((d) => {
+          u.days[d] = Object.assign({}, ref);
+        });
         if (!state.dirtyToday.has(u.username)) {
           u.todayLimitSec = ref.limit;
           u.todayStartMin = ref.startMin;
@@ -1129,14 +1264,16 @@ function wireEvents() {
   }
 
   // Weekly per-day thin limit sliders
-  document.querySelectorAll("[data-daylim]").forEach(sl => {
+  document.querySelectorAll("[data-daylim]").forEach((sl) => {
     if (!u) return;
     const key = sl.dataset.daylim;
     const todayKey = getTodayKey();
     sl.oninput = () => {
       const sec = sliderValToSec(sl.value);
       if (key === "all") {
-        DAYS.forEach(d => { u.days[d].limit = sec; });
+        DAYS.forEach((d) => {
+          u.days[d].limit = sec;
+        });
         if (!state.dirtyToday.has(u.username)) u.todayLimitSec = sec;
       } else {
         u.days[key].limit = sec;
@@ -1154,16 +1291,19 @@ function wireEvents() {
   });
 
   // Draggable 24h allowed-window bars (Overview Today + Schedule per-day / Every Day)
-  document.querySelectorAll("[data-winbar]").forEach(bar => {
+  document.querySelectorAll("[data-winbar]").forEach((bar) => {
     if (!u) return;
     const key = bar.dataset.winbar;
     const todayKey = getTodayKey();
     const seg = bar.querySelector(".timeline-seg");
     const hdrCurfew = document.getElementById("hdrCurfew");
 
-    const getRange = () => key === "today"
-      ? { startMin: u.todayStartMin, endMin: u.todayEndMin }
-      : (key === "all" ? u.days.mon : u.days[key]);
+    const getRange = () =>
+      key === "today"
+        ? { startMin: u.todayStartMin, endMin: u.todayEndMin }
+        : key === "all"
+          ? u.days.mon
+          : u.days[key];
 
     const setRange = (s, e) => {
       if (key === "today") {
@@ -1171,7 +1311,10 @@ function wireEvents() {
         u.todayEndMin = e;
         state.dirtyToday.add(u.username);
       } else if (key === "all") {
-        DAYS.forEach(d => { u.days[d].startMin = s; u.days[d].endMin = e; });
+        DAYS.forEach((d) => {
+          u.days[d].startMin = s;
+          u.days[d].endMin = e;
+        });
         if (!state.dirtyToday.has(u.username)) {
           u.todayStartMin = s;
           u.todayEndMin = e;
@@ -1213,7 +1356,7 @@ function wireEvents() {
       updateUnsavedBar();
     };
 
-    bar.querySelectorAll(".timeline-handle").forEach(h => {
+    bar.querySelectorAll(".timeline-handle").forEach((h) => {
       const edge = h.dataset.edge;
       h.onpointerdown = (e) => {
         e.preventDefault();
@@ -1237,14 +1380,17 @@ function wireEvents() {
         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
           e.preventDefault();
           const cur = getRange();
-          setEdge(edge, (edge === "start" ? cur.startMin : cur.endMin) + (e.key === "ArrowRight" ? 15 : -15));
+          setEdge(
+            edge,
+            (edge === "start" ? cur.startMin : cur.endMin) + (e.key === "ArrowRight" ? 15 : -15)
+          );
         }
       };
     });
   });
 
   // Lockout action cards
-  document.querySelectorAll("[data-lockout]").forEach(b => {
+  document.querySelectorAll("[data-lockout]").forEach((b) => {
     if (!u) return;
     b.onclick = () => {
       u.lockoutAction = b.dataset.lockout;
@@ -1262,7 +1408,7 @@ function wireEvents() {
       render();
     };
   }
-  document.querySelectorAll("[data-applimit]").forEach(s => {
+  document.querySelectorAll("[data-applimit]").forEach((s) => {
     if (!u) return;
     s.oninput = () => {
       const app = u.appLimits.apps[Number(s.dataset.applimit)];
@@ -1272,14 +1418,18 @@ function wireEvents() {
       render();
     };
   });
-  document.querySelectorAll("[data-appgrant]").forEach(b => {
+  document.querySelectorAll("[data-appgrant]").forEach((b) => {
     if (!u) return;
     b.onclick = async () => {
       const app = u.appLimits.apps[Number(b.dataset.appgrant)];
       if (!app) return;
       b.disabled = true;
       try {
-        const res = await rpc("grant_app_time", { username: u.username, pattern: app.pattern, delta_seconds: 900 });
+        const res = await rpc("grant_app_time", {
+          username: u.username,
+          pattern: app.pattern,
+          delta_seconds: 900,
+        });
         if (res && res.status && !state.dirtyPolicies.has(u.username)) {
           state.users[u.username] = normalizeUserStatus(res.status);
           snapshotState();
@@ -1290,11 +1440,15 @@ function wireEvents() {
         showToast(`+15m added for ${app.label} today`);
       } catch (err) {
         b.disabled = false;
-        showToast(err.code === "permission_denied" ? "Administrator approval cancelled" : `Could not add time: ${err.message}`);
+        showToast(
+          err.code === "permission_denied"
+            ? "Administrator approval cancelled"
+            : `Could not add time: ${err.message}`
+        );
       }
     };
   });
-  document.querySelectorAll("[data-rmapp]").forEach(b => {
+  document.querySelectorAll("[data-rmapp]").forEach((b) => {
     if (!u) return;
     b.onclick = () => {
       u.appLimits.apps.splice(Number(b.dataset.rmapp), 1);
@@ -1315,7 +1469,11 @@ function wireEvents() {
       if (res && res.doctor) state.doctor = res.doctor;
       showToast("Lock-screen protection enabled");
     } catch (err) {
-      showToast(err.code === "permission_denied" ? "Administrator approval cancelled" : `Could not apply protection: ${err.message}`);
+      showToast(
+        err.code === "permission_denied"
+          ? "Administrator approval cancelled"
+          : `Could not apply protection: ${err.message}`
+      );
     } finally {
       state.busyFix = false;
       render();
@@ -1338,10 +1496,14 @@ function wireEvents() {
     };
   }
   const bd = document.getElementById("btnBanDismiss");
-  if (bd) bd.onclick = () => { state.bannerDismissed = true; render(); };
+  if (bd)
+    bd.onclick = () => {
+      state.bannerDismissed = true;
+      render();
+    };
 
   // Daemon Settings
-  document.querySelectorAll("[data-cbool]").forEach(b => {
+  document.querySelectorAll("[data-cbool]").forEach((b) => {
     b.onclick = () => {
       if (!state.config) return;
       const key = b.dataset.cbool;
@@ -1363,20 +1525,24 @@ function wireEvents() {
   }
 
   // Appearance Preferences (saved immediately)
-  document.querySelectorAll("[data-settheme]").forEach(b => {
+  document.querySelectorAll("[data-settheme]").forEach((b) => {
     b.onclick = async () => {
       state.prefs.theme = b.dataset.settheme;
       applyThemeAndAccent();
       render();
-      try { await rpc("save_prefs", { theme: state.prefs.theme }); } catch (_e) {}
+      try {
+        await rpc("save_prefs", { theme: state.prefs.theme });
+      } catch {}
     };
   });
-  document.querySelectorAll("[data-accent]").forEach(b => {
+  document.querySelectorAll("[data-accent]").forEach((b) => {
     b.onclick = async () => {
       state.prefs.accent = b.dataset.accent;
       applyThemeAndAccent();
       render();
-      try { await rpc("save_prefs", { accent: state.prefs.accent }); } catch (_e) {}
+      try {
+        await rpc("save_prefs", { accent: state.prefs.accent });
+      } catch {}
     };
   });
 }
@@ -1411,7 +1577,7 @@ async function bootstrap(mode) {
       state.installedApps = data.installed_apps || [];
       const names = Object.keys(state.users);
       // Prefer first non-current or configured restricted user so parent lands on a kid account first
-      const preferred = names.find(n => n !== state.currentUser) || names[0] || "";
+      const preferred = names.find((n) => n !== state.currentUser) || names[0] || "";
       state.nav = preferred ? `user:${preferred}` : "doctor";
       snapshotState();
       clearDirty();
@@ -1426,7 +1592,9 @@ async function bootstrap(mode) {
 
 document.getElementById("btnSave").onclick = commitChanges;
 document.getElementById("btnDiscard").onclick = discardChanges;
-document.getElementById("modalBg").onclick = (e) => { if (e.target.id === "modalBg") closeModal(); };
+document.getElementById("modalBg").onclick = (e) => {
+  if (e.target.id === "modalBg") closeModal();
+};
 
 // Refresh the live `Now` needle once per minute
 setInterval(() => {

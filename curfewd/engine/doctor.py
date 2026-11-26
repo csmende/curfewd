@@ -2,6 +2,7 @@
 
 import os
 import shutil
+
 # Subprocess is strictly limited to fixed trusted-PATH diagnostic binaries (shell=False).
 import subprocess  # nosec B404
 from typing import Any
@@ -55,10 +56,9 @@ def _run_cmd(argv: list[str], timeout: float = 3.0) -> tuple[int, str, str]:
         return 127, "", f"{argv[0]} not found"
     try:
         res = subprocess.run(  # nosec B603
-            [bin_path] + argv[1:],
+            [bin_path, *argv[1:]],
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             timeout=timeout,
             check=False,
@@ -87,7 +87,9 @@ def check_dconf_lock_policy(root_prefix: str = "") -> dict[str, Any]:
     return _check(
         "dconf_lock_policy",
         "warn",
-        "Missing root dconf lock files: " + ", ".join(missing) + " (run `sudo curfewctl doctor --fix`)",
+        "Missing root dconf lock files: "
+        + ", ".join(missing)
+        + " (run `sudo curfewctl doctor --fix`)",
         fixable=True,
     )
 
@@ -109,7 +111,7 @@ def apply_dconf_lock_fix(root_prefix: str = "") -> dict[str, Any]:
             fh.write(_DCONF_PROFILE_CONTENT)
         os.chmod(profile, 0o644)
     else:
-        with open(profile, "r", encoding="utf-8") as fh:
+        with open(profile, encoding="utf-8") as fh:
             content = fh.read()
         if "system-db:local" not in content:
             with open(profile, "a", encoding="utf-8") as fh:
@@ -152,13 +154,19 @@ def run_doctor(
     if rc == 0 and out == "active":
         checks.append(_check("systemd_service", "ok", "curfewd.service is active"))
     else:
-        checks.append(_check("systemd_service", "warn", f"curfewd.service state: {out or 'inactive/unavailable'}"))
+        checks.append(
+            _check(
+                "systemd_service", "warn", f"curfewd.service state: {out or 'inactive/unavailable'}"
+            )
+        )
 
     # 2. D-Bus availability
     if dbus_connected is True:
         checks.append(_check("dbus_service", "ok", f"{DBUS_BUS_NAME} is reachable on system bus"))
     elif dbus_connected is False:
-        checks.append(_check("dbus_service", "error", f"{DBUS_BUS_NAME} is not reachable on system bus"))
+        checks.append(
+            _check("dbus_service", "error", f"{DBUS_BUS_NAME} is not reachable on system bus")
+        )
     else:
         checks.append(_check("dbus_service", "ok", f"Running inside {DBUS_BUS_NAME} daemon"))
 
@@ -184,7 +192,12 @@ def run_doctor(
     checks.append(check_dconf_lock_policy())
 
     # 6. Helper binaries
-    for tool, required in (("gdbus", True), ("xdotool", False), ("wmctrl", False), ("dconf", False)):
+    for tool, required in (
+        ("gdbus", True),
+        ("xdotool", False),
+        ("wmctrl", False),
+        ("dconf", False),
+    ):
         found = shutil.which(tool, path=TRUSTED_BIN_PATH)
         if found:
             checks.append(_check(f"bin_{tool}", "ok", found))

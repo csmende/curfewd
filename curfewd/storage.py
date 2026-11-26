@@ -3,6 +3,7 @@
 import json
 import os
 import tempfile
+from contextlib import suppress
 from typing import Any
 
 from curfewd import DEFAULT_CONFIG_DIR, DEFAULT_STATE_DIR
@@ -25,10 +26,15 @@ def _read_json_nofollow(path: str) -> dict[str, Any] | None:
     return data
 
 
-def _write_json_atomic(path: str, payload: dict[str, Any], mode: int = 0o640) -> None:
-    """Write JSON atomically via mkstemp + fsync + fchmod + os.replace (never follows symlinks)."""
+def write_json_atomic(
+    path: str,
+    payload: dict[str, Any],
+    mode: int = 0o640,
+    dir_mode: int = 0o750,
+) -> None:
+    """Write JSON atomically via mkstemp + fsync + chmod + os.replace (never follows symlinks)."""
     parent = os.path.dirname(os.path.abspath(path))
-    os.makedirs(parent, mode=0o750, exist_ok=True)
+    os.makedirs(parent, mode=dir_mode, exist_ok=True)
     # Refuse if destination is already a symlink
     if os.path.islink(path):
         raise OSError(f"Refusing to overwrite symlink: {path}")
@@ -43,10 +49,8 @@ def _write_json_atomic(path: str, payload: dict[str, Any], mode: int = 0o640) ->
         os.chmod(tmp_path, mode)
         os.replace(tmp_path, path)
     except Exception:
-        try:
+        with suppress(OSError):
             os.unlink(tmp_path)
-        except OSError:
-            pass
         raise
 
 
@@ -91,7 +95,7 @@ class AtomicJsonStore:
 
     def save_daemon_config(self, config: DaemonConfig) -> None:
         os.makedirs(self.config_dir, mode=0o755, exist_ok=True)
-        _write_json_atomic(self.daemon_config_path, config.to_dict(), mode=0o644)
+        write_json_atomic(self.daemon_config_path, config.to_dict(), mode=0o644, dir_mode=0o755)
 
     # --- User Policy ---
 
@@ -124,7 +128,7 @@ class AtomicJsonStore:
 
     def save_user_policy(self, policy: UserPolicy) -> None:
         os.makedirs(self.users_dir, mode=0o750, exist_ok=True)
-        _write_json_atomic(self.user_policy_path(policy.username), policy.to_dict(), mode=0o640)
+        write_json_atomic(self.user_policy_path(policy.username), policy.to_dict(), mode=0o640)
 
     # --- User Accounting State ---
 
@@ -138,4 +142,4 @@ class AtomicJsonStore:
 
     def save_user_state(self, state: UserAccountingState) -> None:
         os.makedirs(self.accounting_dir, mode=0o750, exist_ok=True)
-        _write_json_atomic(self.user_state_path(state.username), state.to_dict(), mode=0o640)
+        write_json_atomic(self.user_state_path(state.username), state.to_dict(), mode=0o640)

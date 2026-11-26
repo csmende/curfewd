@@ -1,10 +1,11 @@
 """Modern curfewctl command-line interface with structured --json output."""
 
 import argparse
-from datetime import datetime, timedelta, timezone
 import json
 import sys
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from curfewd import (
     EXIT_DAEMON_UNAVAILABLE,
@@ -51,7 +52,12 @@ def _normalize_argv(argv: list[str]) -> list[str]:
             flags.append(tok)
         else:
             positionals.append(tok)
-    if len(positionals) >= 2 and len(positionals[1]) >= 2 and positionals[1][0] == "-" and positionals[1][1].isdigit():
+    if (
+        len(positionals) >= 2
+        and len(positionals[1]) >= 2
+        and positionals[1][0] == "-"
+        and positionals[1][1].isdigit()
+    ):
         return prefix + flags + [positionals[0], "--"] + positionals[1:]
     return argv
 
@@ -75,10 +81,22 @@ def _print_users_table(users: list[dict[str, Any]], stream) -> None:
     stream.write(header)
     stream.write("-" * (len(header) - 1) + "\n")
     for u in users:
-        left = "unlimited" if u["enforcement_state"] in ("unrestricted", "paused") else format_duration(u["time_left_today"])
+        left = (
+            "unlimited"
+            if u["enforcement_state"] in ("unrestricted", "paused")
+            else format_duration(u["time_left_today"])
+        )
         spent = format_duration(u["time_spent_today"])
-        limit = "unlimited" if u["daily_limit_today"] >= 86400 else format_duration(u["daily_limit_today"])
-        logged = "yes (locked)" if (u["logged_in"] and u["screen_locked"]) else ("yes" if u["logged_in"] else "no")
+        limit = (
+            "unlimited"
+            if u["daily_limit_today"] >= 86400
+            else format_duration(u["daily_limit_today"])
+        )
+        logged = (
+            "yes (locked)"
+            if (u["logged_in"] and u["screen_locked"])
+            else ("yes" if u["logged_in"] else "no")
+        )
         stream.write(
             f"{u['username']:<14} {u['enforcement_state']:<13} {left:<11} {spent:<9} {limit:<9} {u['lockout_action']:<10} {logged}\n"
         )
@@ -88,13 +106,23 @@ def _print_user_status(st: dict[str, Any], stream) -> None:
     pol = st["policy"]
     pause = st["pause"]
     stream.write(f"User: {st['username']} ({st.get('full_name') or st['username']})\n")
-    stream.write(f"State: {st['enforcement_state']} | Logged in: {'yes' if st['logged_in'] else 'no'} | Locked: {'yes' if st['screen_locked'] else 'no'}\n")
+    stream.write(
+        f"State: {st['enforcement_state']} | Logged in: {'yes' if st['logged_in'] else 'no'} | Locked: {'yes' if st['screen_locked'] else 'no'}\n"
+    )
     if pause.get("active"):
         until = pause.get("until_utc") or "indefinite"
         reason = f" ({pause['reason']})" if pause.get("reason") else ""
         stream.write(f"Pause: ACTIVE until {until}{reason}\n")
-    left_str = "unlimited" if st["enforcement_state"] in ("unrestricted", "paused") else format_duration(st["time_left_today"], include_seconds=True)
-    cont_str = "unlimited" if st["enforcement_state"] in ("unrestricted", "paused") else format_duration(st["time_left_continuous"], include_seconds=True)
+    left_str = (
+        "unlimited"
+        if st["enforcement_state"] in ("unrestricted", "paused")
+        else format_duration(st["time_left_today"], include_seconds=True)
+    )
+    cont_str = (
+        "unlimited"
+        if st["enforcement_state"] in ("unrestricted", "paused")
+        else format_duration(st["time_left_continuous"], include_seconds=True)
+    )
     stream.write(
         f"Today: {left_str} left (continuous: {cont_str}) | "
         f"Spent: {format_duration(st['time_spent_today'])} / "
@@ -134,11 +162,15 @@ def _print_user_status(st: dict[str, Any], stream) -> None:
 
 
 def _print_history(hist: dict[str, Any], stream) -> None:
-    stream.write(f"Usage History for {hist['username']} (last {hist['days']} days since {hist['start_date']}):\n")
+    stream.write(
+        f"Usage History for {hist['username']} (last {hist['days']} days since {hist['start_date']}):\n"
+    )
     if not hist["daily"]:
         stream.write("  No daily usage recorded yet.\n")
     else:
-        stream.write(f"  {'DATE':<12} {'ACTIVE':<10} {'INACTIVE':<10} {'APPS':<10} {'BONUS':<9} {'LOCKOUTS'}\n")
+        stream.write(
+            f"  {'DATE':<12} {'ACTIVE':<10} {'INACTIVE':<10} {'APPS':<10} {'BONUS':<9} {'LOCKOUTS'}\n"
+        )
         for row in hist["daily"]:
             stream.write(
                 f"  {row['date']:<12} {format_duration(row['active_sec']):<10} "
@@ -148,13 +180,19 @@ def _print_history(hist: dict[str, Any], stream) -> None:
     if hist["events"]:
         stream.write("Recent events:\n")
         for ev in hist["events"][:10]:
-            stream.write(f"  {ev['ts_utc']} [{ev['kind']}] by {ev['actor']} {json.dumps(ev['detail'])}\n")
+            stream.write(
+                f"  {ev['ts_utc']} [{ev['kind']}] by {ev['actor']} {json.dumps(ev['detail'])}\n"
+            )
 
 
 def _print_doctor(report: dict[str, Any], stream) -> None:
-    stream.write(f"curfewd doctor (v{report.get('version', __version__)}) — overall: {report['overall'].upper()}\n")
+    stream.write(
+        f"curfewd doctor (v{report.get('version', __version__)}) — overall: {report['overall'].upper()}\n"
+    )
     for chk in report.get("checks", []):
-        tag = {"ok": "OK  ", "warn": "WARN", "error": "FAIL"}.get(chk["status"], chk["status"].upper())
+        tag = {"ok": "OK  ", "warn": "WARN", "error": "FAIL"}.get(
+            chk["status"], chk["status"].upper()
+        )
         stream.write(f"  [{tag}] {chk['name']}: {chk['detail']}\n")
     sessions = report.get("active_sessions", [])
     if sessions:
@@ -168,7 +206,13 @@ def _print_doctor(report: dict[str, Any], stream) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS, help="Emit structured JSON output")
+    common.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        default=argparse.SUPPRESS,
+        help="Emit structured JSON output",
+    )
 
     parser = argparse.ArgumentParser(
         prog="curfewctl",
@@ -176,90 +220,170 @@ def build_parser() -> argparse.ArgumentParser:
         parents=[common],
     )
     parser.add_argument("--version", action="version", version=f"curfewctl {__version__}")
-    parser.add_argument("--session-bus", action="store_true", help="Connect to session D-Bus (development/testing)")
+    parser.add_argument(
+        "--session-bus", action="store_true", help="Connect to session D-Bus (development/testing)"
+    )
 
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_status = sub.add_parser("status", parents=[common], help="Show live status for all users or one user")
+    p_status = sub.add_parser(
+        "status", parents=[common], help="Show live status for all users or one user"
+    )
     p_status.add_argument("user", nargs="?", help="Optional Linux username")
 
     sub.add_parser("users", parents=[common], help="List tracked and discoverable desktop users")
 
-    p_grant = sub.add_parser("grant", parents=[common], help="Add, subtract, or set remaining screen time today")
+    p_grant = sub.add_parser(
+        "grant", parents=[common], help="Add, subtract, or set remaining screen time today"
+    )
     p_grant.add_argument("user", help="Linux username")
     p_grant.add_argument("delta", help="Adjustment such as +30m, -15m, =2h")
 
-    p_limit = sub.add_parser("limit", parents=[common], help="Configure daily, weekly, or monthly time limits")
+    p_limit = sub.add_parser(
+        "limit", parents=[common], help="Configure daily, weekly, or monthly time limits"
+    )
     p_limit.add_argument("user", help="Linux username")
     p_limit.add_argument("duration", help="Daily limit (e.g. 1h, 1h30m, 45m, unlimited)")
-    p_limit.add_argument("--days", default="all", help="Days to update (e.g. all, weekdays, weekends, mon-fri, sat,sun)")
+    p_limit.add_argument(
+        "--days",
+        default="all",
+        help="Days to update (e.g. all, weekdays, weekends, mon-fri, sat,sun)",
+    )
     p_limit.add_argument("--week", default=None, help="Optional weekly cap (e.g. 10h or unlimited)")
-    p_limit.add_argument("--month", default=None, help="Optional monthly cap (e.g. 40h or unlimited)")
+    p_limit.add_argument(
+        "--month", default=None, help="Optional monthly cap (e.g. 40h or unlimited)"
+    )
 
     p_win = sub.add_parser("window", parents=[common], help="Configure allowed curfew windows")
     p_win.add_argument("user", help="Linux username")
-    p_win.add_argument("windows", help="Comma-separated windows e.g. '08:00-22:00', '07:30-08:30,15:00-21:00', 'all', 'none'")
-    p_win.add_argument("--days", default="all", help="Days to update (e.g. all, weekdays, fri, mon-thu,sun)")
+    p_win.add_argument(
+        "windows",
+        help="Comma-separated windows e.g. '08:00-22:00', '07:30-08:30,15:00-21:00', 'all', 'none'",
+    )
+    p_win.add_argument(
+        "--days", default="all", help="Days to update (e.g. all, weekdays, fri, mon-thu,sun)"
+    )
 
-    p_lockout = sub.add_parser("lockout", parents=[common], help="Set lockout action when time expires")
+    p_lockout = sub.add_parser(
+        "lockout", parents=[common], help="Set lockout action when time expires"
+    )
     p_lockout.add_argument("user", help="Linux username")
-    p_lockout.add_argument("action", choices=LOCKOUT_ACTIONS, help="Action to take at 00:00 or curfew")
+    p_lockout.add_argument(
+        "action", choices=LOCKOUT_ACTIONS, help="Action to take at 00:00 or curfew"
+    )
 
-    p_pause = sub.add_parser("pause", parents=[common], help="Pause enforcement without altering saved schedule")
+    p_pause = sub.add_parser(
+        "pause", parents=[common], help="Pause enforcement without altering saved schedule"
+    )
     p_pause.add_argument("user", help="Linux username")
     grp = p_pause.add_mutually_exclusive_group()
     grp.add_argument("--for", dest="pause_for", help="Pause duration (e.g. 2h, 30m)")
-    grp.add_argument("--until", dest="pause_until", help="Pause until time (HH:MM, tomorrow, or ISO-8601)")
+    grp.add_argument(
+        "--until", dest="pause_until", help="Pause until time (HH:MM, tomorrow, or ISO-8601)"
+    )
     grp.add_argument("--today", action="store_true", help="Pause until next local midnight")
     grp.add_argument("--indefinite", action="store_true", help="Pause indefinitely until resumed")
     p_pause.add_argument("--reason", default="", help="Optional audit reason")
-    p_pause.add_argument("--keep-tray", action="store_true", help="Keep tray icon visible while paused")
+    p_pause.add_argument(
+        "--keep-tray", action="store_true", help="Keep tray icon visible while paused"
+    )
 
-    p_resume = sub.add_parser("resume", parents=[common], help="Resume saved schedule for a paused user")
+    p_resume = sub.add_parser(
+        "resume", parents=[common], help="Resume saved schedule for a paused user"
+    )
     p_resume.add_argument("user", help="Linux username")
 
-    p_lock = sub.add_parser("lock", parents=[common], help="Immediately lock a user's active graphical session(s)")
+    p_lock = sub.add_parser(
+        "lock", parents=[common], help="Immediately lock a user's active graphical session(s)"
+    )
     p_lock.add_argument("user", help="Linux username")
 
-    p_hist = sub.add_parser("history", parents=[common], help="Show daily screen-time history and audit events")
+    p_hist = sub.add_parser(
+        "history", parents=[common], help="Show daily screen-time history and audit events"
+    )
     p_hist.add_argument("user", help="Linux username")
     p_hist.add_argument("--days", type=int, default=7, help="Number of days (1..365, default 7)")
 
-    p_today = sub.add_parser("today", parents=[common], help="Override today's allowance or allowed window without altering the weekly schedule")
+    p_today = sub.add_parser(
+        "today",
+        parents=[common],
+        help="Override today's allowance or allowed window without altering the weekly schedule",
+    )
     p_today.add_argument("user", help="Linux username")
-    p_today.add_argument("--limit", dest="today_limit", default=None, help="Today-only daily allowance (e.g. 2h, 45m, unlimited)")
-    p_today.add_argument("--window", dest="today_window", default=None, help="Today-only allowed window (e.g. '08:00-22:30', 'all', 'none')")
-    p_today.add_argument("--reset", action="store_true", help="Clear today's override and revert to the weekly schedule")
+    p_today.add_argument(
+        "--limit",
+        dest="today_limit",
+        default=None,
+        help="Today-only daily allowance (e.g. 2h, 45m, unlimited)",
+    )
+    p_today.add_argument(
+        "--window",
+        dest="today_window",
+        default=None,
+        help="Today-only allowed window (e.g. '08:00-22:30', 'all', 'none')",
+    )
+    p_today.add_argument(
+        "--reset",
+        action="store_true",
+        help="Clear today's override and revert to the weekly schedule",
+    )
 
-    p_al = sub.add_parser("app-limits", parents=[common], help="Manage individual per-app daily limits")
+    p_al = sub.add_parser(
+        "app-limits", parents=[common], help="Manage individual per-app daily limits"
+    )
     p_al.add_argument("user", help="Linux username")
     al_sub = p_al.add_subparsers(dest="al_action", required=True)
     al_sub.add_parser("status", parents=[common])
     al_sub.add_parser("enable", parents=[common])
     al_sub.add_parser("disable", parents=[common])
-    p_al_lim = al_sub.add_parser("limit", parents=[common], help="Set daily limit for an app pattern (or all tracked apps)")
+    p_al_lim = al_sub.add_parser(
+        "limit", parents=[common], help="Set daily limit for an app pattern (or all tracked apps)"
+    )
     p_al_lim.add_argument("target", help="App pattern (or duration if setting all tracked apps)")
-    p_al_lim.add_argument("duration", nargs="?", default=None, help="Daily limit duration (e.g. 45m, 1h)")
-    p_al_add = al_sub.add_parser("add", parents=[common], help="Track an app or game with its own daily limit")
+    p_al_lim.add_argument(
+        "duration", nargs="?", default=None, help="Daily limit duration (e.g. 45m, 1h)"
+    )
+    p_al_add = al_sub.add_parser(
+        "add", parents=[common], help="Track an app or game with its own daily limit"
+    )
     p_al_add.add_argument("pattern", help="Process name or regex pattern")
     p_al_add.add_argument("label", nargs="?", default="", help="Friendly app label")
-    p_al_add.add_argument("--limit", dest="app_limit", default="45m", help="Daily time limit for this app (default: 45m)")
-    p_al_add.add_argument("--category", default="", help="Optional category (e.g. Gaming, Social, Media)")
-    p_al_grant = al_sub.add_parser("grant", parents=[common], help="Add or subtract bonus time today for one app")
+    p_al_add.add_argument(
+        "--limit",
+        dest="app_limit",
+        default="45m",
+        help="Daily time limit for this app (default: 45m)",
+    )
+    p_al_add.add_argument(
+        "--category", default="", help="Optional category (e.g. Gaming, Social, Media)"
+    )
+    p_al_grant = al_sub.add_parser(
+        "grant", parents=[common], help="Add or subtract bonus time today for one app"
+    )
     p_al_grant.add_argument("pattern", help="Tracked app pattern")
     p_al_grant.add_argument("delta", help="Adjustment such as +15m or -15m")
     p_al_rm = al_sub.add_parser("remove", parents=[common], help="Remove an app limit rule")
     p_al_rm.add_argument("pattern", help="Pattern to remove")
 
-    p_cfg = sub.add_parser("config", parents=[common], help="Inspect or update global daemon configuration")
+    p_cfg = sub.add_parser(
+        "config", parents=[common], help="Inspect or update global daemon configuration"
+    )
     cfg_sub = p_cfg.add_subparsers(dest="cfg_action", required=True)
     cfg_sub.add_parser("show", parents=[common])
     p_cfg_set = cfg_sub.add_parser("set", parents=[common])
-    p_cfg_set.add_argument("key", help="DaemonConfig key (e.g. log_level, final_countdown_sec, session_lock_fallback)")
+    p_cfg_set.add_argument(
+        "key", help="DaemonConfig key (e.g. log_level, final_countdown_sec, session_lock_fallback)"
+    )
     p_cfg_set.add_argument("value", help="New value")
 
-    p_doc = sub.add_parser("doctor", parents=[common], help="Verify service, D-Bus, Polkit, dconf lock policy, and helpers")
-    p_doc.add_argument("--fix", action="store_true", help="Apply built-in root dconf lock-screen hardening")
+    p_doc = sub.add_parser(
+        "doctor",
+        parents=[common],
+        help="Verify service, D-Bus, Polkit, dconf lock policy, and helpers",
+    )
+    p_doc.add_argument(
+        "--fix", action="store_true", help="Apply built-in root dconf lock-screen hardening"
+    )
 
     return parser
 
@@ -383,14 +507,24 @@ def run_cli(
             for d in days:
                 policy["daily_limits"][d] = sec
             if args.week is not None:
-                policy["weekly_limit"] = None if args.week.lower() in ("unlimited", "none") else parse_duration(args.week)
+                policy["weekly_limit"] = (
+                    None
+                    if args.week.lower() in ("unlimited", "none")
+                    else parse_duration(args.week)
+                )
             if args.month is not None:
-                policy["monthly_limit"] = None if args.month.lower() in ("unlimited", "none") else parse_duration(args.month)
+                policy["monthly_limit"] = (
+                    None
+                    if args.month.lower() in ("unlimited", "none")
+                    else parse_duration(args.month)
+                )
             updated = client.set_user_policy(args.user, policy)
             if as_json:
                 _print_json(updated, out)
             else:
-                out.write(f"Updated daily limit for {args.user} ({','.join(days)}): {format_duration(sec)}\n")
+                out.write(
+                    f"Updated daily limit for {args.user} ({','.join(days)}): {format_duration(sec)}\n"
+                )
             return EXIT_OK
 
         if cmd == "window":
@@ -405,7 +539,9 @@ def run_cli(
             if as_json:
                 _print_json(updated, out)
             else:
-                out.write(f"Updated curfew windows for {args.user} ({','.join(days)}): {_format_windows_human(windows)}\n")
+                out.write(
+                    f"Updated curfew windows for {args.user} ({','.join(days)}): {_format_windows_human(windows)}\n"
+                )
             return EXIT_OK
 
         if cmd == "lockout":
@@ -438,7 +574,9 @@ def run_cli(
                 _print_json(updated, out)
             else:
                 mode_str = f"until {until_utc}" if until_utc else "indefinitely"
-                out.write(f"Paused enforcement for {args.user} ({mode_str}). Saved schedule preserved.\n")
+                out.write(
+                    f"Paused enforcement for {args.user} ({mode_str}). Saved schedule preserved.\n"
+                )
             return EXIT_OK
 
         if cmd == "resume":
@@ -446,7 +584,9 @@ def run_cli(
             if as_json:
                 _print_json(updated, out)
             else:
-                out.write(f"Resumed enforcement for {args.user} (state: {updated['enforcement_state']}).\n")
+                out.write(
+                    f"Resumed enforcement for {args.user} (state: {updated['enforcement_state']}).\n"
+                )
             return EXIT_OK
 
         if cmd == "lock":
@@ -462,7 +602,9 @@ def run_cli(
                     )
                     out.write(f"Locked {args.user}: {detail}\n")
                 else:
-                    out.write(f"Could not lock {args.user}: {res.get('detail') or 'lock verification failed'}\n")
+                    out.write(
+                        f"Could not lock {args.user}: {res.get('detail') or 'lock verification failed'}\n"
+                    )
             return EXIT_OK if res.get("locked") else EXIT_ERROR
 
         if cmd == "history":
@@ -488,7 +630,9 @@ def run_cli(
                 _print_json(updated, out)
             else:
                 if args.reset:
-                    out.write(f"Cleared today's override for {args.user}; reverted to weekly schedule.\n")
+                    out.write(
+                        f"Cleared today's override for {args.user}; reverted to weekly schedule.\n"
+                    )
                 else:
                     out.write(
                         f"Updated today's schedule for {args.user}: "
@@ -502,14 +646,24 @@ def run_cli(
             policy = dict(st["policy"])
             al = dict(policy["app_limits"])
             if args.al_action == "status":
-                payload = {"username": args.user, "app_limits": al, "app_limits_status": st["app_limits_status"]}
+                payload = {
+                    "username": args.user,
+                    "app_limits": al,
+                    "app_limits_status": st["app_limits_status"],
+                }
                 if as_json:
                     _print_json(payload, out)
                 else:
-                    out.write(f"App Limits for {args.user}: enabled={al['enabled']} apps={len(al['apps'])}\n")
+                    out.write(
+                        f"App Limits for {args.user}: enabled={al['enabled']} apps={len(al['apps'])}\n"
+                    )
                     for a in st["app_limits_status"].get("apps", al["apps"]):
-                        lim_s = format_duration(a.get("allotted_today", a.get("daily_limit_sec", 0)))
-                        rem_s = format_duration(a.get("time_left_today", a.get("daily_limit_sec", 0)))
+                        lim_s = format_duration(
+                            a.get("allotted_today", a.get("daily_limit_sec", 0))
+                        )
+                        rem_s = format_duration(
+                            a.get("time_left_today", a.get("daily_limit_sec", 0))
+                        )
                         out.write(f"  - {a['label']} ({a['pattern']}): {rem_s} left / {lim_s}\n")
                 return EXIT_OK
             if args.al_action == "grant":
@@ -562,7 +716,9 @@ def run_cli(
             if as_json:
                 _print_json(updated, out)
             else:
-                out.write(f"Updated App Limits for {args.user} (enabled={updated['policy']['app_limits']['enabled']}).\n")
+                out.write(
+                    f"Updated App Limits for {args.user} (enabled={updated['policy']['app_limits']['enabled']}).\n"
+                )
             return EXIT_OK
 
         if cmd == "config":

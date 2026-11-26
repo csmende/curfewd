@@ -2,19 +2,37 @@
 
 import re
 from datetime import datetime, time, timedelta, timezone
+from itertools import pairwise
 
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 WEEKDAY_TO_INDEX = {name: idx for idx, name in enumerate(WEEKDAYS)}
-ISO_NUM_TO_WEEKDAY = {str(idx + 1): name for idx, name in enumerate(WEEKDAYS)}
 
 _DAY_ALIASES = {
-    "mon": "mon", "monday": "mon", "1": "mon",
-    "tue": "tue", "tues": "tue", "tuesday": "tue", "2": "tue",
-    "wed": "wed", "weds": "wed", "wednesday": "wed", "3": "wed",
-    "thu": "thu", "thur": "thu", "thurs": "thu", "thursday": "thu", "4": "thu",
-    "fri": "fri", "friday": "fri", "5": "fri",
-    "sat": "sat", "saturday": "sat", "6": "sat",
-    "sun": "sun", "sunday": "sun", "7": "sun",
+    "mon": "mon",
+    "monday": "mon",
+    "1": "mon",
+    "tue": "tue",
+    "tues": "tue",
+    "tuesday": "tue",
+    "2": "tue",
+    "wed": "wed",
+    "weds": "wed",
+    "wednesday": "wed",
+    "3": "wed",
+    "thu": "thu",
+    "thur": "thu",
+    "thurs": "thu",
+    "thursday": "thu",
+    "4": "thu",
+    "fri": "fri",
+    "friday": "fri",
+    "5": "fri",
+    "sat": "sat",
+    "saturday": "sat",
+    "6": "sat",
+    "sun": "sun",
+    "sunday": "sun",
+    "7": "sun",
 }
 
 _USERNAME_RE = re.compile(r"^[a-z_][a-z0-9._-]{0,31}$")
@@ -51,7 +69,7 @@ def parse_duration(raw: str) -> int:
     total = 0
     pos = 0
     for match in _DURATION_TOKEN_RE.finditer(text):
-        gap = text[pos:match.start()].strip()
+        gap = text[pos : match.start()].strip()
         if gap:
             raise ValueError(f"Invalid duration format: {raw!r}")
         value = int(match.group(1))
@@ -129,9 +147,9 @@ def parse_days(raw: str) -> list[str]:
             s_idx = WEEKDAY_TO_INDEX[start_day]
             e_idx = WEEKDAY_TO_INDEX[end_day]
             if s_idx <= e_idx:
-                span = WEEKDAYS[s_idx:e_idx + 1]
+                span = WEEKDAYS[s_idx : e_idx + 1]
             else:
-                span = WEEKDAYS[s_idx:] + WEEKDAYS[:e_idx + 1]
+                span = WEEKDAYS[s_idx:] + WEEKDAYS[: e_idx + 1]
             for d in span:
                 if d not in selected:
                     selected.append(d)
@@ -202,9 +220,11 @@ def parse_windows(raw: str) -> list[dict]:
 
     windows.sort(key=lambda w: (parse_hhmm_to_minutes(w["start"]), parse_hhmm_to_minutes(w["end"])))
     # Reject overlapping windows to keep policy unambiguous
-    for prev, curr in zip(windows, windows[1:]):
+    for prev, curr in pairwise(windows):
         if parse_hhmm_to_minutes(curr["start"]) < parse_hhmm_to_minutes(prev["end"]):
-            raise ValueError(f"Overlapping windows: {prev['start']}-{prev['end']} and {curr['start']}-{curr['end']}")
+            raise ValueError(
+                f"Overlapping windows: {prev['start']}-{prev['end']} and {curr['start']}-{curr['end']}"
+            )
     return windows
 
 

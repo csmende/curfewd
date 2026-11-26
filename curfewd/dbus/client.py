@@ -1,7 +1,8 @@
 """Typed Python client SDK for org.curfewd.Daemon1 (shared by curfewctl, tray, and Spec 003 UI)."""
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import dbus
 
@@ -119,11 +120,17 @@ class CurfewClient:
         return self._call_json(DBUS_ADMIN_INTERFACE, "GetUserStatus", str(username))
 
     def set_user_policy(self, username: str, policy: dict[str, Any]) -> dict[str, Any]:
-        return self._call_json(DBUS_ADMIN_INTERFACE, "SetUserPolicy", str(username), json.dumps(policy))
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE, "SetUserPolicy", str(username), json.dumps(policy)
+        )
 
     def grant_time(self, username: str, delta_seconds: int, mode: str = "add") -> dict[str, Any]:
         return self._call_json(
-            DBUS_ADMIN_INTERFACE, "GrantTime", str(username), dbus.Int32(int(delta_seconds)), str(mode)
+            DBUS_ADMIN_INTERFACE,
+            "GrantTime",
+            str(username),
+            dbus.Int32(int(delta_seconds)),
+            str(mode),
         )
 
     def pause_user(
@@ -149,7 +156,9 @@ class CurfewClient:
         return self._call_json(DBUS_ADMIN_INTERFACE, "LockUser", str(username))
 
     def get_usage_history(self, username: str, days: int = 7) -> dict[str, Any]:
-        return self._call_json(DBUS_ADMIN_INTERFACE, "GetUsageHistory", str(username), dbus.Int32(int(days)))
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE, "GetUsageHistory", str(username), dbus.Int32(int(days))
+        )
 
     def get_daemon_config(self) -> dict[str, Any]:
         return self._call_json(DBUS_ADMIN_INTERFACE, "GetDaemonConfig")
@@ -197,7 +206,9 @@ class CurfewClient:
         return self._call_json(DBUS_CLIENT_INTERFACE, "GetMyHistory", dbus.Int32(int(days)))
 
     def report_screensaver_state(self, nonce: str, active: bool) -> bool:
-        res = self._call(DBUS_CLIENT_INTERFACE, "ReportScreensaverState", str(nonce), dbus.Boolean(bool(active)))
+        res = self._call(
+            DBUS_CLIENT_INTERFACE, "ReportScreensaverState", str(nonce), dbus.Boolean(bool(active))
+        )
         return bool(res)
 
     # --- Signals & Auto-Reconnect ---

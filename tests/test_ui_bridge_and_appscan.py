@@ -18,7 +18,7 @@ class _FakeUIClient:
         self.unavailable = unavailable
         self.policy = UserPolicy(
             username="maya",
-            daily_limits={d: 3600 for d in WEEKDAYS},
+            daily_limits=dict.fromkeys(WEEKDAYS, 3600),
             curfew_windows={d: [TimeWindow("08:00", "21:00")] for d in WEEKDAYS},
         ).to_dict()
         self.config = {
@@ -65,7 +65,12 @@ class _FakeUIClient:
 
     def get_usage_history(self, username: str, days: int = 14):
         self._check(admin=True)
-        return {"username": username, "days": days, "daily": [{"date": "2026-11-25", "active_sec": 1200, "app_limits_sec": 600}], "events": []}
+        return {
+            "username": username,
+            "days": days,
+            "daily": [{"date": "2026-11-25", "active_sec": 1200, "app_limits_sec": 600}],
+            "events": [],
+        }
 
     def get_daemon_config(self):
         self._check(admin=True)
@@ -109,7 +114,12 @@ class _FakeUIClient:
             "overall": "ok" if self.doctor_fixed else "warn",
             "checks": [
                 {"name": "systemd_service", "status": "ok", "detail": "active", "fixable": False},
-                {"name": "dconf_lock_policy", "status": "ok" if self.doctor_fixed else "warn", "detail": "...", "fixable": not self.doctor_fixed},
+                {
+                    "name": "dconf_lock_policy",
+                    "status": "ok" if self.doctor_fixed else "warn",
+                    "detail": "...",
+                    "fixable": not self.doctor_fixed,
+                },
             ],
         }
 
@@ -132,17 +142,25 @@ class TestAppScanner(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             # Native game wrapped in `sh -c 'ENV=1 steam %U'` (Ubuntu/Linux Mint style)
             with open(os.path.join(tmp, "steam.desktop"), "w", encoding="utf-8") as fh:
-                fh.write("[Desktop Entry]\nType=Application\nName=Install Steam\nExec=sh -c 'STEAM_FRAME_FORCE_CLOSE=1 steam %U'\nCategories=Network;FileTransfer;Game;\n")
+                fh.write(
+                    "[Desktop Entry]\nType=Application\nName=Install Steam\nExec=sh -c 'STEAM_FRAME_FORCE_CLOSE=1 steam %U'\nCategories=Network;FileTransfer;Game;\n"
+                )
             # Symlinked Flatpak Roblox (Sober), matching /var/lib/flatpak/exports/share/applications layout
             fp_target = os.path.join(tmp, "real_sober.desktop")
             with open(fp_target, "w", encoding="utf-8") as fh:
-                fh.write("[Desktop Entry]\nType=Application\nName=Sober\nExec=/usr/bin/flatpak run --branch=stable org.vinegarhq.Sober\nX-Flatpak=org.vinegarhq.Sober\nCategories=Game;\n")
+                fh.write(
+                    "[Desktop Entry]\nType=Application\nName=Sober\nExec=/usr/bin/flatpak run --branch=stable org.vinegarhq.Sober\nX-Flatpak=org.vinegarhq.Sober\nCategories=Game;\n"
+                )
             os.symlink(fp_target, os.path.join(tmp, "org.vinegarhq.Sober.desktop"))
             # Hidden / NoDisplay / Settings utility should be ignored
             with open(os.path.join(tmp, "hidden.desktop"), "w", encoding="utf-8") as fh:
-                fh.write("[Desktop Entry]\nType=Application\nName=Hidden\nExec=/usr/bin/foo\nNoDisplay=true\n")
+                fh.write(
+                    "[Desktop Entry]\nType=Application\nName=Hidden\nExec=/usr/bin/foo\nNoDisplay=true\n"
+                )
             with open(os.path.join(tmp, "settings.desktop"), "w", encoding="utf-8") as fh:
-                fh.write("[Desktop Entry]\nType=Application\nName=Display Settings\nExec=cinnamon-settings display\nCategories=Settings;System;\n")
+                fh.write(
+                    "[Desktop Entry]\nType=Application\nName=Display Settings\nExec=cinnamon-settings display\nCategories=Settings;System;\n"
+                )
             # Symlink pointing to a non-.desktop file must still be rejected
             secret_file = os.path.join(tmp, "not_a_desktop.txt")
             with open(secret_file, "w", encoding="utf-8") as fh:
@@ -161,6 +179,15 @@ class TestAppScanner(unittest.TestCase):
             sober = next(a for a in apps if a["pattern"] == "sober")
             self.assertEqual(sober["label"], "Roblox (Sober)")
             self.assertEqual(sober["category"], "Gaming")
+
+    def test_audiovideoediting_category_and_full_curated_fallback(self):
+        from curfewd.ui.appscan import DEFAULT_CURATED_APPS, _map_category
+
+        self.assertEqual(_map_category("AudioVideoEditing;"), "Creative")
+        with tempfile.TemporaryDirectory() as empty_dir:
+            apps = scan_installed_apps(search_dirs=[empty_dir], include_curated_fallback=True)
+            self.assertEqual(len(apps), len(DEFAULT_CURATED_APPS))
+            self.assertTrue(all(not a["installed"] for a in apps))
 
 
 class TestUIBridgeAndPrefs(unittest.TestCase):
@@ -183,7 +210,9 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             bridge = UIBridge(
                 client=client,
                 prefs=UIPreferencesStore(os.path.join(tmp, "ui.json")),
-                app_scanner=lambda: [{"pattern": "steam", "label": "Steam", "category": "Gaming", "installed": True}],
+                app_scanner=lambda: [
+                    {"pattern": "steam", "label": "Steam", "category": "Gaming", "installed": True}
+                ],
                 current_user="parent",
             )
             boot = bridge.handle("bootstrap", {"mode": "admin"})
@@ -196,8 +225,14 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
                 "save_changes",
                 {
                     "policies": {"maya": client.policy},
-                    "today_overrides": {"maya": {"limit_sec": 5400, "windows": [{"start": "08:00", "end": "22:00"}]}},
-                    "daemon_config": {"session_lock_fallback": True, "release_x11_grab_on_lock": False, "final_countdown_sec": 20},
+                    "today_overrides": {
+                        "maya": {"limit_sec": 5400, "windows": [{"start": "08:00", "end": "22:00"}]}
+                    },
+                    "daemon_config": {
+                        "session_lock_fallback": True,
+                        "release_x11_grab_on_lock": False,
+                        "final_countdown_sec": 20,
+                    },
                 },
             )
             self.assertTrue(saved["ok"])
@@ -208,7 +243,9 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             self.assertTrue(lock_resp["ok"])
             self.assertTrue(lock_resp["data"]["result"]["locked"])
 
-            grant_resp = bridge.handle("grant_app_time", {"username": "maya", "pattern": "steam", "delta_seconds": 900})
+            grant_resp = bridge.handle(
+                "grant_app_time", {"username": "maya", "pattern": "steam", "delta_seconds": 900}
+            )
             self.assertTrue(grant_resp["ok"])
             self.assertEqual(grant_resp["data"]["applied_sec"], 900)
 
@@ -222,7 +259,7 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             bridge = UIBridge(
                 client=client,
                 prefs=UIPreferencesStore(os.path.join(tmp, "ui.json")),
-                app_scanner=lambda: [],
+                app_scanner=list,
                 current_user="maya",
             )
             # Admin bootstrap falls back cleanly to Authentication Required gate
@@ -242,7 +279,10 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             self.assertEqual(bad["code"], "unknown_action")
 
             # Daemon unavailable returns unavailable surface cleanly
-            down_bridge = UIBridge(client=_FakeUIClient(unavailable=True), prefs=UIPreferencesStore(os.path.join(tmp, "ui2.json")))
+            down_bridge = UIBridge(
+                client=_FakeUIClient(unavailable=True),
+                prefs=UIPreferencesStore(os.path.join(tmp, "ui2.json")),
+            )
             down = down_bridge.handle("bootstrap", {"mode": "admin"})
             self.assertTrue(down["ok"])
             self.assertEqual(down["data"]["surface"], "unavailable")
@@ -250,9 +290,12 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
     def test_material3_brand_and_tray_svg_icons_valid(self):
         import xml.etree.ElementTree as ET
 
+        from curfewd.models import ENFORCEMENT_STATES
         from curfewd.tray.app import TrayController
 
-        icons_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "resource", "icons"))
+        icons_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "resource", "icons")
+        )
         all_files = sorted(os.listdir(icons_dir))
         self.assertEqual([f for f in all_files if "timekpr" in f.lower()], [])
 
@@ -288,7 +331,7 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             else:
                 self.assertIsNone(circle, f"Unexpected status dot in {name}")
 
-        for state in ("ok", "warning", "countdown", "locked_out", "paused", "unrestricted"):
+        for state in ENFORCEMENT_STATES:
             icon_name = TrayController.select_icon_name({"enforcement_state": state})
             self.assertIn(f"{icon_name}.svg", expected)
         self.assertEqual(TrayController.select_icon_name(None), "curfewd")

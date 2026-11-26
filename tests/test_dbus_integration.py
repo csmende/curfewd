@@ -1,6 +1,5 @@
 """Live ephemeral D-Bus integration tests for org.curfewd.Daemon1, Polkit, sender-UID, and tray auto-reconnect."""
 
-from datetime import datetime, timezone
 import getpass
 import json
 import os
@@ -10,6 +9,7 @@ import tempfile
 import threading
 import time
 import unittest
+from datetime import datetime, timezone
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -138,7 +138,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         # Seed a restricted policy for the test user
         pol = UserPolicy(
             username=self._current_user,
-            daily_limits={d: 3600 for d in WEEKDAYS},
+            daily_limits=dict.fromkeys(WEEKDAYS, 3600),
             curfew_windows={d: [TimeWindow("08:00", "21:00")] for d in WEEKDAYS},
         )
         self._store.save_user_policy(pol)
@@ -166,6 +166,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
     def tearDown(self) -> None:
         GLib.idle_add(self._loop.quit)
         self._thread.join(timeout=3.0)
+        self._history.close()
         self._server_bus.close()
         self._client_bus.close()
         self._bus_proc.terminate()
@@ -211,15 +212,26 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         pol["app_limits"] = {
             "enabled": True,
             "override_main": False,
-            "apps": [{"pattern": "steam", "label": "Steam", "daily_limit_sec": 2700, "category": "Gaming"}],
+            "apps": [
+                {
+                    "pattern": "steam",
+                    "label": "Steam",
+                    "daily_limit_sec": 2700,
+                    "category": "Gaming",
+                }
+            ],
         }
         self._client.set_user_policy(self._current_user, pol)
         app_grant = self._client.grant_app_time(self._current_user, "steam", 900)
         self.assertEqual(app_grant["applied_sec"], 900)
-        self.assertEqual(app_grant["status"]["app_limits_status"]["apps"][0]["allotted_today"], 3600)
+        self.assertEqual(
+            app_grant["status"]["app_limits_status"]["apps"][0]["allotted_today"], 3600
+        )
 
         # Pause & verify schedule untouched
-        paused = self._client.pause_user(self._current_user, until_utc="", reason="test", hide_tray=True)
+        paused = self._client.pause_user(
+            self._current_user, until_utc="", reason="test", hide_tray=True
+        )
         self.assertEqual(paused["enforcement_state"], "paused")
         self.assertTrue(paused["hide_tray_effective"])
         self.assertEqual(paused["policy"]["daily_limits"]["wed"], 3600)
@@ -362,7 +374,9 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
 
         GLib.idle_add(_restart_daemon)
         deadline = time.monotonic() + 4.0
-        while (controller.reconnect_count <= initial_reconnects or not controller.connected) and time.monotonic() < deadline:
+        while (
+            controller.reconnect_count <= initial_reconnects or not controller.connected
+        ) and time.monotonic() < deadline:
             time.sleep(0.05)
 
         self.assertGreater(controller.reconnect_count, initial_reconnects)
@@ -370,7 +384,9 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self.assertIsNotNone(controller.last_status)
 
         # Verify tray notification rendering
-        controller.on_client_notification(self._current_user, json.dumps({"kind": "warning", "seconds_left": 600}))
+        controller.on_client_notification(
+            self._current_user, json.dumps({"kind": "warning", "seconds_left": 600})
+        )
         self.assertEqual(len(notifier.messages), 1)
         self.assertIn("10m", notifier.messages[0][1])
         watch_bus.close()

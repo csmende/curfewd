@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import signal
+
 # Subprocess is strictly limited to launching the trusted curfewd-ui binary (shell=False).
 import subprocess  # nosec B404
 import sys
@@ -35,8 +36,10 @@ class SessionScreensaverProbe:
 
     def __init__(self, session_bus=None, desktop: str | None = None) -> None:
         self._bus = session_bus
-        self._desktop = desktop if desktop is not None else (
-            os.getenv("XDG_CURRENT_DESKTOP") or os.getenv("DESKTOP_SESSION") or ""
+        self._desktop = (
+            desktop
+            if desktop is not None
+            else (os.getenv("XDG_CURRENT_DESKTOP") or os.getenv("DESKTOP_SESSION") or "")
         )
         self._proxies: dict[str, Any] = {}
 
@@ -72,9 +75,7 @@ class SessionScreensaverProbe:
                             )
                             iface = dbus.Interface(proxy, backend.dbus_interface)
                             self._proxies[key] = iface
-                        if bool(iface.GetActive()):
-                            return True
-                        return False
+                        return bool(iface.GetActive())
                     except dbus.DBusException:
                         self._proxies.pop(key, None)
                         if attempt == 0:
@@ -87,7 +88,7 @@ class DesktopNotifier:
 
     def __init__(self, session_bus=None) -> None:
         self._bus = session_bus
-        self._iface = None
+        self._iface: Any = None
         self._last_id = 0
 
     def send(self, summary: str, body: str, urgency: int = 1, icon: str = "curfewd") -> None:
@@ -208,7 +209,9 @@ class TrayController:
         kind = payload.get("kind")
         if kind == "warning":
             left = format_duration(int(payload.get("seconds_left", 0)))
-            self.notifier.send("Screen time remaining", f"{left} remaining before curfew/lock.", urgency=1)
+            self.notifier.send(
+                "Screen time remaining", f"{left} remaining before curfew/lock.", urgency=1
+            )
         elif kind == "countdown":
             secs = int(payload.get("seconds_left", 0))
             action = payload.get("action", "lock")
@@ -220,25 +223,49 @@ class TrayController:
         elif kind == "time_granted":
             applied = int(payload.get("applied_sec", 0))
             if applied >= 0:
-                self.notifier.send("Bonus screen time added", f"+{format_duration(applied)} added today.", urgency=1)
+                self.notifier.send(
+                    "Bonus screen time added",
+                    f"+{format_duration(applied)} added today.",
+                    urgency=1,
+                )
             else:
-                self.notifier.send("Screen time adjusted", f"{format_duration(applied)} adjusted today.", urgency=1)
+                self.notifier.send(
+                    "Screen time adjusted", f"{format_duration(applied)} adjusted today.", urgency=1
+                )
         elif kind == "app_time_granted":
             applied = int(payload.get("applied_sec", 0))
             label = str(payload.get("label") or payload.get("pattern") or "App")
             if applied >= 0:
-                self.notifier.send("Bonus app time added", f"+{format_duration(applied)} added for {label} today.", urgency=1)
+                self.notifier.send(
+                    "Bonus app time added",
+                    f"+{format_duration(applied)} added for {label} today.",
+                    urgency=1,
+                )
             else:
-                self.notifier.send("App time adjusted", f"{format_duration(applied)} adjusted for {label} today.", urgency=1)
+                self.notifier.send(
+                    "App time adjusted",
+                    f"{format_duration(applied)} adjusted for {label} today.",
+                    urgency=1,
+                )
         elif kind == "app_limit_reached":
             labels = ", ".join(str(x) for x in (payload.get("apps") or []) if x) or "Tracked app"
-            self.notifier.send("App time limit reached", f"{labels} reached its daily time limit and was closed.", urgency=1)
+            self.notifier.send(
+                "App time limit reached",
+                f"{labels} reached its daily time limit and was closed.",
+                urgency=1,
+            )
         elif kind == "paused":
-            self.notifier.send("Screen time limits paused", "Limits have been temporarily paused.", urgency=0)
+            self.notifier.send(
+                "Screen time limits paused", "Limits have been temporarily paused.", urgency=0
+            )
         elif kind == "resumed":
-            self.notifier.send("Screen time limits resumed", "Your regular schedule is active again.", urgency=1)
+            self.notifier.send(
+                "Screen time limits resumed", "Your regular schedule is active again.", urgency=1
+            )
         elif kind == "policy_changed":
-            self.notifier.send("Schedule updated", "Your screen-time schedule was updated.", urgency=0)
+            self.notifier.send(
+                "Schedule updated", "Your screen-time schedule was updated.", urgency=0
+            )
 
     @staticmethod
     def select_icon_name(status: dict[str, Any] | None) -> str:
@@ -250,7 +277,9 @@ class TrayController:
 def _launch_my_screen_time(session_bus: bool = False) -> None:
     """Launch `curfewd-ui --my-status` without blocking the tray event loop."""
     ui_bin = shutil.which("curfewd-ui", path=TRUSTED_BIN_PATH)
-    argv = [ui_bin, "--my-status"] if ui_bin else [sys.executable, "-m", "curfewd.ui", "--my-status"]
+    argv = (
+        [ui_bin, "--my-status"] if ui_bin else [sys.executable, "-m", "curfewd.ui", "--my-status"]
+    )
     if session_bus:
         argv.append("--session-bus")
     try:
@@ -265,7 +294,7 @@ def _launch_my_screen_time(session_bus: bool = False) -> None:
         logger.warning("Could not launch curfewd-ui: %s", exc)
 
 
-def _try_build_indicator(controller: TrayController, quit_fn, session_bus: bool = False):
+def _try_build_indicator(controller: TrayController, session_bus: bool = False):
     """Build an AyatanaAppIndicator3 / AppIndicator3 tray icon if available."""
     try:
         import gi
@@ -307,7 +336,9 @@ def _try_build_indicator(controller: TrayController, quit_fn, session_bus: bool 
         def _show_summary(_widget):
             st = controller.last_status
             if not st:
-                controller.notifier.send("curfewd", "Not currently connected to curfewd.", urgency=0)
+                controller.notifier.send(
+                    "curfewd", "Not currently connected to curfewd.", urgency=0
+                )
                 return
             left = (
                 "Unlimited"
@@ -315,7 +346,9 @@ def _try_build_indicator(controller: TrayController, quit_fn, session_bus: bool 
                 else format_duration(st["time_left_today"])
             )
             spent = format_duration(st["time_spent_today"])
-            controller.notifier.send("curfewd Status", f"Remaining: {left} | Spent today: {spent}", urgency=0)
+            controller.notifier.send(
+                "curfewd Status", f"Remaining: {left} | Spent today: {spent}", urgency=0
+            )
 
         item_open_ui.connect("activate", _open_ui)
         item_summary.connect("activate", _show_summary)
@@ -349,7 +382,9 @@ def _try_build_indicator(controller: TrayController, quit_fn, session_bus: bool 
             else:
                 left = format_duration(status.get("time_left_continuous", 0))
                 indicator.set_label(f" {left}", " 99h 59m")
-                item_time.set_label(f"Remaining today: {format_duration(status.get('time_left_today', 0))}")
+                item_time.set_label(
+                    f"Remaining today: {format_duration(status.get('time_left_today', 0))}"
+                )
 
             curfew_at = status.get("next_curfew_at")
             if curfew_at:
@@ -365,12 +400,18 @@ def _try_build_indicator(controller: TrayController, quit_fn, session_bus: bool 
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="curfewd-tray", description="curfewd desktop tray companion")
-    parser.add_argument("--session-bus", action="store_true", help="Connect to session D-Bus for testing")
+    parser = argparse.ArgumentParser(
+        prog="curfewd-tray", description="curfewd desktop tray companion"
+    )
+    parser.add_argument(
+        "--session-bus", action="store_true", help="Connect to session D-Bus for testing"
+    )
     parser.add_argument("--version", action="version", version=f"curfewd-tray {__version__}")
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
 
     from dbus.mainloop.glib import DBusGMainLoop
 
@@ -390,7 +431,7 @@ def main(argv: list[str] | None = None) -> int:
         screensaver=SessionScreensaverProbe(),
         notifier=DesktopNotifier(),
     )
-    ui_cb = _try_build_indicator(controller, loop.quit, session_bus=bool(args.session_bus))
+    ui_cb = _try_build_indicator(controller, session_bus=bool(args.session_bus))
     controller.ui_callback = ui_cb
     controller.attach()
 

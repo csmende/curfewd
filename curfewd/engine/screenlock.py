@@ -8,15 +8,16 @@ Implements three-layer non-blocking, privilege-dropped, verified session locking
      wmctrl/xdotool unfullscreen/minimize) and retry.
 """
 
-from dataclasses import dataclass
 import logging
 import os
 import pwd
 import shutil
+
 # Subprocess is strictly limited to privilege-dropped, trusted-PATH, list-argv helpers.
 import subprocess  # nosec B404
 import threading
 import time
+from dataclasses import dataclass
 
 from curfewd.models import LockResult
 
@@ -39,24 +40,26 @@ _SAFE_SESSION_ENV_KEYS = (
 )
 
 # Graphical session processes to inspect if the logind leader lacks session vars.
-_SESSION_PROCESS_NAMES = frozenset({
-    "cinnamon-session",
-    "cinnamon",
-    "xfce4-session",
-    "mate-session",
-    "gnome-session-binary",
-    "gnome-shell",
-    "plasmashell",
-    "ksmserver",
-    "lxqt-session",
-    "budgie-wm",
-    "budgie-daemon",
-    "x-session-manager",
-    "sway",
-    "Hyprland",
-    "wayfire",
-    "dbus-daemon",
-})
+_SESSION_PROCESS_NAMES = frozenset(
+    {
+        "cinnamon-session",
+        "cinnamon",
+        "xfce4-session",
+        "mate-session",
+        "gnome-session-binary",
+        "gnome-shell",
+        "plasmashell",
+        "ksmserver",
+        "lxqt-session",
+        "budgie-wm",
+        "budgie-daemon",
+        "x-session-manager",
+        "sway",
+        "Hyprland",
+        "wayfire",
+        "dbus-daemon",
+    }
+)
 
 
 @dataclass
@@ -198,7 +201,7 @@ def read_proc_environ(pid: int, proc_root: str = "/proc") -> dict[str, str]:
 
 def _read_proc_uid(pid_dir: str) -> int | None:
     try:
-        with open(os.path.join(pid_dir, "status"), "r", encoding="utf-8", errors="ignore") as fh:
+        with open(os.path.join(pid_dir, "status"), encoding="utf-8", errors="ignore") as fh:
             for line in fh:
                 if line.startswith("Uid:"):
                     parts = line.split()
@@ -211,16 +214,20 @@ def _read_proc_uid(pid_dir: str) -> int | None:
 
 def _read_proc_comm(pid_dir: str) -> str:
     try:
-        with open(os.path.join(pid_dir, "comm"), "r", encoding="utf-8", errors="ignore") as fh:
+        with open(os.path.join(pid_dir, "comm"), encoding="utf-8", errors="ignore") as fh:
             return fh.read().strip()
     except OSError:
         return ""
 
 
-def _discover_user_session_env(uid: int, session_id: str, leader_pid: int, proc_root: str = "/proc") -> dict[str, str]:
+def _discover_user_session_env(
+    uid: int, session_id: str, leader_pid: int, proc_root: str = "/proc"
+) -> dict[str, str]:
     """Collect whitelisted graphical session env vars for a user's session."""
     merged = read_proc_environ(leader_pid, proc_root=proc_root)
-    if merged.get("DBUS_SESSION_BUS_ADDRESS") and (merged.get("DISPLAY") or merged.get("WAYLAND_DISPLAY")):
+    if merged.get("DBUS_SESSION_BUS_ADDRESS") and (
+        merged.get("DISPLAY") or merged.get("WAYLAND_DISPLAY")
+    ):
         return merged
 
     try:
@@ -266,7 +273,9 @@ def _discover_user_session_env(uid: int, session_id: str, leader_pid: int, proc_
         for key in _SAFE_SESSION_ENV_KEYS:
             if key not in merged and key in proc_env:
                 merged[key] = proc_env[key]
-        if merged.get("DBUS_SESSION_BUS_ADDRESS") and (merged.get("DISPLAY") or merged.get("WAYLAND_DISPLAY")):
+        if merged.get("DBUS_SESSION_BUS_ADDRESS") and (
+            merged.get("DISPLAY") or merged.get("WAYLAND_DISPLAY")
+        ):
             break
 
     return merged
@@ -298,13 +307,17 @@ def build_session_context(
         if not username:
             username = pw_entry.pw_name
 
-    proc_env = _discover_user_session_env(int(uid), str(session_id), int(leader_pid or 0), proc_root=proc_root)
+    proc_env = _discover_user_session_env(
+        int(uid), str(session_id), int(leader_pid or 0), proc_root=proc_root
+    )
 
     eff_type = (session_type or proc_env.get("XDG_SESSION_TYPE") or "x11").strip().lower()
     eff_display = display or proc_env.get("DISPLAY", "")
     eff_wayland = proc_env.get("WAYLAND_DISPLAY", "")
     eff_xauth = proc_env.get("XAUTHORITY", "")
-    eff_desktop = desktop or proc_env.get("XDG_CURRENT_DESKTOP") or proc_env.get("DESKTOP_SESSION", "")
+    eff_desktop = (
+        desktop or proc_env.get("XDG_CURRENT_DESKTOP") or proc_env.get("DESKTOP_SESSION", "")
+    )
 
     default_runtime_dir = os.path.join(run_user_root, str(uid))
     eff_runtime = proc_env.get("XDG_RUNTIME_DIR", "")
@@ -382,7 +395,7 @@ def _run_as_user(ctx: SessionContext, argv: list[str], timeout: float = 3.0, run
     if not bin_path:
         return None
 
-    cmd = [bin_path] + list(argv[1:])
+    cmd = [bin_path, *argv[1:]]
     env = build_safe_env(ctx)
     kwargs = {
         "env": env,
@@ -450,7 +463,7 @@ class ScreenLockEnforcer:
             return None
         return _run_as_user(
             ctx,
-            [bin_path] + list(argv[1:]),
+            [bin_path, *argv[1:]],
             timeout=self._cmd_timeout_sec if timeout is None else timeout,
             runner=self._runner,
         )
@@ -461,10 +474,17 @@ class ScreenLockEnforcer:
         res = self._exec(
             ctx,
             [
-                "gdbus", "call", "--session", "--timeout", "2",
-                "--dest", "org.freedesktop.DBus",
-                "--object-path", "/org/freedesktop/DBus",
-                "--method", "org.freedesktop.DBus.NameHasOwner",
+                "gdbus",
+                "call",
+                "--session",
+                "--timeout",
+                "2",
+                "--dest",
+                "org.freedesktop.DBus",
+                "--object-path",
+                "/org/freedesktop/DBus",
+                "--method",
+                "org.freedesktop.DBus.NameHasOwner",
                 bus_name,
             ],
             timeout=2.5,
@@ -496,10 +516,17 @@ class ScreenLockEnforcer:
                     res = self._exec(
                         ctx,
                         [
-                            "gdbus", "call", "--session", "--timeout", "2",
-                            "--dest", backend.dbus_dest,
-                            "--object-path", obj_path,
-                            "--method", f"{backend.dbus_interface}.GetActive",
+                            "gdbus",
+                            "call",
+                            "--session",
+                            "--timeout",
+                            "2",
+                            "--dest",
+                            backend.dbus_dest,
+                            "--object-path",
+                            obj_path,
+                            "--method",
+                            f"{backend.dbus_interface}.GetActive",
                         ],
                         timeout=2.5,
                     )
@@ -534,12 +561,19 @@ class ScreenLockEnforcer:
         if ctx.dbus_address and self._which("gdbus"):
             for obj_path in backend.dbus_paths:
                 argv = [
-                    "gdbus", "call", "--session",
-                    "--timeout", str(int(self._cmd_timeout_sec)),
-                    "--dest", backend.dbus_dest,
-                    "--object-path", obj_path,
-                    "--method", f"{backend.dbus_interface}.Lock",
-                ] + list(backend.lock_dbus_args)
+                    "gdbus",
+                    "call",
+                    "--session",
+                    "--timeout",
+                    str(int(self._cmd_timeout_sec)),
+                    "--dest",
+                    backend.dbus_dest,
+                    "--object-path",
+                    obj_path,
+                    "--method",
+                    f"{backend.dbus_interface}.Lock",
+                    *backend.lock_dbus_args,
+                ]
                 res = self._exec(ctx, argv)
                 if res is not None and res.returncode == 0:
                     return True, f"dbus:{backend.dbus_dest}"
@@ -568,7 +602,9 @@ class ScreenLockEnforcer:
         if ctx.session_type != "x11" or not ctx.display:
             return False
         attempted = False
-        res_wm = self._exec(ctx, ["wmctrl", "-r", ":ACTIVE:", "-b", "remove,fullscreen"], timeout=2.0)
+        res_wm = self._exec(
+            ctx, ["wmctrl", "-r", ":ACTIVE:", "-b", "remove,fullscreen"], timeout=2.0
+        )
         if res_wm is not None and res_wm.returncode == 0:
             attempted = True
         res_xd = self._exec(ctx, ["xdotool", "getactivewindow", "windowminimize"], timeout=2.0)
@@ -584,7 +620,9 @@ class ScreenLockEnforcer:
         """Verify logind lock engaged; fall back to DE screensaver + X11 grab release."""
         t0 = time.monotonic()
 
-        def _done(locked: bool, verified: bool, backend: str, stage: str, error: str = "") -> LockResult:
+        def _done(
+            locked: bool, verified: bool, backend: str, stage: str, error: str = ""
+        ) -> LockResult:
             elapsed = int((time.monotonic() - t0) * 1000)
             return LockResult(
                 session_id=ctx.session_id,
@@ -600,7 +638,10 @@ class ScreenLockEnforcer:
         backends = select_backends(ctx.desktop)
         logger.debug(
             "enforcing lock for user %r session %r (type=%s, desktop=%s)",
-            ctx.username, ctx.session_id, ctx.session_type, ctx.desktop or "unknown",
+            ctx.username,
+            ctx.session_id,
+            ctx.session_type,
+            ctx.desktop or "unknown",
         )
 
         if self._logind_settle_sec > 0:
@@ -608,7 +649,12 @@ class ScreenLockEnforcer:
 
         active, active_be = self.is_screensaver_active(ctx, backends)
         if active is True:
-            logger.info("session %r for user %r is locked (verified via %s)", ctx.session_id, ctx.username, active_be)
+            logger.info(
+                "session %r for user %r is locked (verified via %s)",
+                ctx.session_id,
+                ctx.username,
+                active_be,
+            )
             return _done(True, True, str(active_be or "logind"), "logind")
 
         matched_backend, method = self._try_lock_backends(ctx, backends)
@@ -618,10 +664,20 @@ class ScreenLockEnforcer:
             ordered = [matched_backend] + [b for b in backends if b != matched_backend]
             active, active_be = self.is_screensaver_active(ctx, ordered)
             if active is True:
-                logger.info("session %r for user %r locked via %s (verified)", ctx.session_id, ctx.username, method)
+                logger.info(
+                    "session %r for user %r locked via %s (verified)",
+                    ctx.session_id,
+                    ctx.username,
+                    method,
+                )
                 return _done(True, True, str(method), "dbus_or_cli")
             if active is None:
-                logger.info("session %r for user %r invoked %s (unverifiable)", ctx.session_id, ctx.username, method)
+                logger.info(
+                    "session %r for user %r invoked %s (unverifiable)",
+                    ctx.session_id,
+                    ctx.username,
+                    method,
+                )
                 return _done(True, False, str(method), "dbus_or_cli")
 
             if active is False and release_x11_grab and ctx.session_type == "x11":
@@ -633,11 +689,20 @@ class ScreenLockEnforcer:
                         self._sleep(self._verify_settle_sec)
                     active, _ = self.is_screensaver_active(ctx, ordered)
                     if active is True:
-                        logger.info("session %r for user %r locked via %s after XF86Ungrab", ctx.session_id, ctx.username, method)
+                        logger.info(
+                            "session %r for user %r locked via %s after XF86Ungrab",
+                            ctx.session_id,
+                            ctx.username,
+                            method,
+                        )
                         return _done(True, True, str(method), "xf86ungrab")
 
                 if self._try_x11_release_fullscreen(ctx):
-                    logger.info("released fullscreen X11 focus for user %r session %r, retrying lock", ctx.username, ctx.session_id)
+                    logger.info(
+                        "released fullscreen X11 focus for user %r session %r, retrying lock",
+                        ctx.username,
+                        ctx.session_id,
+                    )
                     if self._grab_settle_sec > 0:
                         self._sleep(self._grab_settle_sec)
                     self.invoke_backend_lock(ctx, matched_backend)
@@ -645,7 +710,12 @@ class ScreenLockEnforcer:
                         self._sleep(self._verify_settle_sec)
                     active, _ = self.is_screensaver_active(ctx, ordered)
                     if active is True:
-                        logger.info("session %r for user %r locked via %s after fullscreen grab release", ctx.session_id, ctx.username, method)
+                        logger.info(
+                            "session %r for user %r locked via %s after fullscreen grab release",
+                            ctx.session_id,
+                            ctx.username,
+                            method,
+                        )
                         return _done(True, True, str(method), "fullscreen_release")
 
             msg = (
@@ -663,7 +733,9 @@ class ScreenLockEnforcer:
         """Boolean convenience wrapper around enforce_session_lock_detailed."""
         return self.enforce_session_lock_detailed(ctx, release_x11_grab=release_x11_grab).locked
 
-    def enforce_session_lock_async(self, ctx: SessionContext, release_x11_grab: bool = True) -> bool:
+    def enforce_session_lock_async(
+        self, ctx: SessionContext, release_x11_grab: bool = True
+    ) -> bool:
         """Spawn a non-blocking daemon thread with per-session in-flight deduplication."""
         key = f"{ctx.uid}:{ctx.session_id}"
         with self._lock:
@@ -676,11 +748,15 @@ class ScreenLockEnforcer:
             try:
                 self.enforce_session_lock(ctx, release_x11_grab=release_x11_grab)
             except Exception as exc:
-                logger.error("unexpected error in screenlock helper for session %r: %s", ctx.session_id, exc)
+                logger.error(
+                    "unexpected error in screenlock helper for session %r: %s", ctx.session_id, exc
+                )
             finally:
                 with self._lock:
                     self._in_flight.discard(key)
 
-        thread = threading.Thread(target=_worker, name=f"curfewd-lock-{ctx.session_id}", daemon=True)
+        thread = threading.Thread(
+            target=_worker, name=f"curfewd-lock-{ctx.session_id}", daemon=True
+        )
         thread.start()
         return True

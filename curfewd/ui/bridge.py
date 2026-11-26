@@ -3,7 +3,8 @@
 import getpass
 import json
 import os
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from curfewd import __version__
 from curfewd.dbus.client import (
@@ -14,6 +15,7 @@ from curfewd.dbus.client import (
     UserNotFoundError,
     ValidationError,
 )
+from curfewd.storage import write_json_atomic
 from curfewd.ui.appscan import scan_installed_apps
 
 VALID_THEMES = ("auto", "light", "dark")
@@ -36,7 +38,7 @@ class UIPreferencesStore:
         if not os.path.isfile(self.path) or os.path.islink(self.path):
             return defaults
         try:
-            with open(self.path, "r", encoding="utf-8") as fh:
+            with open(self.path, encoding="utf-8") as fh:
                 raw = json.load(fh)
             if not isinstance(raw, dict):
                 return defaults
@@ -62,22 +64,7 @@ class UIPreferencesStore:
                 raise ValueError(f"Invalid accent {accent!r}")
             current["accent"] = a
 
-        parent = os.path.dirname(self.path)
-        os.makedirs(parent, mode=0o700, exist_ok=True)
-        tmp_path = f"{self.path}.tmp.{os.getpid()}"
-        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
-        fd = os.open(tmp_path, flags, 0o600)
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                json.dump(current, fh, indent=2)
-                fh.write("\n")
-                fh.flush()
-                os.fsync(fh.fileno())
-            os.replace(tmp_path, self.path)
-        except OSError:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-            raise
+        write_json_atomic(self.path, current, mode=0o600, dir_mode=0o700)
         return current
 
 
@@ -102,7 +89,11 @@ class UIBridge:
         try:
             handler = getattr(self, f"_cmd_{action}", None)
             if handler is None or not callable(handler):
-                return {"ok": False, "code": "unknown_action", "message": f"Unknown UI action: {action}"}
+                return {
+                    "ok": False,
+                    "code": "unknown_action",
+                    "message": f"Unknown UI action: {action}",
+                }
             data = handler(args)
             return {"ok": True, "data": data}
         except PermissionDeniedError as exc:

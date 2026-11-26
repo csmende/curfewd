@@ -1,8 +1,10 @@
 """Pure, clock-injectable policy evaluator and time-accounting engine."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta, timezone
-from typing import Any, Iterable
+from itertools import pairwise
+from typing import Any
 
 from curfewd.models import (
     DaemonConfig,
@@ -58,7 +60,9 @@ def effective_daily_limit(policy: UserPolicy, state: UserAccountingState, day_na
     return policy.daily_limits.get(day_name, SECONDS_PER_DAY)
 
 
-def effective_today_windows(policy: UserPolicy, state: UserAccountingState, day_name: str) -> list[TimeWindow]:
+def effective_today_windows(
+    policy: UserPolicy, state: UserAccountingState, day_name: str
+) -> list[TimeWindow]:
     """Return today's active allowed windows (honoring any Today-only override)."""
     if state.today_windows_override is not None:
         return [TimeWindow.from_dict(w) for w in state.today_windows_override]
@@ -150,7 +154,6 @@ def apply_grant(
 
 
 def apply_today_override(
-    policy: UserPolicy,
     state: UserAccountingState,
     now_local: datetime,
     limit_sec: int | None = None,
@@ -183,14 +186,13 @@ def apply_today_override(
         state.bonus_today = 0
 
     if windows is not None:
-        parsed = [
-            w if isinstance(w, TimeWindow) else TimeWindow.from_dict(w)
-            for w in windows
-        ]
+        parsed = [w if isinstance(w, TimeWindow) else TimeWindow.from_dict(w) for w in windows]
         parsed.sort(key=lambda w: (w.start_minutes, w.end_minutes))
-        for prev, curr in zip(parsed, parsed[1:]):
+        for prev, curr in pairwise(parsed):
             if curr.start_minutes < prev.end_minutes:
-                raise ValueError(f"Overlapping today windows: {prev.start}-{prev.end} vs {curr.start}-{curr.end}")
+                raise ValueError(
+                    f"Overlapping today windows: {prev.start}-{prev.end} vs {curr.start}-{curr.end}"
+                )
         state.today_windows_override = [w.to_dict() for w in parsed]
 
     return {
@@ -253,7 +255,7 @@ def _contiguous_window_end(
     end_sec = windows[active_idx].end_minutes * 60
 
     # Merge contiguous windows later in the same day
-    for nxt in windows[active_idx + 1:]:
+    for nxt in windows[active_idx + 1 :]:
         if nxt.start_minutes * 60 == end_sec:
             end_sec = nxt.end_minutes * 60
         else:
@@ -319,7 +321,11 @@ def _is_policy_unrestricted(policy: UserPolicy, state: UserAccountingState, toda
     if effective_daily_limit(policy, state, today_day) < SECONDS_PER_DAY:
         return False
     today_wins = effective_today_windows(policy, state, today_day)
-    if len(today_wins) != 1 or today_wins[0].start_minutes != 0 or today_wins[0].end_minutes != 1440:
+    if (
+        len(today_wins) != 1
+        or today_wins[0].start_minutes != 0
+        or today_wins[0].end_minutes != 1440
+    ):
         return False
     for day in WEEKDAYS:
         if policy.daily_limits.get(day, 0) < SECONDS_PER_DAY:
@@ -386,8 +392,13 @@ def evaluate_tick(
     if config.app_limits_enabled and policy.app_limits.enabled and policy.app_limits.override_main:
         effective_active = effective_active and any_app_running
 
-    # Compute previous remaining time (to detect threshold crossings)
-    prev_daily_left = max(0, daily_limit - state.spent_balance)
+    # Compute previous remaining time across daily, weekly, and monthly caps (before advancing counters)
+    prev_caps = [max(0, daily_limit - state.spent_balance)]
+    if policy.weekly_limit is not None:
+        prev_caps.append(max(0, policy.weekly_limit - state.spent_week))
+    if policy.monthly_limit is not None:
+        prev_caps.append(max(0, policy.monthly_limit - state.spent_month))
+    prev_time_left_today = min(prev_caps)
 
     active_delta = 0
     inactive_delta = 0
@@ -454,7 +465,11 @@ def evaluate_tick(
         ):
             expired_app_patterns.append(app.pattern)
 
-    al_left = min((a["time_left_today"] for a in app_statuses), default=0) if policy.app_limits.enabled else 0
+    al_left = (
+        min((a["time_left_today"] for a in app_statuses), default=0)
+        if policy.app_limits.enabled
+        else 0
+    )
     al_should_kill = bool(expired_app_patterns)
 
     hide_tray_effective = bool(
@@ -529,13 +544,15 @@ def evaluate_tick(
         )
 
     time_left_continuous = min(time_left_today, window_left)
+    prev_window_left = (window_left + safe_elapsed) if active_win is not None else 0
+    prev_time_left_continuous = min(prev_time_left_today, prev_window_left)
     should_enforce = time_left_continuous <= config.final_countdown_sec
 
-    # Detect newly crossed warning thresholds
+    # Detect newly crossed warning thresholds (against previous continuous remaining time)
     crossed_warnings: list[int] = []
     if active_delta > 0:
         for thresh in config.warning_thresholds_sec:
-            if prev_daily_left > thresh >= time_left_continuous:
+            if prev_time_left_continuous > thresh >= time_left_continuous:
                 crossed_warnings.append(thresh)
 
     if time_left_continuous <= 0:
@@ -605,7 +622,8 @@ def build_user_status_dict(
         "bonus_today": state.bonus_today,
         "today_windows": list(eval_res.today_windows),
         "today_override": {
-            "active": state.today_limit_override is not None or state.today_windows_override is not None,
+            "active": state.today_limit_override is not None
+            or state.today_windows_override is not None,
             "limit_sec": state.today_limit_override,
             "windows": state.today_windows_override,
         },

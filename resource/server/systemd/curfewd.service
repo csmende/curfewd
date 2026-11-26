@@ -27,7 +27,7 @@ RuntimeDirectoryMode=0755
 # Filesystem and kernel hardening (retains CAP_SETUID/CAP_SETGID/CAP_KILL for privilege-dropped lock helpers)
 PrivateTmp=yes
 ProtectSystem=strict
-ReadWritePaths=/etc/curfewd /var/lib/curfewd /run/curfewd /var/log -/etc/dconf
+ReadWritePaths=/etc/curfewd /var/lib/curfewd /run/curfewd -/etc/dconf
 ProtectHome=read-only
 ProtectKernelTunables=yes
 ProtectKernelModules=yes

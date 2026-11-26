@@ -2,11 +2,9 @@
 
 import os
 import subprocess
-import sys
 import tempfile
 import threading
 import time
-import types
 import unittest
 from unittest import mock
 
@@ -43,7 +41,9 @@ class TestDesktopSelection(unittest.TestCase):
 
     def test_unknown_desktop_falls_back_to_all(self):
         backends = screenlock.select_backends("")
-        self.assertEqual([b.name for b in backends], ["cinnamon", "xfce", "mate", "gnome", "freedesktop"])
+        self.assertEqual(
+            [b.name for b in backends], ["cinnamon", "xfce", "mate", "gnome", "freedesktop"]
+        )
 
 
 class TestSessionContextDiscovery(unittest.TestCase):
@@ -107,9 +107,11 @@ class TestSessionContextDiscovery(unittest.TestCase):
             with open(os.path.join(sess_dir, "comm"), "w") as fh:
                 fh.write("cinnamon-session\n")
             with open(os.path.join(sess_dir, "status"), "w") as fh:
-                fh.write("Name:\tcinnamon-session\nUid:\t%d\t%d\t%d\t%d\n" % (uid, uid, uid, uid))
+                fh.write(f"Name:\tcinnamon-session\nUid:\t{uid}\t{uid}\t{uid}\t{uid}\n")
             with open(os.path.join(sess_dir, "environ"), "wb") as fh:
-                fh.write(b"XDG_SESSION_ID=c1\x00XDG_CURRENT_DESKTOP=X-Cinnamon\x00XAUTHORITY=/tmp/lightdm-xauth\x00")
+                fh.write(
+                    b"XDG_SESSION_ID=c1\x00XDG_CURRENT_DESKTOP=X-Cinnamon\x00XAUTHORITY=/tmp/lightdm-xauth\x00"
+                )
 
             ctx = screenlock.discover_session_context(
                 session_id="c1",
@@ -122,7 +124,7 @@ class TestSessionContextDiscovery(unittest.TestCase):
             )
             self.assertEqual(ctx.desktop, "X-Cinnamon")
             self.assertEqual(ctx.xauthority, "/tmp/lightdm-xauth")
-            self.assertEqual(ctx.dbus_address, "unix:path=%s" % (bus_path,))
+            self.assertEqual(ctx.dbus_address, f"unix:path={bus_path}")
 
 
 class TestScreenLockEnforcer(unittest.TestCase):
@@ -166,7 +168,7 @@ class TestScreenLockEnforcer(unittest.TestCase):
 
         enforcer = screenlock.ScreenLockEnforcer(
             runner=fake_runner,
-            which_fn=lambda n: "/usr/bin/%s" % (n,),
+            which_fn=lambda n: f"/usr/bin/{n}",
             sleep_fn=lambda _s: None,
         )
         ok = enforcer.enforce_session_lock(self._make_ctx("X-Cinnamon"), release_x11_grab=True)
@@ -191,7 +193,7 @@ class TestScreenLockEnforcer(unittest.TestCase):
 
         enforcer = screenlock.ScreenLockEnforcer(
             runner=fake_runner,
-            which_fn=lambda n: "/usr/bin/%s" % (n,),
+            which_fn=lambda n: f"/usr/bin/{n}",
             sleep_fn=lambda _s: None,
         )
         ok = enforcer.enforce_session_lock(self._make_ctx("ubuntu:GNOME", "wayland"))
@@ -206,7 +208,9 @@ class TestScreenLockEnforcer(unittest.TestCase):
         def fake_runner(cmd, **kwargs):
             calls.append(cmd)
             if "org.freedesktop.DBus.NameHasOwner" in cmd:
-                return _proc_result(0, "(true,)\n" if cmd[-1] == "org.cinnamon.ScreenSaver" else "(false,)\n")
+                return _proc_result(
+                    0, "(true,)\n" if cmd[-1] == "org.cinnamon.ScreenSaver" else "(false,)\n"
+                )
             if "org.cinnamon.ScreenSaver.GetActive" in cmd:
                 return _proc_result(0, "(true,)\n" if state["active"] else "(false,)\n")
             if "org.cinnamon.ScreenSaver.Lock" in cmd:
@@ -228,10 +232,12 @@ class TestScreenLockEnforcer(unittest.TestCase):
 
         enforcer = screenlock.ScreenLockEnforcer(
             runner=fake_runner,
-            which_fn=lambda n: "/usr/bin/%s" % (n,),
+            which_fn=lambda n: f"/usr/bin/{n}",
             sleep_fn=lambda _s: None,
         )
-        ok = enforcer.enforce_session_lock(self._make_ctx("X-Cinnamon", "x11"), release_x11_grab=True)
+        ok = enforcer.enforce_session_lock(
+            self._make_ctx("X-Cinnamon", "x11"), release_x11_grab=True
+        )
         self.assertTrue(ok)
         self.assertTrue(any(c[0].endswith("wmctrl") for c in calls))
         lock_calls = [c for c in calls if "org.cinnamon.ScreenSaver.Lock" in c]
@@ -245,7 +251,9 @@ class TestScreenLockEnforcer(unittest.TestCase):
         def fake_runner(cmd, **kwargs):
             calls.append(cmd)
             if "org.freedesktop.DBus.NameHasOwner" in cmd:
-                return _proc_result(0, "(true,)\n" if cmd[-1] == "org.cinnamon.ScreenSaver" else "(false,)\n")
+                return _proc_result(
+                    0, "(true,)\n" if cmd[-1] == "org.cinnamon.ScreenSaver" else "(false,)\n"
+                )
             if any(arg.endswith(".GetActive") for arg in cmd):
                 return _proc_result(0, "(true,)\n" if state["active"] else "(false,)\n")
             if "org.cinnamon.ScreenSaver.Lock" in cmd:
@@ -259,10 +267,12 @@ class TestScreenLockEnforcer(unittest.TestCase):
 
         enforcer = screenlock.ScreenLockEnforcer(
             runner=fake_runner,
-            which_fn=lambda n: "/usr/bin/%s" % (n,),
+            which_fn=lambda n: f"/usr/bin/{n}",
             sleep_fn=lambda _s: None,
         )
-        ok = enforcer.enforce_session_lock(self._make_ctx("X-Cinnamon", "x11"), release_x11_grab=True)
+        ok = enforcer.enforce_session_lock(
+            self._make_ctx("X-Cinnamon", "x11"), release_x11_grab=True
+        )
         self.assertTrue(ok)
         self.assertTrue(any("XF86Ungrab" in c for c in calls))
         self.assertFalse(any(c[0].endswith("wmctrl") for c in calls))
@@ -275,7 +285,9 @@ class TestScreenLockEnforcer(unittest.TestCase):
             calls.append(cmd)
             if cmd[0].endswith("xfce4-screensaver-command") and "-q" in cmd:
                 locked = any("--lock" in c for c in calls)
-                return _proc_result(0, "The screensaver is active\n" if locked else "The screensaver is inactive\n")
+                return _proc_result(
+                    0, "The screensaver is active\n" if locked else "The screensaver is inactive\n"
+                )
             if cmd[0].endswith("xfce4-screensaver-command") and "--lock" in cmd:
                 return _proc_result(0)
             return _proc_result(1)
@@ -283,7 +295,7 @@ class TestScreenLockEnforcer(unittest.TestCase):
         def which_no_gdbus(name):
             if name == "gdbus":
                 return None
-            return "/usr/bin/%s" % (name,)
+            return f"/usr/bin/{name}"
 
         enforcer = screenlock.ScreenLockEnforcer(
             runner=fake_runner,
@@ -305,7 +317,7 @@ class TestScreenLockEnforcer(unittest.TestCase):
 
         def which_minimal(name):
             if name in ("xdg-screensaver", "xdotool", "wmctrl"):
-                return "/usr/bin/%s" % (name,)
+                return f"/usr/bin/{name}"
             return None
 
         ctx = self._make_ctx("i3", "x11")
@@ -329,7 +341,9 @@ class TestScreenLockEnforcer(unittest.TestCase):
 
         ctx = self._make_ctx("X-Cinnamon")
         with mock.patch("os.geteuid", return_value=0):
-            screenlock._run_as_user(ctx, ["/usr/bin/gdbus", "call"], timeout=2.0, runner=fake_runner)
+            screenlock._run_as_user(
+                ctx, ["/usr/bin/gdbus", "call"], timeout=2.0, runner=fake_runner
+            )
 
         self.assertEqual(captured.get("user"), 1000)
         self.assertEqual(captured.get("group"), 1000)
@@ -371,7 +385,7 @@ class TestScreenLockEnforcer(unittest.TestCase):
 
         enforcer = screenlock.ScreenLockEnforcer(
             runner=timeout_runner,
-            which_fn=lambda n: "/usr/bin/%s" % (n,),
+            which_fn=lambda n: f"/usr/bin/{n}",
             sleep_fn=lambda _s: None,
         )
         ok = enforcer.enforce_session_lock(self._make_ctx("X-Cinnamon"))
@@ -388,9 +402,9 @@ class TestLiveDBusIntegration(unittest.TestCase):
     def test_real_gdbus_locks_and_verifies_cinnamon_service(self):
         with tempfile.TemporaryDirectory() as tmp:
             sock_path = os.path.join(tmp, "bus")
-            bus_addr = "unix:path=%s" % (sock_path,)
+            bus_addr = f"unix:path={sock_path}"
             daemon = subprocess.Popen(
-                ["dbus-daemon", "--session", "--address=%s" % (bus_addr,), "--nofork", "--nopidfile"],
+                ["dbus-daemon", "--session", f"--address={bus_addr}", "--nofork", "--nopidfile"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -462,7 +476,9 @@ GLib.MainLoop().run()
                 # Initially inactive -> Lock("") -> verified active via GetActive()
                 self.assertTrue(enforcer.enforce_session_lock(ctx, release_x11_grab=False))
                 # Confirm active directly
-                active, be = enforcer.is_screensaver_active(ctx, screenlock.select_backends("X-Cinnamon"))
+                active, be = enforcer.is_screensaver_active(
+                    ctx, screenlock.select_backends("X-Cinnamon")
+                )
                 self.assertTrue(active)
                 self.assertEqual(be, "cinnamon")
             finally:

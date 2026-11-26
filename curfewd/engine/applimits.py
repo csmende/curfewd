@@ -89,10 +89,20 @@ class AppLimitsMonitor:
                 if proc.uids().real != uid:
                     continue
                 if attempts <= self._term_grace_ticks:
-                    logger.warning("App limit expired: sending SIGTERM to pid=%d (%s) uid=%d", pid, m["label"], uid)
+                    logger.warning(
+                        "App limit expired: sending SIGTERM to pid=%d (%s) uid=%d",
+                        pid,
+                        m["label"],
+                        uid,
+                    )
                     proc.terminate()
                 else:
-                    logger.warning("App limit expired: sending SIGKILL to pid=%d (%s) uid=%d", pid, m["label"], uid)
+                    logger.warning(
+                        "App limit expired: sending SIGKILL to pid=%d (%s) uid=%d",
+                        pid,
+                        m["label"],
+                        uid,
+                    )
                     proc.kill()
                 signaled.append(pid)
             except (psutil.Error, OSError, ValueError):

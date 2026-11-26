@@ -77,11 +77,21 @@ _CATEGORY_ORDER = {
 
 DEFAULT_CURATED_APPS: list[dict[str, Any]] = [
     {"pattern": "steam", "label": "Steam", "category": "Gaming", "installed": False},
-    {"pattern": "minecraft|lunarclient|modrinth|prismlauncher", "label": "Minecraft", "category": "Gaming", "installed": False},
+    {
+        "pattern": "minecraft|lunarclient|modrinth|prismlauncher",
+        "label": "Minecraft",
+        "category": "Gaming",
+        "installed": False,
+    },
     {"pattern": "sober|roblox", "label": "Roblox", "category": "Gaming", "installed": False},
     {"pattern": "discord", "label": "Discord", "category": "Social", "installed": False},
     {"pattern": "spotify", "label": "Spotify", "category": "Media", "installed": False},
-    {"pattern": "heroic", "label": "Heroic Games Launcher", "category": "Gaming", "installed": False},
+    {
+        "pattern": "heroic",
+        "label": "Heroic Games Launcher",
+        "category": "Gaming",
+        "installed": False,
+    },
 ]
 
 
@@ -106,14 +116,23 @@ def _map_category(raw_categories: str) -> str:
         return "Browser"
     if cats & {"audiovideo", "audio", "video", "music", "player", "tv"}:
         return "Media"
-    if cats & {"graphics", "2dgraphics", "3dgraphics", "photography", "audioVideoediting", "videoediting"}:
+    if cats & {
+        "graphics",
+        "2dgraphics",
+        "3dgraphics",
+        "photography",
+        "audiovideoediting",
+        "videoediting",
+    }:
         return "Creative"
     if cats & {"office", "development", "education", "science"}:
         return "Productivity"
     return "App"
 
 
-def _extract_pattern_from_exec(exec_line: str, flatpak_id: str = "") -> tuple[str, str | None, str | None]:
+def _extract_pattern_from_exec(
+    exec_line: str, flatpak_id: str = ""
+) -> tuple[str, str | None, str | None]:
     """Return (process_pattern, optional_label_override, optional_category_override)."""
     fp_low = flatpak_id.strip().lower()
     if fp_low in _KNOWN_FLATPAK_OVERRIDES:
@@ -152,7 +171,9 @@ def _extract_pattern_from_exec(exec_line: str, flatpak_id: str = "") -> tuple[st
         except ValueError:
             inner = cleaned[2].split()
         idx = 0
-        while idx < len(inner) and (inner[idx].startswith("%") or ("=" in inner[idx] and not inner[idx].startswith("-"))):
+        while idx < len(inner) and (
+            inner[idx].startswith("%") or ("=" in inner[idx] and not inner[idx].startswith("-"))
+        ):
             idx += 1
         if idx < len(inner):
             cleaned = [tok for tok in inner[idx:] if not tok.startswith("%")]
@@ -163,7 +184,7 @@ def _extract_pattern_from_exec(exec_line: str, flatpak_id: str = "") -> tuple[st
     # Handle `flatpak run [--flags] <app.id>`
     if cmd == "flatpak" and "run" in cleaned[1:3]:
         for arg in cleaned[2:]:
-            if arg == "run" or arg.startswith("-") or arg.startswith("--") or arg.startswith("@@"):
+            if arg == "run" or arg.startswith(("-", "@@")):
                 continue
             app_id = arg.strip()
             low_id = app_id.lower()
@@ -178,7 +199,11 @@ def _extract_pattern_from_exec(exec_line: str, flatpak_id: str = "") -> tuple[st
     low_cmd = cmd.lower()
     if low_cmd in _KNOWN_BIN_OVERRIDES:
         lbl, cat = _KNOWN_BIN_OVERRIDES[low_cmd]
-        pat = "steam" if low_cmd == "steam-runtime" else ("chrome" if "chrome" in low_cmd else low_cmd)
+        pat = (
+            "steam"
+            if low_cmd == "steam-runtime"
+            else ("chrome" if "chrome" in low_cmd else low_cmd)
+        )
         return pat, lbl, cat
 
     pat = re.sub(r"[^a-z0-9._-]", "", low_cmd)
@@ -217,9 +242,13 @@ def parse_desktop_file(path: str) -> dict[str, Any] | None:
     cats_raw = sec.get("Categories", "")
     # Skip system/settings utilities that parents wouldn't put app timers on
     cats_set = {c.strip().lower() for c in cats_raw.split(";") if c.strip()}
-    if cats_set & {"settings", "desktopsettings", "hardwaresettings", "system", "screensaver"} and not (
-        cats_set & {"game", "webbrowser", "audiovideo", "instantmessaging"}
-    ):
+    if cats_set & {
+        "settings",
+        "desktopsettings",
+        "hardwaresettings",
+        "system",
+        "screensaver",
+    } and not (cats_set & {"game", "webbrowser", "audiovideo", "instantmessaging"}):
         return None
 
     flatpak_id = sec.get("X-Flatpak", "").strip()
@@ -242,7 +271,9 @@ def parse_desktop_file(path: str) -> dict[str, Any] | None:
     }
 
 
-def scan_installed_apps(search_dirs: list[str] | None = None, include_curated_fallback: bool = True) -> list[dict[str, Any]]:
+def scan_installed_apps(
+    search_dirs: list[str] | None = None, include_curated_fallback: bool = True
+) -> list[dict[str, Any]]:
     """Scan installed desktop applications and return a sorted, deduplicated list."""
     dirs = search_dirs if search_dirs is not None else _default_desktop_dirs()
     seen_patterns: dict[str, dict[str, Any]] = {}
@@ -264,18 +295,10 @@ def scan_installed_apps(search_dirs: list[str] | None = None, include_curated_fa
             if key not in seen_patterns:
                 seen_patterns[key] = item
 
-    # If very few installed apps were found (e.g. minimal environment), add curated suggestions not already present
-    if include_curated_fallback:
-        existing_labels = {v["label"].lower() for v in seen_patterns.values()}
+    # If no installed apps were discovered (e.g. minimal environment), populate curated suggestions
+    if include_curated_fallback and not seen_patterns:
         for curated in DEFAULT_CURATED_APPS:
-            pat_key = curated["pattern"].lower()
-            primary_tok = pat_key.split("|")[0]
-            if pat_key in seen_patterns or primary_tok in seen_patterns:
-                continue
-            if curated["label"].lower() in existing_labels:
-                continue
-            if not seen_patterns:
-                seen_patterns[pat_key] = dict(curated)
+            seen_patterns[curated["pattern"].lower()] = dict(curated)
 
     results = list(seen_patterns.values())
     results.sort(

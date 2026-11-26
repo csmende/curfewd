@@ -1,7 +1,7 @@
 """Deterministic clock-injected unit tests for curfewd.engine.evaluator."""
 
-from datetime import datetime, timezone
 import unittest
+from datetime import datetime, timezone
 
 from curfewd.engine.evaluator import (
     apply_app_grant,
@@ -26,7 +26,7 @@ def _make_restricted_policy(daily_sec: int = 3600) -> UserPolicy:
     return UserPolicy(
         username="alice",
         lockout_action="lock",
-        daily_limits={d: daily_sec for d in WEEKDAYS},
+        daily_limits=dict.fromkeys(WEEKDAYS, daily_sec),
         curfew_windows={d: [TimeWindow("08:00", "21:00")] for d in WEEKDAYS},
     )
 
@@ -35,7 +35,14 @@ class TestPolicyEvaluator(unittest.TestCase):
     def test_active_accounting_and_warning_threshold(self):
         cfg = DaemonConfig(warning_thresholds_sec=[3600, 1800, 600], final_countdown_sec=15)
         pol = _make_restricted_policy(3600)
-        st = UserAccountingState(username="alice", date="2026-11-25", week_key="2026-W48", month_key="2026-11", spent_today=2998, spent_balance=2998)
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            spent_today=2998,
+            spent_balance=2998,
+        )
         now = datetime(2026, 11, 25, 15, 0, tzinfo=timezone.utc)  # Wednesday
 
         res = evaluate_tick(pol, st, cfg, now, elapsed_sec=3, is_active=True, screen_locked=False)
@@ -48,7 +55,14 @@ class TestPolicyEvaluator(unittest.TestCase):
     def test_locked_screen_does_not_burn_time_when_track_inactive_false(self):
         cfg = DaemonConfig()
         pol = _make_restricted_policy(3600)
-        st = UserAccountingState(username="alice", date="2026-11-25", week_key="2026-W48", month_key="2026-11", spent_today=100, spent_balance=100)
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            spent_today=100,
+            spent_balance=100,
+        )
         now = datetime(2026, 11, 25, 15, 0, tzinfo=timezone.utc)
 
         res = evaluate_tick(pol, st, cfg, now, elapsed_sec=10, is_active=True, screen_locked=True)
@@ -71,8 +85,21 @@ class TestPolicyEvaluator(unittest.TestCase):
     def test_pause_indefinite_and_timed_auto_expiry_preserve_schedule(self):
         cfg = DaemonConfig()
         pol = _make_restricted_policy(3600)
-        pol.pause = PauseState(active=True, mode="until", until_utc="2026-11-25T20:00:00+00:00", reason="homework", hide_tray_while_paused=True)
-        st = UserAccountingState(username="alice", date="2026-11-25", week_key="2026-W48", month_key="2026-11", spent_today=3600, spent_balance=3600)
+        pol.pause = PauseState(
+            active=True,
+            mode="until",
+            until_utc="2026-11-25T20:00:00+00:00",
+            reason="homework",
+            hide_tray_while_paused=True,
+        )
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            spent_today=3600,
+            spent_balance=3600,
+        )
 
         # Before expiry: paused, no enforcement, tray hidden
         t1 = datetime(2026, 11, 25, 19, 30, tzinfo=timezone.utc)
@@ -95,26 +122,39 @@ class TestPolicyEvaluator(unittest.TestCase):
     def test_today_override_preserves_weekly_template_and_clears_at_midnight(self):
         cfg = DaemonConfig()
         pol = _make_restricted_policy(3600)
-        st = UserAccountingState(username="alice", date="2026-11-25", week_key="2026-W48", month_key="2026-11", spent_today=1200, spent_balance=1200)
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            spent_today=1200,
+            spent_balance=1200,
+        )
         now = datetime(2026, 11, 25, 21, 30, tzinfo=timezone.utc)
 
         # Without override, 21:30 is outside 08:00-21:00 curfew
-        res_before = evaluate_tick(pol, st, cfg, now, elapsed_sec=0, is_active=True, screen_locked=False)
+        res_before = evaluate_tick(
+            pol, st, cfg, now, elapsed_sec=0, is_active=True, screen_locked=False
+        )
         self.assertEqual(res_before.enforcement_state, "locked_out")
 
         # Extend today's allowance to 2h and curfew to 22:30 without mutating weekly template
-        apply_today_override(pol, st, now, limit_sec=7200, windows=[{"start": "08:00", "end": "22:30"}])
+        apply_today_override(st, now, limit_sec=7200, windows=[{"start": "08:00", "end": "22:30"}])
         self.assertEqual(pol.daily_limits["wed"], 3600)
         self.assertEqual(pol.curfew_windows["wed"][0].end, "21:00")
 
-        res_after = evaluate_tick(pol, st, cfg, now, elapsed_sec=0, is_active=True, screen_locked=False)
+        res_after = evaluate_tick(
+            pol, st, cfg, now, elapsed_sec=0, is_active=True, screen_locked=False
+        )
         self.assertEqual(res_after.enforcement_state, "ok")
         self.assertEqual(res_after.daily_limit_today, 7200)
         self.assertEqual(res_after.time_left_today, 6000)
 
         # Next day midnight rollover clears the today override automatically
         next_day = datetime(2026, 11, 26, 9, 0, tzinfo=timezone.utc)
-        res_next = evaluate_tick(pol, st, cfg, next_day, elapsed_sec=0, is_active=True, screen_locked=False)
+        res_next = evaluate_tick(
+            pol, st, cfg, next_day, elapsed_sec=0, is_active=True, screen_locked=False
+        )
         self.assertIsNone(st.today_limit_override)
         self.assertIsNone(st.today_windows_override)
         self.assertEqual(res_next.daily_limit_today, 3600)
@@ -122,7 +162,14 @@ class TestPolicyEvaluator(unittest.TestCase):
 
     def test_grant_add_subtract_and_set(self):
         pol = _make_restricted_policy(3600)
-        st = UserAccountingState(username="alice", date="2026-11-25", week_key="2026-W48", month_key="2026-11", spent_today=3600, spent_balance=3600)
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            spent_today=3600,
+            spent_balance=3600,
+        )
         now = datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc)
 
         applied = apply_grant(pol, st, 1800, "add", now)
@@ -211,6 +258,50 @@ class TestPolicyEvaluator(unittest.TestCase):
         )
         self.assertFalse(res2.app_limits_should_kill)
         self.assertEqual(res2.expired_app_patterns, [])
+
+    def test_curfew_warning_fires_once_without_repeating_when_daily_limit_is_higher(self):
+        cfg = DaemonConfig(warning_thresholds_sec=[3600, 1800, 600, 300], final_countdown_sec=15)
+        pol = _make_restricted_policy(7200)  # 2h daily limit, curfew at 21:00
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            spent_today=0,
+            spent_balance=0,
+        )
+
+        # 20:50:01 -> 599s before 21:00 curfew; crosses 600s threshold once
+        t1 = datetime(2026, 11, 25, 20, 50, 1, tzinfo=timezone.utc)
+        res1 = evaluate_tick(pol, st, cfg, t1, elapsed_sec=3, is_active=True, screen_locked=False)
+        self.assertEqual(res1.crossed_warnings, [600])
+
+        # 20:50:04 -> 596s before curfew; must NOT re-emit 600/1800/3600 warnings
+        t2 = datetime(2026, 11, 25, 20, 50, 4, tzinfo=timezone.utc)
+        res2 = evaluate_tick(pol, st, cfg, t2, elapsed_sec=3, is_active=True, screen_locked=False)
+        self.assertEqual(res2.crossed_warnings, [])
+
+    def test_weekly_limit_warning_threshold_crosses_once(self):
+        cfg = DaemonConfig(warning_thresholds_sec=[600, 300], final_countdown_sec=15)
+        pol = _make_restricted_policy(7200)
+        pol.weekly_limit = 3600
+        st = UserAccountingState(
+            username="alice",
+            date="2026-11-25",
+            week_key="2026-W48",
+            month_key="2026-11",
+            spent_today=0,
+            spent_balance=0,
+            spent_week=2998,
+        )
+        t1 = datetime(2026, 11, 25, 14, 0, 0, tzinfo=timezone.utc)
+        res1 = evaluate_tick(pol, st, cfg, t1, elapsed_sec=3, is_active=True, screen_locked=False)
+        self.assertEqual(res1.time_left_today, 599)
+        self.assertEqual(res1.crossed_warnings, [600])
+
+        t2 = datetime(2026, 11, 25, 14, 0, 3, tzinfo=timezone.utc)
+        res2 = evaluate_tick(pol, st, cfg, t2, elapsed_sec=3, is_active=True, screen_locked=False)
+        self.assertEqual(res2.crossed_warnings, [])
 
 
 if __name__ == "__main__":

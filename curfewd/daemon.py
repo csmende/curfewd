@@ -63,11 +63,15 @@ def acquire_pid_lock(runtime_dir: str = DEFAULT_RUNTIME_DIR) -> bool:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="curfewd", description="curfewd screen-time enforcement daemon")
+    parser = argparse.ArgumentParser(
+        prog="curfewd", description="curfewd screen-time enforcement daemon"
+    )
     parser.add_argument("--config-dir", default=DEFAULT_CONFIG_DIR)
     parser.add_argument("--state-dir", default=DEFAULT_STATE_DIR)
     parser.add_argument("--runtime-dir", default=DEFAULT_RUNTIME_DIR)
-    parser.add_argument("--session-bus", action="store_true", help="Bind to session D-Bus (development/testing)")
+    parser.add_argument(
+        "--session-bus", action="store_true", help="Bind to session D-Bus (development/testing)"
+    )
     parser.add_argument("--version", action="version", version=f"curfewd {__version__}")
     args = parser.parse_args(argv)
 
@@ -120,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         loop.run()
     finally:
         service.flush_states()
+        history.close()
     return 0
 
 

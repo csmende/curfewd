@@ -27,7 +27,7 @@ def read_uid_bounds() -> tuple[int, int]:
         if not os.path.isfile(path):
             continue
         try:
-            with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            with open(path, encoding="utf-8", errors="ignore") as fh:
                 for line in fh:
                     stripped = line.strip()
                     m_min = re.match(r"^UID_MIN\s+(\d+)$", stripped)
@@ -286,9 +286,8 @@ class LogindSessionMonitor:
                 except Exception as exc:
                     logger.warning("KillUser(%s) failed: %s", username, exc)
             return
-        if action == "shutdown":
-            if mgr is not None:
-                try:
-                    mgr.PowerOff(False)
-                except Exception as exc:
-                    logger.warning("PowerOff failed: %s", exc)
+        if action == "shutdown" and mgr is not None:
+            try:
+                mgr.PowerOff(False)
+            except Exception as exc:
+                logger.warning("PowerOff failed: %s", exc)

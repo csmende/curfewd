@@ -11,6 +11,31 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: Lint, Format & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Ruff and Mypy
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install ruff mypy
+
+      - name: Run Ruff linter and format check
+        run: |
+          ruff check curfewd tests
+          ruff format --check curfewd tests
+
+      - name: Run Mypy static type check
+        run: |
+          mypy curfewd
+
+      - name: Syntax check Material Design 3 web UI JavaScript
+        run: |
+          node --check curfewd/ui/web/app.js
+
   test:
     name: Unit & Live D-Bus Tests
     runs-on: ubuntu-latest
@@ -39,7 +64,7 @@ jobs:
 
   build-deb:
     name: Build & Verify .deb Package
-    needs: test
+    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

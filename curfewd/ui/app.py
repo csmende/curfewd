@@ -8,6 +8,7 @@ import queue
 import signal
 import sys
 import threading
+from contextlib import suppress
 from typing import Any
 
 from curfewd import __version__
@@ -102,10 +103,8 @@ class _RPCWorker:
                 result = bridge.handle(action, params)
                 self._on_response(req_id, result)
         finally:
-            try:
+            with suppress(Exception):
                 bus.close()
-            except Exception:  # nosec B110 - best-effort private bus cleanup on shutdown
-                pass
 
 
 def _build_uri_scheme_handler(web_dir: str, Gio, GLib):
@@ -116,7 +115,7 @@ def _build_uri_scheme_handler(web_dir: str, Gio, GLib):
         # Strip scheme + authority (`curfewd://app/index.html?mode=admin` -> `/index.html`)
         path = uri.split("?", 1)[0].split("#", 1)[0]
         if path.startswith("curfewd://"):
-            rest = path[len("curfewd://"):]
+            rest = path[len("curfewd://") :]
             slash = rest.find("/")
             path = rest[slash:] if slash != -1 else "/"
 
@@ -211,8 +210,8 @@ def _configure_webview(gtk_major: int, WebKit, web_dir: str, Gio, GLib, on_rpc_m
 def _attach_live_signals(session_bus: bool, GLib, push_event) -> None:
     """Subscribe to org.curfewd.Daemon1.Events on the GLib main loop for live updates."""
     try:
-        from dbus.mainloop.glib import DBusGMainLoop
         import dbus
+        from dbus.mainloop.glib import DBusGMainLoop
 
         DBusGMainLoop(set_as_default=True)
         bus = dbus.SessionBus() if session_bus else dbus.SystemBus()
@@ -231,13 +230,21 @@ def _attach_live_signals(session_bus: bool, GLib, push_event) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="curfewd-ui", description="curfewd native Material Design 3 desktop UI")
-    parser.add_argument("--my-status", action="store_true", help="Open directly in passwordless My Screen Time view")
-    parser.add_argument("--session-bus", action="store_true", help="Connect to session D-Bus (development/testing)")
+    parser = argparse.ArgumentParser(
+        prog="curfewd-ui", description="curfewd native Material Design 3 desktop UI"
+    )
+    parser.add_argument(
+        "--my-status", action="store_true", help="Open directly in passwordless My Screen Time view"
+    )
+    parser.add_argument(
+        "--session-bus", action="store_true", help="Connect to session D-Bus (development/testing)"
+    )
     parser.add_argument("--version", action="version", version=f"curfewd-ui {__version__}")
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
 
     try:
         web_dir = resolve_web_dir()

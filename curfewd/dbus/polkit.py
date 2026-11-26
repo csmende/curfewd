@@ -3,7 +3,7 @@
 import grp
 import logging
 import pwd
-from typing import Callable
+from collections.abc import Callable
 
 from curfewd import DEFAULT_ADMIN_GROUP
 
@@ -111,7 +111,9 @@ class PolkitAuthorizer:
             if self._check_polkit(sender, action_id):
                 return uid, username
         except Exception as exc:
-            logger.warning("Polkit CheckAuthorization(%s) failed for uid=%d: %s", action_id, uid, exc)
+            logger.warning(
+                "Polkit CheckAuthorization(%s) failed for uid=%d: %s", action_id, uid, exc
+            )
 
         raise AuthorizationError(
             f"Permission denied for {action_id}. Authenticate via Polkit, run with sudo, "
