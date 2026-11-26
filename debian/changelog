@@ -1,3 +1,20 @@
+curfewd (0.6.1) unstable; urgency=medium
+
+  * Security: generate session-attribute verification keys using CSPRNG
+    (secrets.choice) and compare with constant-time hmac.compare_digest
+    (Bandit B311 / CWE-330)
+  * Security: harden PID/lock files and fallback file logs with O_NOFOLLOW,
+    restrictive file modes (0600/0644/0640), lock-before-truncate semantics,
+    and avoiding shared /tmp for root admin and daemon runs
+    (Bandit B108 / CWE-377 / CWE-59)
+  * Hardening: narrow bare/broad exception handlers across server, common,
+    and client modules and add security hardening unit tests
+  * CI/Security: add SECURITY.md, Dependabot config, GitHub CodeQL
+    (extended + remote_and_local), Bandit SARIF + Medium/High gate, and
+    ShellCheck static analysis
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 00:50:00 +0000
+
 curfewd (0.6.0) unstable; urgency=medium
 
   * Initial curfewd release — maintained drop-in fork of Timekpr-nExT (v0.5.11 + upstream fixes)

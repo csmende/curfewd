@@ -19,7 +19,8 @@ from dataclasses import dataclass
 import os
 import pwd
 import shutil
-import subprocess  # nosec B404 - privilege-dropped, trusted-PATH, list-argv helpers only
+# Subprocess is strictly limited to privilege-dropped, trusted-PATH, list-argv helpers.
+import subprocess  # nosec B404
 import threading
 import time
 

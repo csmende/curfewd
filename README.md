@@ -61,10 +61,10 @@ Download the latest `.deb` from the [GitHub Releases](https://github.com/csmende
 
 ```bash
 # Download the latest release package (replace version as needed)
-curl -LO https://github.com/csmende/curfewd/releases/latest/download/curfewd_0.6.0_all.deb
+curl -LO https://github.com/csmende/curfewd/releases/latest/download/curfewd_0.6.1_all.deb
 
 # Install (automatically replaces timekpr-next while keeping all user configs & balances!)
-sudo apt install ./curfewd_0.6.0_all.deb
+sudo apt install ./curfewd_0.6.1_all.deb
 ```
 
 > **Upgrading from `timekpr-next`?**
