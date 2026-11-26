@@ -17,6 +17,7 @@ RestartSec=5
 TimeoutStopSec=15
 
 # Managed directories
+UMask=0022
 ConfigurationDirectory=curfewd
 ConfigurationDirectoryMode=0755
 StateDirectory=curfewd

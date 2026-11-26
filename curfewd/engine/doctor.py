@@ -2,11 +2,11 @@
 
 import configparser
 import os
+import secrets
 import shutil
 
 # Subprocess is strictly limited to fixed trusted-PATH diagnostic binaries (shell=False).
 import subprocess  # nosec B404
-import tempfile
 import xml.etree.ElementTree as ET  # nosec B405 - parses only local root-owned /etc/xdg XML
 from contextlib import suppress
 from typing import Any
@@ -149,18 +149,23 @@ def _read_text_nofollow(path: str) -> str | None:
         return None
 
 
-def _write_text_atomic_nofollow(path: str, content: str, mode: int = 0o644) -> None:
+def _write_text_atomic_nofollow(path: str, content: str) -> None:
+    """Atomically write a system-wide kiosk policy file without following symlinks.
+
+    Creates a unique sibling temp file exclusively (``O_CREAT | O_EXCL`` via
+    mode ``"x"``) so it inherits the root/service ``UMask=0022`` (``0o644``)
+    without widening a private ``mkstemp`` file via ``chmod``.
+    """
     parent = os.path.dirname(path)
     os.makedirs(parent, mode=0o755, exist_ok=True)
     if os.path.islink(path):
         raise OSError(f"Refusing to write through symlink: {path}")
-    fd, tmp_path = tempfile.mkstemp(prefix=".curfewd-", dir=parent)
+    tmp_path = os.path.join(parent, f".curfewd-{secrets.token_hex(8)}.tmp")
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        with open(tmp_path, "x", encoding="utf-8") as fh:
             fh.write(content)
             fh.flush()
             os.fsync(fh.fileno())
-        os.chmod(tmp_path, mode)
         os.replace(tmp_path, path)
     except Exception:
         with suppress(OSError):
@@ -304,13 +309,13 @@ def apply_dconf_lock_fix(root_prefix: str = "") -> dict[str, Any]:
     if existing_profile is None:
         if os.path.islink(profile):
             raise OSError(f"Refusing to write through symlink: {profile}")
-        _write_text_atomic_nofollow(profile, _DCONF_PROFILE_CONTENT, mode=0o644)
+        _write_text_atomic_nofollow(profile, _DCONF_PROFILE_CONTENT)
     elif "system-db:local" not in existing_profile:
         merged_profile = existing_profile.rstrip() + "\nsystem-db:local\n"
-        _write_text_atomic_nofollow(profile, merged_profile, mode=0o644)
+        _write_text_atomic_nofollow(profile, merged_profile)
 
-    _write_text_atomic_nofollow(db_file, _DCONF_DB_CONTENT, mode=0o644)
-    _write_text_atomic_nofollow(lock_file, _DCONF_LOCKS_CONTENT, mode=0o644)
+    _write_text_atomic_nofollow(db_file, _DCONF_DB_CONTENT)
+    _write_text_atomic_nofollow(lock_file, _DCONF_LOCKS_CONTENT)
 
     dconf_updated = False
     dconf_note = "skipped (root_prefix set)"
@@ -335,7 +340,7 @@ def apply_kde_lock_fix(root_prefix: str = "") -> dict[str, Any]:
     if os.path.islink(path):
         raise OSError(f"Refusing to write through symlink: {path}")
     existing = _read_text_nofollow(path) or ""
-    _write_text_atomic_nofollow(path, _merge_kde_lockscreen_ini(existing), mode=0o644)
+    _write_text_atomic_nofollow(path, _merge_kde_lockscreen_ini(existing))
     return {"applied": True, "files": [path], "detail": "KDE Kiosk kscreenlockerrc installed"}
 
 
@@ -347,7 +352,7 @@ def apply_xfce_lock_fix(root_prefix: str = "") -> dict[str, Any]:
     if os.path.islink(path):
         raise OSError(f"Refusing to write through symlink: {path}")
     existing = _read_text_nofollow(path) or ""
-    _write_text_atomic_nofollow(path, _merge_xfce_screensaver_xml(existing), mode=0o644)
+    _write_text_atomic_nofollow(path, _merge_xfce_screensaver_xml(existing))
     return {"applied": True, "files": [path], "detail": "XFCE kiosk screensaver policy installed"}
 
 

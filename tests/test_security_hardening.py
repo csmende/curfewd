@@ -957,6 +957,14 @@ class TestEvaluatorAndAppLimitsHardening(unittest.TestCase):
             self.assertEqual(fp1, "org.telegram.desktop")
             self.assertEqual(scope2, "heroic-launcher")
 
+            # Adversarial ReDoS payload must parse in linear time (< 50ms)
+            os.makedirs(os.path.join(fake_proc, "803"))
+            with open(os.path.join(fake_proc, "803", "cgroup"), "w", encoding="utf-8") as fh:
+                fh.write("0::/user.slice/" + "app-flatpak--" * 300 + "\n")
+            t0 = time.monotonic()
+            self.assertEqual(read_proc_cgroup_app(803, proc_root=fake_proc), ("", ""))
+            self.assertLess(time.monotonic() - t0, 0.05)
+
             # Flatpak container PID (99999 not in ppid_map) must NOT disable foreground_only match
             proc_tg = mock.Mock()
             proc_tg.info = {

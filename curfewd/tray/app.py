@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import signal
+import stat
 
 # Subprocess is strictly limited to trusted system binaries (shell=False).
 import subprocess  # nosec B404
@@ -44,8 +45,13 @@ _TRAY_LOCK_FH: Any = None
 def acquire_tray_lock() -> bool:
     """Prevent duplicate tray instances when both XDG autostart and systemd user unit are active."""
     global _TRAY_LOCK_FH
-    runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-    if not os.path.isdir(runtime_dir):
+    uid = os.getuid()
+    runtime_dir = f"/run/user/{uid}"
+    try:
+        st = os.lstat(runtime_dir)
+    except OSError:
+        return True
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid != uid:
         return True
     lock_path = os.path.join(runtime_dir, "curfewd-tray.lock")
     flags = os.O_WRONLY | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)

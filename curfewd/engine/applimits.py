@@ -15,11 +15,10 @@ from curfewd.models import AppLimitRule, CategoryLimitRule
 
 logger = logging.getLogger("curfewd.applimits")
 
-# Support systemd \x2d escaped hyphens, hex-UUID .scope, and @<hex>.service units.
-_FLATPAK_CGROUP_RE = re.compile(r"app-flatpak-([A-Za-z0-9_.\\-]+)-[0-9a-fA-F]+\.scope")
-_SYSTEMD_APP_CGROUP_RE = re.compile(
-    r"app-(?:gnome|kde|glib|flatpak)?-?([A-Za-z0-9_.\\-]+)(?:-[0-9a-fA-F]+\.scope|@[0-9a-fA-F]+\.service)"
-)
+# Strict O(N) character sets for systemd cgroup unit parsing (avoids ReDoS backtracking).
+_HEX_CHARS = frozenset("0123456789abcdefABCDEF")
+_UNIT_ID_CHARS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.\\-")
+_SYSTEMD_APP_PREFIXES = ("gnome-", "kde-", "glib-", "flatpak-")
 _SYSTEMD_ESC_RE = re.compile(r"\\x([0-9a-fA-F]{2})")
 
 # Critical session, compositor, locker, and curfewd processes that enforce_kill must NEVER signal.
@@ -159,6 +158,49 @@ def _is_protected_process(pid: int, name: str, exe: str = "") -> bool:
     )
 
 
+def _is_valid_unit_id(value: str) -> bool:
+    return bool(value) and all(ch in _UNIT_ID_CHARS for ch in value)
+
+
+def _is_hex_instance(value: str) -> bool:
+    return bool(value) and all(ch in _HEX_CHARS for ch in value)
+
+
+def _parse_cgroup_unit(unit: str) -> tuple[str, str]:
+    """Parse a single systemd cgroup unit name in strictly linear O(N) time."""
+    if not unit.startswith("app-"):
+        return "", ""
+    if unit.endswith(".scope"):
+        body = unit[4 : -len(".scope")]
+        app_part, sep, instance = body.rpartition("-")
+        if not sep or not _is_hex_instance(instance):
+            return "", ""
+        if app_part.startswith("flatpak-"):
+            fp_id = app_part[len("flatpak-") :]
+            if _is_valid_unit_id(fp_id):
+                return _unescape_systemd_unit(fp_id), ""
+            return "", ""
+        for prefix in ("gnome-", "kde-", "glib-"):
+            if app_part.startswith(prefix) and len(app_part) > len(prefix):
+                app_part = app_part[len(prefix) :]
+                break
+        if _is_valid_unit_id(app_part):
+            return "", _unescape_systemd_unit(app_part)
+        return "", ""
+    if unit.endswith(".service"):
+        body = unit[4 : -len(".service")]
+        app_part, sep, instance = body.rpartition("@")
+        if not sep or not _is_hex_instance(instance):
+            return "", ""
+        for prefix in _SYSTEMD_APP_PREFIXES:
+            if app_part.startswith(prefix) and len(app_part) > len(prefix):
+                app_part = app_part[len(prefix) :]
+                break
+        if _is_valid_unit_id(app_part):
+            return "", _unescape_systemd_unit(app_part)
+    return "", ""
+
+
 def read_proc_cgroup_app(pid: int, proc_root: str = "/proc") -> tuple[str, str]:
     """Return (flatpak_id, systemd_scope_app) extracted safely from /proc/<pid>/cgroup."""
     if not pid or pid <= 0:
@@ -170,13 +212,16 @@ def read_proc_cgroup_app(pid: int, proc_root: str = "/proc") -> tuple[str, str]:
     except OSError:
         return "", ""
 
-    fp_match = _FLATPAK_CGROUP_RE.search(text)
-    if fp_match:
-        return _unescape_systemd_unit(fp_match.group(1)), ""
-    sc_match = _SYSTEMD_APP_CGROUP_RE.search(text)
-    if sc_match:
-        return "", _unescape_systemd_unit(sc_match.group(1))
-    return "", ""
+    scope_fallback = ""
+    for line in text.splitlines():
+        cgroup_path = line.split(":", 2)[-1]
+        for segment in cgroup_path.split("/"):
+            flatpak_id, scope_app = _parse_cgroup_unit(segment.strip())
+            if flatpak_id:
+                return flatpak_id, ""
+            if scope_app and not scope_fallback:
+                scope_fallback = scope_app
+    return "", scope_fallback
 
 
 def read_proc_steam_appid(pid: int, proc_root: str = "/proc") -> str:
