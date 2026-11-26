@@ -82,6 +82,10 @@ In upstream `Timekpr-nExT` (`v0.5.11`), setting `LOCKOUT_TYPE = lock` fails sile
 
 ## 6. Verification & Acceptance Criteria
 
-- Automated unit tests (`tests/test_screenlock.py`, `tests/test_admin_and_client.py`) covering desktop selection, `/proc` discovery, env sanitization, privilege drop args, Cinnamon 30s recovery, Stages 3a & 3b grab release, unverifiable minimal lockers, timeout handling, in-flight deduplication, config migration, and client D-Bus reconnect.
-- Live ephemeral `dbus-daemon` + `/usr/bin/gdbus` wire integration test exercising real `NameHasOwner`, `org.cinnamon.ScreenSaver.Lock("")`, and `GetActive` calls in CI.
-- End-to-end validation on live Linux Mint 22.3 Cinnamon desktop (`rad-rig-1`) with `LOCKOUT_TYPE = lock` and fullscreen games.
+- **Automated CI tests:** 22 unit tests (`tests/test_screenlock.py`, `tests/test_admin_and_client.py`) covering desktop selection, `/proc` discovery, env sanitization, privilege drop args, Cinnamon 30s recovery, Stages 3a & 3b grab release, unverifiable minimal lockers, timeout handling, in-flight deduplication, config migration, and client D-Bus reconnect.
+- **Live D-Bus wire integration test:** Ephemeral `dbus-daemon` + `/usr/bin/gdbus` test exercising real `NameHasOwner`, `org.cinnamon.ScreenSaver.Lock("")`, and `GetActive` calls in CI.
+- **Live desktop validation (verified `2026-11-25` across multiple Linux Mint 22.3 `Zena` Cinnamon `6.6.3` / LightDM / X11 systems):**
+  - Drop-in `apt install ./curfewd_0.6.0_all.deb` cleanly replaced `timekpr-next 0.5.11`, installed `xdotool`, auto-migrated `/etc/timekpr/timekpr.conf`, preserved all user schedules/balances, and started `timekpr.service` + `curfewd.service` alias with zero errors.
+  - Confirmed live `LOCKOUT_TYPE = lock` enforcement: screen locked in ~260 ms at `00:00` (`INFO: session ... is locked (verified via cinnamon)`), client `timekprc` verified `scrs,key,True`, and manual unlock triggered automatic re-lock within 3 seconds (`org.cinnamon.ScreenSaver.GetActive()` confirmed `(true,)`).
+  - Confirmed `dconf-lock-screensaver.sh` overrode an existing user `lock-enabled=false` setting to `lock-enabled=true (writable=false)` and `disable-lock-screen=false (writable=false)`.
+  - Confirmed `screenlock.py` dynamically loads cleanly from isolated Python virtualenvs (zero external dependencies) for external admin/automation tools.

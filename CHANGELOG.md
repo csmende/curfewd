@@ -3,6 +3,14 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
+## [Unreleased]
+
+### Documentation & Governance
+- Added spec-driven and AI-assisted development documentation in `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, and `docs/specs/` (starting with `001-multi-de-screen-locking.md`).
+- Updated `README.md` intro and UI/usability roadmap to reflect active multi-system development beyond initial Timekpr-nExT fixes.
+- Corrected log-viewing command in `README.md` to `journalctl -u timekpr -f` (systemd logs under the primary unit `timekpr.service` rather than the `curfewd.service` alias) following live validation on Linux Mint 22.3 Cinnamon.
+- Recorded live multi-system Linux Mint 22.3 Cinnamon verification notes in `docs/specs/001-multi-de-screen-locking.md`.
+
 ## [0.6.0] - 2026-11-25
 
 Initial public release of **curfewd** — a modern, actively maintained drop-in fork of [Timekpr-nExT](https://launchpad.net/timekpr-next) (branched from `v0.5.11` with upstream bugfixes cherry-picked and preserved).

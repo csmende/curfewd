@@ -107,8 +107,8 @@ sudo curfewctl --settimelimits alice "7200;7200;7200;7200;7200;10800;10800"
 # Set curfew hours (e.g. allowed 07:00–20:30 on Monday)
 sudo curfewctl --setallowedhours alice 1 "7;8;9;10;11;12;13;14;15;16;17;18;19;20[0-30]"
 
-# Watch live enforcement logs
-sudo journalctl -u curfewd -f
+# Watch live enforcement logs (systemd logs under primary unit timekpr.service)
+sudo journalctl -u timekpr -f
 ```
 
 For the full GTK Administration Control Panel, tray indicator, PlayTime per-app game limits, and every CLI flag, see the complete reference manual in [`docs/TIMEKPR_GUIDE.md`](docs/TIMEKPR_GUIDE.md).
