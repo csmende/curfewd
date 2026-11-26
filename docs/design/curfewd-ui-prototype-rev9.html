@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-accent="indigo">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>curfewd — UI Prototype (rev 9)</title>
+<style>
+:root {
+  --font-sans: "Inter", "Cantarell", "Ubuntu", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Ubuntu Mono", ui-monospace, monospace;
+  --r-xs: 8px; --r-sm: 12px; --r-md: 16px; --r-lg: 24px; --r-full: 9999px;
+  --sh-1: 0 1px 3px rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.12);
+  --sh-2: 0 4px 14px rgba(0,0,0,.24), 0 2px 6px rgba(0,0,0,.14);
+  --sh-3: 0 10px 30px rgba(0,0,0,.36);
+  --tr: 170ms cubic-bezier(.2,0,0,1);
+}
+html[data-theme="dark"] {
+  --bg:#11131a; --surface:#151822; --s1:#1b1f2c; --s2:#222737; --s3:#2b3145;
+  --shover:rgba(255,255,255,.06); --fg:#e5e8f3; --fg-muted:#a0a8bf;
+  --out:#3e455d; --out-var:#2a3044; --scrim:rgba(6,8,14,.68);
+  --ok:#5cd69d; --ok-c:rgba(92,214,157,.16); --on-ok-c:#a6f2cc;
+  --warn:#f4bd5a; --warn-c:rgba(244,189,90,.17); --on-warn-c:#ffe0a3;
+  --err:#ff897d; --err-c:rgba(255,137,125,.17); --on-err-c:#ffdad5;
+  --info:#8ab4f8; --info-c:rgba(138,180,248,.16); --on-info-c:#d2e3fc;
+}
+html[data-theme="light"] {
+  --bg:#f5f6fb; --surface:#ffffff; --s1:#f8f9fd; --s2:#eef1f8; --s3:#e2e6f0;
+  --shover:rgba(15,23,42,.05); --fg:#181c28; --fg-muted:#545c73;
+  --out:#b8c0d4; --out-var:#d8deeb; --scrim:rgba(15,23,42,.42);
+  --ok:#147a4d; --ok-c:#d8f5e7; --on-ok-c:#0a4d2f;
+  --warn:#9a6100; --warn-c:#ffefc7; --on-warn-c:#6b4100;
+  --err:#ba1a1a; --err-c:#ffdad6; --on-err-c:#780a0a;
+  --info:#1a63b8; --info-c:#d9e8ff; --on-info-c:#0d3b75;
+}
+html[data-theme="dark"][data-accent="indigo"]  { --p:#9db4ff; --on-p:#0f2159; --pc:#253a80; --on-pc:#dce4ff; }
+html[data-theme="light"][data-accent="indigo"] { --p:#3b57c4; --on-p:#ffffff; --pc:#dde4ff; --on-pc:#102263; }
+html[data-theme="dark"][data-accent="emerald"]  { --p:#63dca8; --on-p:#003824; --pc:#0a5237; --on-pc:#bdf5dc; }
+html[data-theme="light"][data-accent="emerald"] { --p:#137a51; --on-p:#ffffff; --pc:#c5f3dd; --on-pc:#003823; }
+html[data-theme="dark"][data-accent="slate"]  { --p:#8dc3f5; --on-p:#053154; --pc:#1d4a70; --on-pc:#d4ebff; }
+html[data-theme="light"][data-accent="slate"] { --p:#2b6396; --on-p:#ffffff; --pc:#d5eaff; --on-pc:#093154; }
+html[data-theme="dark"][data-accent="amber"]  { --p:#f7be5e; --on-p:#442900; --pc:#633f00; --on-pc:#ffdfa8; }
+html[data-theme="light"][data-accent="amber"] { --p:#9c5d00; --on-p:#ffffff; --pc:#ffdfa8; --on-pc:#422500; }
+
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family:var(--font-sans); font-size:14px; line-height:1.45; min-height:100vh; }
+button,input,select { font-family:inherit; color:inherit; }
+button { cursor:pointer; border:none; background:none; }
+
+/* Prototype Switcher Strip */
+.proto-bar {
+  position:sticky; top:0; z-index:40; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+  gap:10px; padding:8px 16px; background:var(--s2); border-bottom:1px solid var(--out-var);
+}
+.proto-group { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.proto-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-muted); margin-right:4px; }
+.proto-pill {
+  padding:5px 12px; border-radius:var(--r-full); font-size:12.5px; font-weight:500;
+  color:var(--fg-muted); border:1px solid transparent; transition:all var(--tr);
+}
+.proto-pill:hover { background:var(--shover); color:var(--fg); }
+.proto-pill.active { background:var(--pc); color:var(--on-pc); border-color:var(--p); }
+.swatch { width:20px; height:20px; border-radius:50%; border:2px solid transparent; transition:transform var(--tr); }
+.swatch:hover { transform:scale(1.12); }
+.swatch.active { border-color:var(--fg); box-shadow:0 0 0 2px var(--s2) inset; }
+
+/* Shell */
+.app-shell { display:grid; grid-template-columns:256px 1fr; min-height:calc(100vh - 46px); }
+@media (max-width:860px) { .app-shell { grid-template-columns:1fr; } .nav-drawer { border-right:none; border-bottom:1px solid var(--out-var); } }
+.nav-drawer { background:var(--surface); border-right:1px solid var(--out-var); padding:16px 12px; display:flex; flex-direction:column; gap:14px; }
+.brand-row { display:flex; align-items:center; gap:11px; padding:4px 8px 8px; }
+.brand-title { font-size:17px; font-weight:700; letter-spacing:-.02em; }
+.brand-sub { font-size:11.5px; color:var(--fg-muted); }
+.nav-sec { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-muted); padding:0 12px 4px; }
+.nav-list { display:flex; flex-direction:column; gap:4px; }
+.nav-item {
+  width:100%; display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:var(--r-full);
+  text-align:left; font-weight:500; color:var(--fg); transition:background var(--tr), color var(--tr);
+}
+.nav-item:hover { background:var(--shover); }
+.nav-item.active { background:var(--pc); color:var(--on-pc); }
+.avatar {
+  width:34px; height:34px; border-radius:50%; background:var(--s3); color:var(--fg); font-weight:700; font-size:13px;
+  display:flex; align-items:center; justify-content:center; position:relative; flex-shrink:0;
+}
+.nav-item.active .avatar { background:var(--p); color:var(--on-p); }
+.sdot { position:absolute; right:-1px; bottom:-1px; width:11px; height:11px; border-radius:50%; border:2px solid var(--surface); }
+.dot-ok { background:var(--ok); } .dot-warn { background:var(--warn); } .dot-off { background:var(--fg-muted); } .dot-lock { background:var(--err); }
+.nav-meta { flex:1; min-width:0; }
+.nav-uname { display:flex; justify-content:space-between; gap:6px; font-size:13.5px; font-weight:600; }
+.nav-usub { font-size:11.5px; color:var(--fg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nav-item.active .nav-usub { color:var(--on-pc); opacity:.82; }
+.nav-spacer { flex:1; }
+.nav-div { height:1px; background:var(--out-var); margin:2px 8px; }
+
+/* Main Pane */
+.main-pane { padding:22px 26px 88px; max-width:1080px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+.doctor-banner {
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  padding:12px 16px; border-radius:var(--r-md); background:var(--warn-c); border:1px solid rgba(244,189,90,.35); color:var(--on-warn-c);
+}
+.doctor-left { display:flex; align-items:center; gap:12px; flex:1; min-width:220px; }
+.page-hdr { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.page-title { font-size:24px; font-weight:700; letter-spacing:-.02em; margin:0; }
+.page-sub { font-size:13px; color:var(--fg-muted); }
+
+/* Tabs & Segmented */
+.m3-tabs { display:flex; gap:4px; border-bottom:1px solid var(--out-var); }
+.m3-tab {
+  padding:10px 18px; font-weight:600; font-size:13.5px; color:var(--fg-muted); position:relative;
+  display:flex; align-items:center; gap:7px; border-radius:var(--r-sm) var(--r-sm) 0 0; transition:all var(--tr);
+}
+.m3-tab:hover { background:var(--shover); color:var(--fg); }
+.m3-tab.active { color:var(--p); }
+.m3-tab.active::after { content:""; position:absolute; left:14px; right:14px; bottom:0; height:3px; border-radius:3px 3px 0 0; background:var(--p); }
+.segmented { display:inline-flex; border:1px solid var(--out); border-radius:var(--r-full); overflow:hidden; background:var(--s1); }
+.seg-btn { padding:6px 14px; font-size:12.5px; font-weight:600; color:var(--fg-muted); border-right:1px solid var(--out); transition:all var(--tr); }
+.seg-btn:last-child { border-right:none; }
+.seg-btn:hover { background:var(--shover); color:var(--fg); }
+.seg-btn.active { background:var(--pc); color:var(--on-pc); }
+
+/* Cards & Buttons */
+.card { background:var(--s1); border:1px solid var(--out-var); border-radius:var(--r-lg); padding:20px 22px; box-shadow:var(--sh-1); }
+.card-hdr { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+.card-title { font-size:15.5px; font-weight:600; margin:0; }
+.card-sub { font-size:12.5px; color:var(--fg-muted); }
+.grid-eq { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+@media (max-width:960px) { .grid-eq { grid-template-columns:1fr; } }
+
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px;
+  border-radius:var(--r-full); font-size:13px; font-weight:600; transition:all var(--tr);
+}
+.btn-filled { background:var(--p); color:var(--on-p); }
+.btn-filled:hover { filter:brightness(1.07); box-shadow:var(--sh-1); }
+.btn-tonal { background:var(--pc); color:var(--on-pc); }
+.btn-tonal:hover { filter:brightness(1.06); }
+.btn-outlined { border:1px solid var(--out); color:var(--fg); background:transparent; }
+.btn-outlined:hover { background:var(--shover); }
+.btn-danger { background:var(--err-c); color:var(--on-err-c); border:1px solid rgba(255,137,125,.35); }
+.btn-danger:hover { filter:brightness(1.08); }
+.btn-sm { padding:6px 12px; font-size:12.5px; }
+.btn:disabled { opacity:.45; pointer-events:none; }
+
+.pill { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:var(--r-full); font-size:11.5px; font-weight:600; }
+.p-ok { background:var(--ok-c); color:var(--on-ok-c); }
+.p-warn { background:var(--warn-c); color:var(--on-warn-c); }
+.p-err { background:var(--err-c); color:var(--on-err-c); }
+.p-info { background:var(--info-c); color:var(--on-info-c); }
+.p-muted { background:var(--s2); color:var(--fg-muted); }
+
+/* Three Horizontal Stat Pills (Current Status) */
+.stat-pills {
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px;
+}
+@media (max-width:680px) { .stat-pills { grid-template-columns:1fr; } }
+.stat-pill {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:12px 20px; border-radius:var(--r-full);
+  background:var(--s2); border:1px solid var(--out-var);
+}
+.stat-pill.primary {
+  background:var(--pc); border-color:rgba(157,180,255,.35); color:var(--on-pc);
+}
+.stat-pill.warn {
+  background:var(--warn-c); border-color:rgba(244,189,90,.4); color:var(--on-warn-c);
+}
+.stat-pill.err {
+  background:var(--err-c); border-color:rgba(255,137,125,.4); color:var(--on-err-c);
+}
+.stat-pill-lbl { font-size:12.5px; font-weight:500; opacity:.82; }
+.stat-pill-val { font-size:19px; font-weight:700; letter-spacing:-.02em; font-family:var(--font-mono); }
+
+.card-section { margin-top:20px; padding-top:18px; border-top:1px solid var(--out-var); }
+.sec-hdr { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.sec-title { font-size:13.5px; font-weight:600; margin:0; }
+
+/* My Screen Time Ring & Metrics */
+.ring-box { position:relative; flex-shrink:0; }
+.ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.ring-main { font-size:27px; font-weight:700; letter-spacing:-.03em; line-height:1.1; }
+.ring-sub { font-size:11.5px; color:var(--fg-muted); margin-top:3px; }
+.hero-wrap { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+.hero-stats { flex:1; min-width:190px; display:flex; flex-direction:column; gap:10px; }
+.metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.metric-box { background:var(--s2); border-radius:var(--r-sm); padding:9px 12px; }
+.metric-lbl { font-size:11px; color:var(--fg-muted); }
+.metric-val { font-size:15.5px; font-weight:700; margin-top:2px; }
+
+/* Shared Draggable 24h Allowed-Window Bar */
+.timeline-bar { position:relative; height:22px; user-select:none; touch-action:none; }
+.timeline-bar.editable { height:26px; margin-top:30px; }
+.timeline-bar.compact { height:22px; margin-top:28px; }
+.timeline-track { position:absolute; inset:0; border-radius:var(--r-full); background:var(--s3); overflow:hidden; }
+.timeline-seg { position:absolute; top:0; bottom:0; background:var(--p); opacity:.8; }
+.timeline-bar.editable .timeline-seg { border-radius:6px; }
+.timeline-needle {
+  position:absolute; top:-3px; bottom:-3px; width:3px; background:var(--fg); border-radius:3px;
+  box-shadow:0 0 6px rgba(0,0,0,.4); pointer-events:none; z-index:2;
+}
+.timeline-handle {
+  position:absolute; top:-3px; bottom:-3px; width:14px; transform:translateX(-50%); border-radius:7px;
+  background:var(--surface); border:2px solid var(--p); box-shadow:var(--sh-1); cursor:ew-resize; z-index:4;
+  display:flex; align-items:center; justify-content:center; padding:0; transition:transform 110ms ease, background 110ms ease;
+}
+.timeline-handle::after { content:""; width:2px; height:10px; border-radius:2px; background:var(--p); }
+.timeline-handle:hover,.timeline-handle:focus-visible,.timeline-handle.dragging {
+  background:var(--p); transform:translateX(-50%) scale(1.1); box-shadow:var(--sh-2); outline:none;
+}
+.timeline-handle:hover::after,.timeline-handle:focus-visible::after,.timeline-handle.dragging::after { background:var(--on-p); }
+.handle-tip {
+  position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+  background:var(--s2); color:var(--fg); border:1px solid var(--out); font-family:var(--font-mono);
+  font-size:11px; font-weight:600; padding:1px 6px; border-radius:var(--r-full); white-space:nowrap;
+  pointer-events:none; transition:background 110ms ease, color 110ms ease, border-color 110ms ease; box-shadow:var(--sh-1);
+}
+.timeline-handle:hover .handle-tip,.timeline-handle:focus-visible .handle-tip,.timeline-handle.dragging .handle-tip {
+  background:var(--p); color:var(--on-p); border-color:var(--p);
+}
+.timeline-ticks { display:flex; justify-content:space-between; font-size:11px; color:var(--fg-muted); margin-top:6px; font-family:var(--font-mono); }
+
+/* Thin Hours Slider (Shared between Today & Weekly Schedule) */
+.thin-slider {
+  -webkit-appearance:none; appearance:none; flex:1; height:4px; border-radius:var(--r-full);
+  background:var(--s3); outline:none; cursor:pointer;
+}
+.thin-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%;
+  background:var(--p); border:2px solid var(--surface); box-shadow:var(--sh-1); cursor:pointer;
+  transition:transform 110ms ease;
+}
+.thin-slider::-webkit-slider-thumb:hover { transform:scale(1.18); }
+.thin-slider::-moz-range-thumb {
+  width:14px; height:14px; border-radius:50%; background:var(--p);
+  border:2px solid var(--surface); box-shadow:var(--sh-1); cursor:pointer;
+}
+
+/* Per-Day & Today Time-and-Schedule Blocks */
+.m3-check {
+  display:inline-flex; align-items:center; gap:9px; font-size:13px; font-weight:600;
+  color:var(--fg); cursor:pointer; user-select:none; padding:6px 12px; border-radius:var(--r-full);
+  background:var(--s2); border:1px solid var(--out-var); transition:border-color var(--tr), background var(--tr);
+}
+.m3-check:hover { border-color:var(--p); }
+.m3-check input { width:16px; height:16px; accent-color:var(--p); margin:0; cursor:pointer; }
+.day-stack { display:flex; flex-direction:column; gap:10px; }
+.day-row {
+  background:var(--s2); border:1px solid var(--out-var); border-radius:var(--r-md);
+  padding:13px 16px 12px; display:flex; flex-direction:column; gap:4px;
+}
+.day-top { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.day-name { min-width:96px; font-size:14px; font-weight:700; color:var(--fg); }
+.day-hours-wrap { flex:1; min-width:200px; display:flex; align-items:center; gap:10px; }
+.day-hours-lbl { font-size:12px; color:var(--fg-muted); white-space:nowrap; }
+.day-hours-val { min-width:60px; text-align:right; font-family:var(--font-mono); font-size:12.5px; font-weight:700; color:var(--p); }
+
+/* Chart */
+.chart-svg { width:100%; height:172px; display:block; }
+.pick-row {
+  display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px;
+  border-radius:var(--r-sm); background:var(--s2); font-size:12.5px; width:100%; text-align:left;
+}
+.pick-row:hover { background:var(--s3); }
+.pick-cat { font-family:var(--font-mono); font-size:11px; color:var(--fg-muted); }
+
+/* Lockout Cards & App Limits */
+.rule-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+.slider { width:175px; accent-color:var(--p); }
+.lockout-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+@media (max-width:720px) { .lockout-grid { grid-template-columns:1fr; } }
+.lockout-opt { padding:12px 14px; border-radius:var(--r-md); border:1px solid var(--out-var); background:var(--s2); text-align:left; transition:all var(--tr); }
+.lockout-opt:hover { border-color:var(--p); }
+.lockout-opt.active { border-color:var(--p); background:var(--pc); color:var(--on-pc); }
+
+.m3-switch { width:46px; height:26px; border-radius:var(--r-full); background:var(--s3); border:1px solid var(--out); position:relative; transition:all var(--tr); flex-shrink:0; }
+.m3-switch::after { content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--fg-muted); transition:transform var(--tr), background var(--tr); }
+.m3-switch.on { background:var(--p); border-color:var(--p); }
+.m3-switch.on::after { transform:translateX(20px); background:var(--on-p); }
+.app-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:12px; }
+.app-card { display:flex; flex-direction:column; gap:10px; padding:14px 16px; border-radius:var(--r-md); background:var(--s2); border:1px solid var(--out-var); }
+.app-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.app-prog { height:7px; border-radius:var(--r-full); background:var(--s3); overflow:hidden; }
+.app-prog-fill { height:100%; border-radius:var(--r-full); transition:width 220ms ease, background 180ms ease; }
+.app-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; color:var(--fg-muted); }
+.app-ctrl { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:8px; border-top:1px solid var(--out-var); }
+.mini-app-list { display:flex; flex-direction:column; gap:8px; }
+.mini-app-row { padding:10px 12px; border-radius:var(--r-sm); background:var(--s2); display:flex; flex-direction:column; gap:6px; }
+.check-list { display:flex; flex-direction:column; gap:8px; }
+.check-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:var(--r-md); background:var(--s2); }
+
+/* Floating Unsaved Bar, Modal, Snackbar */
+.unsaved-bar {
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%) translateY(96px); opacity:0; pointer-events:none;
+  z-index:50; display:flex; align-items:center; gap:14px; padding:10px 16px 10px 20px; border-radius:var(--r-full);
+  background:var(--surface); border:1px solid var(--p); box-shadow:var(--sh-3); transition:transform 220ms cubic-bezier(.2,0,0,1), opacity 180ms ease;
+}
+.unsaved-bar.visible { transform:translateX(-50%) translateY(0); opacity:1; pointer-events:auto; }
+.modal-bg { position:fixed; inset:0; background:var(--scrim); display:none; align-items:center; justify-content:center; z-index:60; padding:16px; }
+.modal-bg.open { display:flex; }
+.modal-card { width:100%; max-width:440px; background:var(--surface); border:1px solid var(--out-var); border-radius:var(--r-lg); padding:22px; box-shadow:var(--sh-3); display:flex; flex-direction:column; gap:14px; }
+.modal-acts { display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
+.text-in { width:100%; background:var(--s2); border:1px solid var(--out); border-radius:var(--r-sm); padding:9px 12px; font-size:13.5px; }
+.snackbar {
+  position:fixed; right:20px; bottom:20px; z-index:70; background:var(--fg); color:var(--surface);
+  padding:10px 16px; border-radius:var(--r-sm); font-size:13px; font-weight:500; box-shadow:var(--sh-2);
+  opacity:0; transform:translateY(14px); pointer-events:none; transition:all 200ms ease;
+}
+.snackbar.show { opacity:1; transform:translateY(0); }
+
+/* Standalone Centered Views */
+.centered-view { min-height:calc(100vh - 46px); display:flex; align-items:center; justify-content:center; padding:24px; }
+.my-card { width:100%; max-width:540px; background:var(--s1); border:1px solid var(--out-var); border-radius:var(--r-lg); padding:24px; box-shadow:var(--sh-2); display:flex; flex-direction:column; gap:18px; }
+.auth-card { width:100%; max-width:400px; background:var(--s1); border:1px solid var(--out-var); border-radius:var(--r-lg); padding:30px 26px; text-align:center; box-shadow:var(--sh-2); display:flex; flex-direction:column; align-items:center; gap:14px; }
+</style>
+</head>
+<body>
+
+<div class="proto-bar">
+  <div class="proto-group">
+    <span class="proto-label">Preview · rev 9</span>
+    <button class="proto-pill active" data-surface="admin">Admin Control Center</button>
+    <button class="proto-pill" data-surface="my_status">My Screen Time</button>
+    <button class="proto-pill" data-surface="auth">Authentication Required</button>
+  </div>
+  <div class="proto-group">
+    <span class="proto-label">Theme</span>
+    <button class="proto-pill" id="themeToggle">Dark</button>
+    <span class="proto-label" style="margin-left:8px;">Accent</span>
+    <button class="swatch active" data-accent="indigo" title="Indigo" style="background:#536dfe"></button>
+    <button class="swatch" data-accent="emerald" title="Emerald" style="background:#158f5e"></button>
+    <button class="swatch" data-accent="slate" title="Slate" style="background:#3870a8"></button>
+    <button class="swatch" data-accent="amber" title="Amber" style="background:#c27b0e"></button>
+  </div>
+</div>
+
+<div id="root"></div>
+
+<div id="unsavedBar" class="unsaved-bar">
+  <span style="font-size:13px;font-weight:600;">You have unsaved schedule changes</span>
+  <button class="btn btn-outlined btn-sm" id="btnDiscard">Discard</button>
+  <button class="btn btn-filled btn-sm" id="btnSave">Save Changes</button>
+</div>
+
+<div id="modalBg" class="modal-bg"><div id="modalCard" class="modal-card"></div></div>
+<div id="snackbar" class="snackbar"></div>
+
+<script>
+const ICONS = {
+  brand: `<svg width="34" height="34" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="12" fill="url(#cg)"/><path d="M20 7.5L30.5 11.8V20.2C30.5 26.2 26 30.8 20 32.8C14 30.8 9.5 26.2 9.5 20.2V11.8L20 7.5Z" fill="rgba(255,255,255,.16)" stroke="rgba(255,255,255,.92)" stroke-width="1.9"/><path d="M22.9 14.3A5.8 5.8 0 1 0 26.2 24.4A4.9 4.9 0 0 1 22.9 14.3Z" fill="#fff"/><defs><linearGradient id="cg" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#3f51b5"/><stop offset="1" stop-color="#6c63ff"/></linearGradient></defs></svg>`,
+  overview: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
+  schedule: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+  apps: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>`,
+  doctor: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>`,
+  settings: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  lock: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`,
+  plus: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  warn: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  shieldKey: `<svg width="56" height="56" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="16" fill="var(--pc)"/><path d="M24 10L36 15V24C36 31.2 30.8 36.8 24 39C17.2 36.8 12 31.2 12 24V15L24 10Z" stroke="var(--p)" stroke-width="2.4" fill="none"/><circle cx="24" cy="22" r="2.6" fill="var(--p)"/><path d="M24 24.5V29" stroke="var(--p)" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  trash: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>`,
+};
+
+const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
+const DAY_FULL = { mon:"Monday", tue:"Tuesday", wed:"Wednesday", thu:"Thursday", fri:"Friday", sat:"Saturday", sun:"Sunday" };
+const TODAY_KEY = "wed";
+const INSTALLED_APPS = [
+  { id:"steam", label:"Steam", cat:"Gaming" },
+  { id:"minecraft", label:"Minecraft", cat:"Gaming" },
+  { id:"roblox", label:"Roblox", cat:"Gaming" },
+  { id:"discord", label:"Discord", cat:"Social" },
+  { id:"spotify", label:"Spotify", cat:"Media" },
+  { id:"retroarch", label:"RetroArch", cat:"Gaming" },
+];
+
+function makeDays(wkLim, wkS, wkE, wkndLim, wkndS, wkndE) {
+  const out = {};
+  for (const d of DAYS) {
+    const wknd = d === "fri" || d === "sat";
+    out[d] = { limit: wknd ? wkndLim : wkLim, startMin: wknd ? wkndS : wkS, endMin: wknd ? wkndE : wkE };
+  }
+  return out;
+}
+
+const state = {
+  surface: "admin",
+  nav: "user:maya",
+  userTab: "overview",
+  historySpan: 7,
+  dirty: false,
+  doctorFixed: false,
+  bannerDismissed: false,
+  settings: { enhanced_lock: true, fullscreen_game_compat: true, final_countdown_sec: 15 },
+  users: {
+    maya: {
+      username:"maya", fullName:"Maya Chen", initials:"MC", loggedIn:true, locked:false,
+      spentToday:1080, spentWeek:15120, lockoutAction:"lock", sameEveryDay:false,
+      days: makeDays(3600, 480, 1260, 7200, 480, 1350),
+      todayLimitSec:3600, todayStartMin:480, todayEndMin:1260,
+      appLimits: {
+        enabled: true,
+        apps: [
+          { id:"minecraft", label:"Minecraft", cat:"Gaming", dailyLimit:2700, spentToday:900, bonusToday:0, running:false },
+          { id:"roblox", label:"Roblox", cat:"Gaming", dailyLimit:1800, spentToday:600, bonusToday:0, running:false },
+        ],
+      },
+      history7: [
+        { d:"Thu", act:54, pt:22 }, { d:"Fri", act:88, pt:40 }, { d:"Sat", act:112, pt:55 },
+        { d:"Sun", act:60, pt:30 }, { d:"Mon", act:45, pt:15 }, { d:"Tue", act:58, pt:25 }, { d:"Today", act:18, pt:25 },
+      ],
+    },
+    leo: {
+      username:"leo", fullName:"Leo Chen", initials:"LC", loggedIn:true, locked:false,
+      spentToday:4920, spentWeek:24300, lockoutAction:"lock", sameEveryDay:false,
+      days: makeDays(5400, 450, 1290, 9000, 480, 1380),
+      todayLimitSec:5400, todayStartMin:450, todayEndMin:1290,
+      appLimits: {
+        enabled: true,
+        apps: [
+          { id:"steam", label:"Steam", cat:"Gaming", dailyLimit:3600, spentToday:3120, bonusToday:0, running:true },
+          { id:"discord", label:"Discord", cat:"Social", dailyLimit:2700, spentToday:1200, bonusToday:0, running:true },
+        ],
+      },
+      history7: [
+        { d:"Thu", act:90, pt:58 }, { d:"Fri", act:145, pt:90 }, { d:"Sat", act:150, pt:95 },
+        { d:"Sun", act:88, pt:55 }, { d:"Mon", act:85, pt:48 }, { d:"Tue", act:90, pt:60 }, { d:"Today", act:82, pt:72 },
+      ],
+    },
+    sam: {
+      username:"sam", fullName:"Sam Rivera", initials:"SR", loggedIn:false, locked:false,
+      spentToday:2400, spentWeek:18900, lockoutAction:"lock", sameEveryDay:true,
+      days: makeDays(7200, 480, 1320, 7200, 480, 1320),
+      todayLimitSec:7200, todayStartMin:480, todayEndMin:1320,
+      appLimits: { enabled:false, apps:[] },
+      history7: [
+        { d:"Thu", act:110, pt:0 }, { d:"Fri", act:120, pt:0 }, { d:"Sat", act:95, pt:0 },
+        { d:"Sun", act:80, pt:0 }, { d:"Mon", act:75, pt:0 }, { d:"Tue", act:90, pt:0 }, { d:"Today", act:40, pt:0 },
+      ],
+    },
+  },
+};
+
+let savedSnapshot = JSON.stringify({ users: state.users, settings: state.settings });
+
+function fmtMin(mins) {
+  const c = Math.max(0, Math.min(1440, Math.round(mins)));
+  return `${String(Math.floor(c/60)).padStart(2,"0")}:${String(c%60).padStart(2,"0")}`;
+}
+function fmtDur(sec) {
+  if (sec <= 0) return "0m";
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+  return h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
+}
+function timeLeftSec(u) { return Math.max(0, u.todayLimitSec - u.spentToday); }
+function todayCurfew(u) { return u.todayEndMin >= 1440 ? "None" : fmtMin(u.todayEndMin); }
+function currentUser() { return state.users[state.nav.startsWith("user:") ? state.nav.slice(5) : "maya"]; }
+function showToast(msg) {
+  const el = document.getElementById("snackbar");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(showToast._t); showToast._t = setTimeout(() => el.classList.remove("show"), 2600);
+}
+function markDirty(flag = true) { state.dirty = flag; document.getElementById("unsavedBar").classList.toggle("visible", flag); }
+function commitChanges() {
+  savedSnapshot = JSON.stringify({ users: state.users, settings: state.settings });
+  markDirty(false); render(); showToast("Changes saved");
+}
+function discardChanges() {
+  const r = JSON.parse(savedSnapshot); state.users = r.users; state.settings = r.settings;
+  markDirty(false); render(); showToast("Unsaved changes discarded");
+}
+function openModal(html) { document.getElementById("modalCard").innerHTML = html; document.getElementById("modalBg").classList.add("open"); }
+function closeModal() { document.getElementById("modalBg").classList.remove("open"); }
+
+function renderRing(u, size = 148) {
+  const left = timeLeftSec(u), lim = u.todayLimitSec, r = 58, c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(1, left / Math.max(1, lim)));
+  const col = left === 0 ? "var(--err)" : left <= 600 ? "var(--warn)" : "var(--p)";
+  return `<div class="ring-box" style="width:${size}px;height:${size}px">
+    <svg width="${size}" height="${size}" viewBox="0 0 148 148">
+      <circle cx="74" cy="74" r="${r}" fill="none" stroke="var(--s3)" stroke-width="11"/>
+      <circle cx="74" cy="74" r="${r}" fill="none" stroke="${col}" stroke-width="11" stroke-linecap="round"
+        stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-pct)).toFixed(1)}" transform="rotate(-90 74 74)"/>
+    </svg>
+    <div class="ring-center">
+      <div class="ring-main" style="color:${col}">${fmtDur(left)}</div>
+      <div class="ring-sub">left of ${fmtDur(lim)}</div>
+    </div>
+  </div>`;
+}
+
+function renderUsageChart(u) {
+  const rows = state.historySpan === 7 ? u.history7 : [
+    ...u.history7.map((x, i) => ({ d:`W${i+1}`, act:Math.round(x.act*.92), pt:Math.round(x.pt*.85) })), ...u.history7
+  ];
+  const maxVal = Math.max(90, ...rows.map(r => r.act));
+  const w = 640, h = 158, padL = 32, padB = 26, padT = 12, cw = w - padL - 8, ch = h - padB - padT;
+  const step = cw / rows.length, bw = Math.min(34, step * .52);
+  const bars = rows.map((row, idx) => {
+    const x = padL + idx * step + (step - bw) / 2;
+    const bh = Math.max(4, (row.act / maxVal) * ch), y = padT + ch - bh;
+    const pth = Math.min(bh, (row.pt / maxVal) * ch), pty = padT + ch - pth;
+    return `<g><title>${row.d}: ${row.act}m total (${row.pt}m App Limits)</title>
+      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="6" fill="var(--p)" opacity=".78"/>
+      ${row.pt > 0 ? `<rect x="${(x+3).toFixed(1)}" y="${pty.toFixed(1)}" width="${Math.max(4,bw-6).toFixed(1)}" height="${pth.toFixed(1)}" rx="4" fill="var(--on-pc)" opacity=".5"/>` : ""}
+      <text x="${(x+bw/2).toFixed(1)}" y="${h-7}" text-anchor="middle" fill="var(--fg-muted)" font-size="10.5" font-family="var(--font-mono)">${row.d}</text>
+    </g>`;
+  }).join("");
+  return `<svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <line x1="${padL}" y1="${padT}" x2="${w-8}" y2="${padT}" stroke="var(--out-var)" stroke-dasharray="3 4"/>
+    <line x1="${padL}" y1="${padT+ch/2}" x2="${w-8}" y2="${padT+ch/2}" stroke="var(--out-var)" stroke-dasharray="3 4"/>
+    <line x1="${padL}" y1="${padT+ch}" x2="${w-8}" y2="${padT+ch}" stroke="var(--out-var)"/>
+    <text x="2" y="${padT+4}" fill="var(--fg-muted)" font-size="10" font-family="var(--font-mono)">${maxVal}m</text>
+    <text x="2" y="${padT+ch/2+4}" fill="var(--fg-muted)" font-size="10" font-family="var(--font-mono)">${Math.round(maxVal/2)}m</text>
+    ${bars}
+  </svg>`;
+}
+
+function renderWindowBar(key, startMin, endMin, { editable = false, showNow = false, compact = false, showTicks = true } = {}) {
+  const sp = (startMin / 1440) * 100, ep = (endMin / 1440) * 100, wp = Math.max(0, ep - sp);
+  const nowPct = (18.35 / 24) * 100;
+  const handles = editable ? `
+    <button type="button" class="timeline-handle" data-edge="start" style="left:${sp}%" aria-label="Adjust start time">
+      <span class="handle-tip">${fmtMin(startMin)}</span>
+    </button>
+    <button type="button" class="timeline-handle" data-edge="end" style="left:${ep}%" aria-label="Adjust end time">
+      <span class="handle-tip">${fmtMin(endMin)}</span>
+    </button>` : "";
+  return `<div>
+    <div class="timeline-bar ${editable ? "editable" : ""} ${compact ? "compact" : ""}" ${editable ? `data-winbar="${key}"` : ""}>
+      <div class="timeline-track"><div class="timeline-seg" style="left:${sp}%;width:${wp}%"></div></div>
+      ${showNow ? `<div class="timeline-needle" style="left:${nowPct}%" title="Current time (18:21)"></div>` : ""}
+      ${handles}
+    </div>
+    ${showTicks ? `<div class="timeline-ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>` : ""}
+  </div>`;
+}
+
+function renderOverviewTab(u) {
+  const left = timeLeftSec(u);
+  const leftCls = left === 0 ? "err" : left <= 600 ? "warn" : "primary";
+  const alertPill = u.locked ? `<span class="pill p-err">Screen Locked</span>`
+    : !u.loggedIn ? `<span class="pill p-muted">Offline</span>` : "";
+
+  return `<div class="card">
+    <div class="card-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <h3 class="card-title">Current Status</h3>
+        ${alertPill}
+      </div>
+      <button class="btn btn-danger btn-sm" id="btnLockModal">${ICONS.lock} Lock Now</button>
+    </div>
+
+    <div class="stat-pills">
+      <div class="stat-pill ${leftCls}" id="pillLeftBox">
+        <span class="stat-pill-lbl">Time Left Today</span>
+        <span class="stat-pill-val" id="pillLeftVal">${fmtDur(left)}</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-pill-lbl">Spent Today</span>
+        <span class="stat-pill-val">${fmtDur(u.spentToday)}</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-pill-lbl">Spent This Week</span>
+        <span class="stat-pill-val">${fmtDur(u.spentWeek)}</span>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <div class="sec-hdr">
+        <h4 class="sec-title">Today's Time and Schedule</h4>
+        <span class="card-sub">Now: 18:21</span>
+      </div>
+      <div class="day-row">
+        <div class="day-top">
+          <div class="day-hours-wrap">
+            <span class="day-hours-lbl">Time allowed today</span>
+            <input class="thin-slider" type="range" min="0" max="480" step="15" value="${Math.round(u.todayLimitSec/60)}" id="todayLimSlider" aria-label="Time allowed today"/>
+            <span class="day-hours-val" id="todayLimVal">${fmtDur(u.todayLimitSec)}</span>
+          </div>
+        </div>
+        ${renderWindowBar("today", u.todayStartMin, u.todayEndMin, { editable: true, showNow: true, compact: false, showTicks: true })}
+      </div>
+    </div>
+
+    <div class="card-section">
+      <div class="sec-hdr">
+        <h4 class="sec-title">Screen-Time & App Limits History</h4>
+        <div class="segmented">
+          <button class="seg-btn ${state.historySpan===7?"active":""}" data-hspan="7">7 Days</button>
+          <button class="seg-btn ${state.historySpan===14?"active":""}" data-hspan="14">14 Days</button>
+        </div>
+      </div>
+      ${renderUsageChart(u)}
+    </div>
+  </div>`;
+}
+
+function renderScheduleTab(u) {
+  const renderDayRow = (key, label, dObj, showTicks) => `
+    <div class="day-row">
+      <div class="day-top">
+        <div class="day-name">${label}</div>
+        <div class="day-hours-wrap">
+          <span class="day-hours-lbl">Daily time limit</span>
+          <input class="thin-slider" type="range" min="15" max="480" step="15" value="${Math.round(dObj.limit/60)}" data-daylim="${key}" aria-label="${label} daily time limit"/>
+          <span class="day-hours-val" data-daylimval="${key}">${fmtDur(dObj.limit)}</span>
+        </div>
+      </div>
+      ${renderWindowBar(key, dObj.startMin, dObj.endMin, { editable: true, showNow: false, compact: true, showTicks })}
+    </div>`;
+
+  const rowsHtml = u.sameEveryDay
+    ? renderDayRow("all", "Every Day", u.days.mon, true)
+    : DAYS.map((d, i) => renderDayRow(d, DAY_FULL[d], u.days[d], i === DAYS.length - 1)).join("");
+
+  return `<div class="card">
+    <div class="card-hdr">
+      <div><h3 class="card-title">Weekly Schedule</h3><div class="card-sub">Changes stay queued until you click Save so active users aren't interrupted mid-edit</div></div>
+      <label class="m3-check">
+        <input type="checkbox" id="chkSameAll" ${u.sameEveryDay ? "checked" : ""}/>
+        <span>Same schedule every day</span>
+      </label>
+    </div>
+    <div class="day-stack">
+      ${rowsHtml}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><h3 class="card-title">When Time Expires or Curfew Hits</h3><span class="card-sub">Open apps stay safe when locking the screen</span></div>
+    <div class="lockout-grid">
+      ${[["lock","Lock Screen","Locks the desktop without closing open games or homework"],
+         ["suspend","Lock & Suspend PC","Locks the screen and puts the computer to sleep"],
+         ["terminate","Log Out Session","Closes open apps and ends the session"]].map(([v,t,d]) =>
+        `<button class="lockout-opt ${u.lockoutAction===v?"active":""}" data-lockout="${v}"><div style="font-weight:600;margin-bottom:3px">${t}</div><div style="font-size:12px;opacity:.85">${d}</div></button>`).join("")}
+    </div>
+  </div>`;
+}
+
+function renderAppLimitsTab(u) {
+  const al = u.appLimits;
+  return `<div class="card">
+    <div class="card-hdr">
+      <div><h3 class="card-title">App Limits</h3><div class="card-sub">Set an individual daily time limit for each app or game — when one hits 0m, only that app closes</div></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="card-sub">${al.enabled ? "Active" : "Disabled"}</span>
+        <button class="m3-switch ${al.enabled?"on":""}" id="toggleApps" aria-label="Toggle App Limits"></button>
+      </div>
+    </div>
+    <div class="card-hdr" style="margin-bottom:12px">
+      <h4 class="card-title" style="font-size:14px">Tracked Applications (${al.apps.length})</h4>
+      <button class="btn btn-tonal btn-sm" id="btnAddApp">${ICONS.plus} Add App / Game</button>
+    </div>
+    <div class="app-list" style="${al.enabled?"":"opacity:.55"}">
+      ${al.apps.length ? al.apps.map((a, idx) => {
+        const allotted = a.dailyLimit + (a.bonusToday || 0);
+        const rem = Math.max(0, allotted - a.spentToday);
+        const pct = Math.min(100, Math.round((a.spentToday / Math.max(1, allotted)) * 100));
+        const col = rem === 0 ? "var(--err)" : rem <= 600 ? "var(--warn)" : "var(--p)";
+        const pCls = rem === 0 ? "p-err" : rem <= 600 ? "p-warn" : "p-ok";
+        return `<div class="app-card">
+          <div class="app-top">
+            <div>
+              <div style="font-weight:600;display:flex;align-items:center;gap:6px">${a.label} ${a.running ? `<span class="pill p-info">Running</span>` : ""}</div>
+              <div class="card-sub" style="font-size:12px">${a.cat}</div>
+            </div>
+            <span class="pill ${pCls}">${rem === 0 ? "Limit reached" : `${fmtDur(rem)} left`}</span>
+          </div>
+          <div class="app-prog"><div class="app-prog-fill" style="width:${pct}%;background:${col}"></div></div>
+          <div class="app-meta">
+            <span>Allotted: <strong>${fmtDur(allotted)}</strong>${a.bonusToday ? ` <span style="color:var(--ok)">(+${fmtDur(a.bonusToday)} bonus)</span>` : ""}</span>
+            <span>Used: <strong>${fmtDur(a.spentToday)}</strong> · Left: <strong>${fmtDur(rem)}</strong></span>
+          </div>
+          <div class="app-ctrl">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+              <span class="card-sub" style="white-space:nowrap">Daily limit</span>
+              <input class="slider" style="width:100%;max-width:130px" type="range" min="15" max="240" step="15" value="${Math.round(a.dailyLimit/60)}" data-applimit="${idx}" ${al.enabled?"":"disabled"}/>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <button class="btn btn-tonal btn-sm" data-appgrant="${idx}" ${al.enabled?"":"disabled"}>+15m</button>
+              <button class="btn btn-outlined btn-sm" data-rmapp="${idx}" title="Remove">${ICONS.trash}</button>
+            </div>
+          </div>
+        </div>`;
+      }).join("") : `<div class="card-sub">No limited apps configured yet. Click "Add App / Game" to pick an installed app and set its daily limit.</div>`}
+    </div>
+  </div>`;
+}
+
+function renderDoctorView() {
+  const checks = [
+    { name:"Background Service", ok:true, detail:"Screen-time monitoring service is running normally" },
+    { name:"Administrator Approval", ok:true, detail:"Changes require an administrator password" },
+    { name:"Lock-Screen Protection", ok:state.doctorFixed, detail:state.doctorFixed ? "Protected — standard users cannot turn off screen locking" : "Standard users can currently turn off screen lock in system settings" },
+    { name:"Fullscreen Game Locking", ok:true, detail:"Ready to lock over fullscreen games and desktop apps" },
+  ];
+  return `<div class="page-hdr">
+    <div><h1 class="page-title">System Health</h1><div class="page-sub">Quick checks to make sure limits and screen locking work reliably</div></div>
+    ${state.doctorFixed ? `<span class="pill p-ok">All Checks Passing</span>` : `<button class="btn btn-filled" id="btnDocFix">${ICONS.doctor} Protect Lock Screen</button>`}
+  </div>
+  <div class="card"><div class="check-list">${checks.map(c => `<div class="check-row">
+    <div><div style="font-weight:600;font-size:13.5px">${c.name}</div><div class="card-sub">${c.detail}</div></div>
+    <span class="pill ${c.ok?"p-ok":"p-warn"}">${c.ok?"OK":"Action Needed"}</span>
+  </div>`).join("")}</div></div>`;
+}
+
+function renderSettingsView() {
+  const s = state.settings, curAcc = document.documentElement.dataset.accent;
+  return `<div class="page-hdr"><div><h1 class="page-title">Settings</h1><div class="page-sub">Screen-lock behavior and appearance preferences</div></div></div>
+  <div class="grid-eq">
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <h3 class="card-title">Screen Locking</h3>
+      <div class="rule-row"><div><strong>Enhanced Screen Lock</strong><div class="card-sub">Uses extra fallback checks so the lock screen always engages</div></div><button class="m3-switch ${s.enhanced_lock?"on":""}" data-dbool="enhanced_lock"></button></div>
+      <div class="rule-row"><div><strong>Fullscreen Game Compatibility</strong><div class="card-sub">Safely releases fullscreen games before locking without closing them</div></div><button class="m3-switch ${s.fullscreen_game_compat?"on":""}" data-dbool="fullscreen_game_compat"></button></div>
+      <div class="rule-row"><div><strong>Final Warning Countdown</strong><div class="card-sub">Countdown alert shown right before the screen locks</div></div><span class="pill p-info">${s.final_countdown_sec}s</span></div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <h3 class="card-title">Appearance</h3>
+      <div class="rule-row"><div><strong>Color Mode</strong><div class="card-sub">Follows your system Light/Dark preference by default</div></div>
+        <div class="segmented">
+          <button class="seg-btn ${document.documentElement.dataset.theme==="light"?"active":""}" data-settheme="light">Light</button>
+          <button class="seg-btn ${document.documentElement.dataset.theme==="dark"?"active":""}" data-settheme="dark">Dark</button>
+        </div>
+      </div>
+      <div class="rule-row"><div><strong>Accent Color</strong><div class="card-sub">Choose your preferred highlight color</div></div>
+        <div style="display:flex;gap:8px">${[["indigo","#536dfe"],["emerald","#158f5e"],["slate","#3870a8"],["amber","#c27b0e"]].map(([k,hx]) =>
+          `<button class="swatch ${curAcc===k?"active":""}" data-accent="${k}" style="background:${hx};width:24px;height:24px"></button>`).join("")}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAdminShell() {
+  const u = currentUser();
+  const items = Object.values(state.users).map(usr => {
+    const active = state.nav === `user:${usr.username}`;
+    const left = timeLeftSec(usr);
+    const dot = !usr.loggedIn ? "dot-off" : usr.locked ? "dot-lock" : left <= 600 ? "dot-warn" : "dot-ok";
+    const rt = usr.locked ? "Locked" : fmtDur(left);
+    return `<button class="nav-item ${active?"active":""}" data-nav="user:${usr.username}">
+      <div class="avatar">${usr.initials}<span class="sdot ${dot}"></span></div>
+      <div class="nav-meta"><div class="nav-uname"><span>${usr.fullName}</span><span style="font-size:12px;font-family:var(--font-mono)" data-navleft="${usr.username}">${rt}</span></div><div class="nav-usub">@${usr.username} · ${usr.loggedIn ? "Signed in" : "Offline"}</div></div>
+    </button>`;
+  }).join("");
+
+  let content = state.nav === "doctor" ? renderDoctorView() : state.nav === "settings" ? renderSettingsView() : `
+    ${!state.doctorFixed && !state.bannerDismissed ? `<div class="doctor-banner">
+      <div class="doctor-left">${ICONS.warn}<div><div style="font-weight:700;font-size:13.5px">Lock-screen protection needed</div><div style="font-size:12.5px;opacity:.9">Standard users can currently turn off screen locking in system settings. Protect this setting with one click.</div></div></div>
+      <div style="display:flex;gap:8px;flex-shrink:0"><button class="btn btn-filled btn-sm" id="btnBanFix">Protect Now</button><button class="btn btn-outlined btn-sm" id="btnBanDismiss">Dismiss</button></div>
+    </div>` : ""}
+    <div class="page-hdr"><div>
+      <h1 class="page-title">${u.fullName} <span style="font-weight:500;font-size:16px;color:var(--fg-muted)">@${u.username}</span></h1>
+      <div class="page-sub">Daily allowance <span id="hdrLimit">${fmtDur(u.todayLimitSec)}</span> · Curfew <span id="hdrCurfew">${todayCurfew(u)}</span></div>
+    </div></div>
+    <div class="m3-tabs">
+      <button class="m3-tab ${state.userTab==="overview"?"active":""}" data-utab="overview">${ICONS.overview} Overview</button>
+      <button class="m3-tab ${state.userTab==="schedule"?"active":""}" data-utab="schedule">${ICONS.schedule} Schedule</button>
+      <button class="m3-tab ${state.userTab==="apps"?"active":""}" data-utab="apps">${ICONS.apps} App Limits</button>
+    </div>
+    ${state.userTab === "overview" ? renderOverviewTab(u) : state.userTab === "schedule" ? renderScheduleTab(u) : renderAppLimitsTab(u)}`;
+
+  return `<div class="app-shell">
+    <aside class="nav-drawer">
+      <div class="brand-row">${ICONS.brand}<div><div class="brand-title">curfewd</div><div class="brand-sub">Screen Time Control</div></div></div>
+      <div><div class="nav-sec">Users</div><div class="nav-list">${items}</div></div>
+      <div class="nav-spacer"></div><div class="nav-div"></div>
+      <div class="nav-list">
+        <button class="nav-item ${state.nav==="doctor"?"active":""}" data-nav="doctor">${ICONS.doctor}<span style="flex:1">System Health</span><span class="pill ${state.doctorFixed?"p-ok":"p-warn"}">${state.doctorFixed?"OK":"1"}</span></button>
+        <button class="nav-item ${state.nav==="settings"?"active":""}" data-nav="settings">${ICONS.settings}<span>Settings</span></button>
+      </div>
+    </aside>
+    <main class="main-pane">${content}</main>
+  </div>`;
+}
+
+function renderMyScreenTime() {
+  const u = state.users.maya;
+  const appRows = u.appLimits.enabled && u.appLimits.apps.length ? `<div>
+    <div class="card-sub" style="font-weight:600;margin-bottom:6px">My App Limits</div>
+    <div class="mini-app-list">${u.appLimits.apps.map(a => {
+      const allotted = a.dailyLimit + (a.bonusToday || 0), rem = Math.max(0, allotted - a.spentToday);
+      const pct = Math.min(100, Math.round((a.spentToday / Math.max(1, allotted)) * 100));
+      const col = rem === 0 ? "var(--err)" : rem <= 600 ? "var(--warn)" : "var(--p)";
+      return `<div class="mini-app-row">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><strong>${a.label}</strong><span style="font-family:var(--font-mono);font-size:12px"><strong>${fmtDur(rem)}</strong> left of ${fmtDur(allotted)}</span></div>
+        <div class="app-prog"><div class="app-prog-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div>`;
+    }).join("")}</div></div>` : "";
+
+  return `<div class="centered-view"><div class="my-card">
+    <div style="display:flex;align-items:center;gap:10px">${ICONS.brand}<div><div style="font-size:17px;font-weight:700">My Screen Time</div><div class="card-sub">Signed in as @${u.username}</div></div></div>
+    <div class="hero-wrap" style="justify-content:center;padding:4px 0">
+      ${renderRing(u, 152)}
+      <div class="hero-stats">
+        <div style="font-size:15px;font-weight:600">Good evening, Maya</div>
+        <div class="card-sub">Your screen locks automatically at <strong>${todayCurfew(u)}</strong> or when your daily allowance reaches 0m. Open apps stay saved!</div>
+        <div class="metric-grid">
+          <div class="metric-box"><div class="metric-lbl">Used Today</div><div class="metric-val">${fmtDur(u.spentToday)}</div></div>
+          <div class="metric-box"><div class="metric-lbl">Curfew</div><div class="metric-val">${todayCurfew(u)}</div></div>
+        </div>
+      </div>
+    </div>
+    <div><div class="card-sub" style="font-weight:600;margin-bottom:6px">Today's Allowed Hours</div>${renderWindowBar("my", u.todayStartMin, u.todayEndMin, { editable: false, showNow: true })}</div>
+    ${appRows}
+    <div><div class="card-sub" style="font-weight:600;margin-bottom:4px">My Past 7 Days</div>${renderUsageChart(u)}</div>
+  </div></div>`;
+}
+
+function renderAuthGate() {
+  return `<div class="centered-view"><div class="auth-card">
+    ${ICONS.shieldKey}
+    <h2 style="margin:4px 0 4px;font-size:20px">Authentication Required</h2>
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px">
+      <button class="btn btn-filled" id="btnAuth">Authenticate as Administrator</button>
+      <button class="btn btn-outlined" id="btnSelf">View My Own Screen Time (No Password)</button>
+    </div>
+  </div></div>`;
+}
+
+function render() {
+  const root = document.getElementById("root");
+  root.innerHTML = state.surface === "admin" ? renderAdminShell() : state.surface === "my_status" ? renderMyScreenTime() : renderAuthGate();
+  wireEvents();
+}
+
+function wireEvents() {
+  document.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => { state.nav = b.dataset.nav; render(); });
+  document.querySelectorAll("[data-utab]").forEach(b => b.onclick = () => { state.userTab = b.dataset.utab; render(); });
+  document.querySelectorAll("[data-hspan]").forEach(b => b.onclick = () => { state.historySpan = Number(b.dataset.hspan); render(); });
+
+  const u = currentUser();
+
+  // Today's Time Allowed thin slider on Current Status
+  const tLimSl = document.getElementById("todayLimSlider");
+  if (tLimSl) {
+    tLimSl.oninput = () => {
+      u.todayLimitSec = Number(tLimSl.value) * 60;
+      const left = timeLeftSec(u);
+      const tv = document.getElementById("todayLimVal"); if (tv) tv.textContent = fmtDur(u.todayLimitSec);
+      const pv = document.getElementById("pillLeftVal"); if (pv) pv.textContent = fmtDur(left);
+      const pb = document.getElementById("pillLeftBox");
+      if (pb) pb.className = `stat-pill ${left === 0 ? "err" : left <= 600 ? "warn" : "primary"}`;
+      const hl = document.getElementById("hdrLimit"); if (hl) hl.textContent = fmtDur(u.todayLimitSec);
+      const nl = document.querySelector(`[data-navleft="${u.username}"]`);
+      if (nl && !u.locked) nl.textContent = fmtDur(left);
+      markDirty(true);
+    };
+  }
+
+  const btnLock = document.getElementById("btnLockModal");
+  if (btnLock) btnLock.onclick = () => {
+    openModal(`<h3 style="margin:0">Lock ${u.fullName}'s screen now?</h3>
+      <div class="card-sub">Locks the screen immediately without closing open apps.</div>
+      <div class="modal-acts"><button class="btn btn-outlined btn-sm" onclick="closeModal()">Cancel</button><button class="btn btn-danger btn-sm" id="okLock">${ICONS.lock} Lock Screen</button></div>`);
+    document.getElementById("okLock").onclick = () => {
+      u.locked = true;
+      savedSnapshot = JSON.stringify({ users: state.users, settings: state.settings });
+      closeModal(); render(); showToast(`Locked ${u.fullName}'s screen`);
+    };
+  };
+
+  // Same-every-day checkbox
+  const chkSame = document.getElementById("chkSameAll");
+  if (chkSame) {
+    chkSame.onchange = () => {
+      u.sameEveryDay = chkSame.checked;
+      if (u.sameEveryDay) {
+        const ref = { ...u.days.mon };
+        DAYS.forEach(d => { u.days[d] = { ...ref }; });
+        u.todayLimitSec = ref.limit; u.todayStartMin = ref.startMin; u.todayEndMin = ref.endMin;
+        markDirty(true);
+      }
+      render();
+    };
+  }
+
+  // Thin per-day daily-time-limit sliders
+  document.querySelectorAll("[data-daylim]").forEach(sl => {
+    const key = sl.dataset.daylim;
+    sl.oninput = () => {
+      const sec = Number(sl.value) * 60;
+      if (key === "all") { DAYS.forEach(d => { u.days[d].limit = sec; }); u.todayLimitSec = sec; }
+      else { u.days[key].limit = sec; if (key === TODAY_KEY) u.todayLimitSec = sec; }
+      const valEl = document.querySelector(`[data-daylimval="${key}"]`);
+      if (valEl) valEl.textContent = fmtDur(sec);
+      const hdrLim = document.getElementById("hdrLimit");
+      if (hdrLim) hdrLim.textContent = fmtDur(u.todayLimitSec);
+      const nl = document.querySelector(`[data-navleft="${u.username}"]`);
+      if (nl && !u.locked) nl.textContent = fmtDur(timeLeftSec(u));
+      markDirty(true);
+    };
+  });
+
+  // Shared draggable 24h allowed-window bars (Overview Today + Schedule per-day / Every Day)
+  document.querySelectorAll("[data-winbar]").forEach(bar => {
+    const key = bar.dataset.winbar;
+    const seg = bar.querySelector(".timeline-seg");
+    const hdrCurfew = document.getElementById("hdrCurfew");
+    const getRange = () => key === "today" ? { startMin: u.todayStartMin, endMin: u.todayEndMin }
+      : key === "all" ? u.days.mon : u.days[key];
+    const setRange = (s, e) => {
+      if (key === "today") {
+        u.todayStartMin = s; u.todayEndMin = e;
+      } else if (key === "all") {
+        DAYS.forEach(d => { u.days[d].startMin = s; u.days[d].endMin = e; });
+        u.todayStartMin = s; u.todayEndMin = e;
+      } else {
+        u.days[key].startMin = s; u.days[key].endMin = e;
+        if (key === TODAY_KEY) { u.todayStartMin = s; u.todayEndMin = e; }
+      }
+    };
+    const syncUI = () => {
+      const { startMin, endMin } = getRange();
+      const sp = (startMin / 1440) * 100, ep = (endMin / 1440) * 100;
+      seg.style.left = `${sp}%`; seg.style.width = `${Math.max(0, ep - sp)}%`;
+      const lh = bar.querySelector('[data-edge="start"]'), rh = bar.querySelector('[data-edge="end"]');
+      lh.style.left = `${sp}%`; lh.querySelector(".handle-tip").textContent = fmtMin(startMin);
+      rh.style.left = `${ep}%`; rh.querySelector(".handle-tip").textContent = fmtMin(endMin);
+      if (hdrCurfew) hdrCurfew.textContent = todayCurfew(u);
+    };
+    const setEdge = (edge, raw) => {
+      const sn = Math.round(raw / 15) * 15;
+      const cur = getRange();
+      const s = edge === "start" ? Math.max(0, Math.min(cur.endMin - 60, sn)) : cur.startMin;
+      const e = edge === "end" ? Math.max(cur.startMin + 60, Math.min(1440, sn)) : cur.endMin;
+      setRange(s, e);
+      syncUI(); markDirty(true);
+    };
+    bar.querySelectorAll(".timeline-handle").forEach(h => {
+      const edge = h.dataset.edge;
+      h.onpointerdown = (e) => {
+        e.preventDefault(); h.setPointerCapture(e.pointerId); h.classList.add("dragging");
+        const mv = (ev) => { const r = bar.getBoundingClientRect(); setEdge(edge, Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * 1440); };
+        const up = () => { h.classList.remove("dragging"); h.removeEventListener("pointermove", mv); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up); };
+        h.addEventListener("pointermove", mv); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
+      };
+      h.onkeydown = (e) => {
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault();
+          const cur = getRange();
+          setEdge(edge, (edge === "start" ? cur.startMin : cur.endMin) + (e.key === "ArrowRight" ? 15 : -15));
+        }
+      };
+    });
+  });
+
+  document.querySelectorAll("[data-lockout]").forEach(b => b.onclick = () => { u.lockoutAction = b.dataset.lockout; markDirty(true); render(); });
+
+  // App Limits controls
+  const tog = document.getElementById("toggleApps"); if (tog) tog.onclick = () => { u.appLimits.enabled = !u.appLimits.enabled; markDirty(true); render(); };
+  document.querySelectorAll("[data-applimit]").forEach(s => s.oninput = () => { u.appLimits.apps[Number(s.dataset.applimit)].dailyLimit = Number(s.value)*60; markDirty(true); render(); });
+  document.querySelectorAll("[data-appgrant]").forEach(b => b.onclick = () => {
+    const a = u.appLimits.apps[Number(b.dataset.appgrant)]; a.bonusToday = (a.bonusToday || 0) + 900;
+    savedSnapshot = JSON.stringify({ users: state.users, settings: state.settings });
+    render(); showToast(`+15m added for ${a.label} today`);
+  });
+  document.querySelectorAll("[data-rmapp]").forEach(b => b.onclick = () => { u.appLimits.apps.splice(Number(b.dataset.rmapp), 1); markDirty(true); render(); });
+  const btnAdd = document.getElementById("btnAddApp");
+  if (btnAdd) btnAdd.onclick = () => {
+    openModal(`<h3 style="margin:0">Add App / Game Limit</h3>
+      <div class="card-sub">Choose a daily time limit and pick an installed app.</div>
+      <div class="rule-row"><label class="card-sub" for="newAppLim">Daily time limit</label>
+        <select class="text-in" id="newAppLim" style="width:auto">
+          <option value="900">15m / day</option><option value="1800">30m / day</option><option value="2700" selected>45m / day</option>
+          <option value="3600">1h / day</option><option value="5400">1h 30m / day</option><option value="7200">2h / day</option>
+        </select></div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:230px;overflow-y:auto">
+        ${INSTALLED_APPS.map((a, i) => `<button class="pick-row" data-pickapp="${i}"><span><strong>${a.label}</strong></span><span class="pick-cat">${a.cat}</span></button>`).join("")}
+      </div>
+      <div class="modal-acts"><button class="btn btn-outlined btn-sm" onclick="closeModal()">Close</button></div>`);
+    document.querySelectorAll("[data-pickapp]").forEach(b => b.onclick = () => {
+      const a = INSTALLED_APPS[Number(b.dataset.pickapp)], lim = Number(document.getElementById("newAppLim").value || 2700);
+      if (!u.appLimits.apps.some(x => x.id === a.id)) {
+        u.appLimits.apps.push({ id:a.id, label:a.label, cat:a.cat, dailyLimit:lim, spentToday:0, bonusToday:0, running:false });
+        markDirty(true);
+      }
+      closeModal(); render(); showToast(`Added ${a.label} (${fmtDur(lim)}/day)`);
+    });
+  };
+
+  // Health, Settings, Auth
+  const fix = () => { state.doctorFixed = true; render(); showToast("Lock-screen protection enabled"); };
+  const b1 = document.getElementById("btnBanFix"); if (b1) b1.onclick = fix;
+  const b2 = document.getElementById("btnDocFix"); if (b2) b2.onclick = fix;
+  const bd = document.getElementById("btnBanDismiss"); if (bd) bd.onclick = () => { state.bannerDismissed = true; render(); };
+  document.querySelectorAll("[data-dbool]").forEach(b => b.onclick = () => { state.settings[b.dataset.dbool] = !state.settings[b.dataset.dbool]; markDirty(true); render(); });
+  document.querySelectorAll("[data-settheme]").forEach(b => b.onclick = () => setTheme(b.dataset.settheme));
+  document.querySelectorAll(".card [data-accent]").forEach(b => b.onclick = () => setAccent(b.dataset.accent));
+  const ba = document.getElementById("btnAuth"); if (ba) ba.onclick = () => { setSurface("admin"); showToast("Signed in as Administrator"); };
+  const bs = document.getElementById("btnSelf"); if (bs) bs.onclick = () => setSurface("my_status");
+}
+
+function setSurface(s) { state.surface = s; document.querySelectorAll("[data-surface]").forEach(b => b.classList.toggle("active", b.dataset.surface === s)); render(); }
+function setTheme(t) { document.documentElement.dataset.theme = t; document.getElementById("themeToggle").textContent = t === "dark" ? "Dark" : "Light"; render(); }
+function setAccent(a) { document.documentElement.dataset.accent = a; document.querySelectorAll(".swatch").forEach(b => b.classList.toggle("active", b.dataset.accent === a)); render(); }
+
+document.querySelectorAll("[data-surface]").forEach(b => b.onclick = () => setSurface(b.dataset.surface));
+document.getElementById("themeToggle").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+document.querySelectorAll(".proto-bar .swatch").forEach(b => b.onclick = () => setAccent(b.dataset.accent));
+document.getElementById("btnSave").onclick = commitChanges;
+document.getElementById("btnDiscard").onclick = discardChanges;
+document.getElementById("modalBg").onclick = (e) => { if (e.target.id === "modalBg") closeModal(); };
+render();
+</script>
+</body>
+</html>
