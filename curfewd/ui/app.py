@@ -25,6 +25,7 @@ _ALLOWED_ASSETS: dict[str, str] = {
     "/js/rpc.js": "js/rpc.js",
     "/js/state.js": "js/state.js",
     "/js/views.js": "js/views.js",
+    "/js/views_schedule.js": "js/views_schedule.js",
     "/js/events.js": "js/events.js",
 }
 
@@ -35,6 +36,7 @@ _MIME_TYPES: dict[str, str] = {
     "js/rpc.js": "application/javascript; charset=utf-8",
     "js/state.js": "application/javascript; charset=utf-8",
     "js/views.js": "application/javascript; charset=utf-8",
+    "js/views_schedule.js": "application/javascript; charset=utf-8",
     "js/events.js": "application/javascript; charset=utf-8",
 }
 
@@ -108,7 +110,11 @@ class _RPCWorker:
                 if item is None:
                     break
                 req_id, action, params = item
-                result = bridge.handle(action, params)
+                try:
+                    result = bridge.handle(action, params)
+                except Exception as exc:
+                    logger.exception("Unexpected error in UI RPC worker for action %s", action)
+                    result = {"ok": False, "code": "error", "message": str(exc)}
                 self._on_response(req_id, result)
         finally:
             with suppress(Exception):
@@ -165,9 +171,25 @@ def _extract_js_message(gtk_major: int, payload) -> str:
     return str(payload)
 
 
-def _configure_webview(gtk_major: int, WebKit, web_dir: str, Gio, GLib, on_rpc_message):
+def _register_uri_scheme_once(WebKit, web_dir: str, Gio, GLib, registered_flag: list[bool]) -> None:
+    if registered_flag[0]:
+        return
     context = WebKit.WebContext.get_default()
     context.register_uri_scheme("curfewd", _build_uri_scheme_handler(web_dir, Gio, GLib))
+    registered_flag[0] = True
+
+
+def _configure_webview(
+    gtk_major: int,
+    WebKit,
+    web_dir: str,
+    Gio,
+    GLib,
+    on_rpc_message,
+    registered_flag: list[bool] | None = None,
+):
+    flag = registered_flag if registered_flag is not None else [False]
+    _register_uri_scheme_once(WebKit, web_dir, Gio, GLib, flag)
 
     ucm = WebKit.UserContentManager()
     if gtk_major == 4:
@@ -219,8 +241,9 @@ def _attach_live_signals(session_bus: bool, GLib, push_event) -> None:
     """Subscribe to org.curfewd.Daemon1.Events on the GLib main loop for live updates."""
     try:
         import dbus
-        from dbus.mainloop.glib import DBusGMainLoop
+        from dbus.mainloop.glib import DBusGMainLoop, threads_init
 
+        threads_init()
         DBusGMainLoop(set_as_default=True)
         bus = dbus.SessionBus() if session_bus else dbus.SystemBus()
         client = CurfewClient(bus=bus)
@@ -232,7 +255,15 @@ def _attach_live_signals(session_bus: bool, GLib, push_event) -> None:
                 return
             GLib.idle_add(push_event, "user_status", {"username": str(username), "status": status})
 
+        def _on_request(username: str, req_json: str) -> None:
+            try:
+                req = json.loads(str(req_json))
+            except ValueError:
+                return
+            GLib.idle_add(push_event, "time_request", {"username": str(username), "request": req})
+
         client.subscribe_signal("UserStatusChanged", _on_status)
+        client.subscribe_signal("TimeRequestUpdated", _on_request)
     except Exception as exc:
         logger.debug("Live D-Bus signal subscription unavailable: %s", exc)
 
@@ -243,6 +274,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--my-status", action="store_true", help="Open directly in passwordless My Screen Time view"
+    )
+    parser.add_argument(
+        "--ask-time", action="store_true", help="Open Ask for More Time dialog in My Screen Time"
     )
     parser.add_argument(
         "--session-bus", action="store_true", help="Connect to session D-Bus (development/testing)"
@@ -261,12 +295,15 @@ def main(argv: list[str] | None = None) -> int:
         sys.stderr.write(f"curfewd-ui: {exc}\n")
         return 1
 
-    mode = "my_status" if args.my_status else "admin"
-    title = "curfewd — My Screen Time" if args.my_status else "curfewd — Screen Time Control"
-    width, height = (600, 760) if args.my_status else (1120, 760)
-    start_uri = f"curfewd://app/index.html?mode={mode}"
+    my_mode = bool(args.my_status or args.ask_time)
+    mode = "my_status" if my_mode else "admin"
+    title = "curfewd — My Screen Time" if my_mode else "curfewd — Screen Time Control"
+    width, height = (620, 780) if my_mode else (1160, 790)
+    ask_q = "&ask=1" if args.ask_time else ""
+    start_uri = f"curfewd://app/index.html?mode={mode}{ask_q}"
 
-    webview_ref: dict[str, Any] = {"view": None}
+    webview_ref: dict[str, Any] = {"view": None, "win": None}
+    scheme_registered = [False]
 
     def _deliver_response(req_id: str, payload: dict[str, Any]) -> None:
         js = f"window.__curfewdResolve && window.__curfewdResolve({json.dumps(req_id)}, {json.dumps(payload)});"
@@ -301,24 +338,60 @@ def main(argv: list[str] | None = None) -> int:
     _attach_live_signals(bool(args.session_bus), GLib, _push_event)
 
     if gtk_major == 4:
-        app_id = "org.curfewd.curfewd.mystatus" if args.my_status else "org.curfewd.curfewd"
-        app = Gtk.Application(application_id=app_id)
+        app_id = "org.curfewd.curfewd.mystatus" if my_mode else "org.curfewd.curfewd"
+        app = Gtk.Application(
+            application_id=app_id,
+            flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
+        )
 
-        def _on_activate(gtk_app) -> None:
+        def _show_or_create_window(gtk_app, open_ask: bool = False) -> None:
+            existing_win = webview_ref.get("win")
+            existing_wv = webview_ref.get("view")
+            if existing_win is not None and existing_wv is not None:
+                existing_win.present()
+                if open_ask:
+                    _eval_js(
+                        existing_wv,
+                        4,
+                        "window.CurfewUI && window.CurfewUI.openAskTimeModal && window.CurfewUI.openAskTimeModal();",
+                    )
+                return
+
             win = Gtk.ApplicationWindow(application=gtk_app)
             win.set_title(title)
             win.set_default_size(width, height)
             win.set_icon_name("curfewd")
-            wv = _configure_webview(4, WebKit, web_dir, Gio, GLib, _on_rpc_message)
+            wv = _configure_webview(
+                4, WebKit, web_dir, Gio, GLib, _on_rpc_message, scheme_registered
+            )
             webview_ref["view"] = wv
+            webview_ref["win"] = win
+
+            def _on_destroy(*_a) -> None:
+                webview_ref["view"] = None
+                webview_ref["win"] = None
+
+            win.connect("destroy", _on_destroy)
             win.set_child(wv)
-            wv.load_uri(start_uri)
+            uri = f"curfewd://app/index.html?mode={mode}" + ("&ask=1" if open_ask else "")
+            wv.load_uri(uri)
             win.present()
 
+        def _on_activate(gtk_app) -> None:
+            _show_or_create_window(gtk_app, open_ask=bool(args.ask_time))
+
+        def _on_command_line(gtk_app, cmdline) -> int:
+            raw_args = list(cmdline.get_arguments() or [])
+            open_ask = "--ask-time" in raw_args
+            _show_or_create_window(gtk_app, open_ask=open_ask)
+            return 0
+
         app.connect("activate", _on_activate)
+        app.connect("command-line", _on_command_line)
         signal.signal(signal.SIGINT, lambda *_a: app.quit())
+        fwd_argv = ["curfewd-ui"] + (["--ask-time"] if args.ask_time else [])
         try:
-            return int(app.run([]))
+            return int(app.run(fwd_argv))
         finally:
             worker.stop()
 
@@ -326,10 +399,17 @@ def main(argv: list[str] | None = None) -> int:
     win = Gtk.Window(title=title)
     win.set_default_size(width, height)
     win.set_icon_name("curfewd")
-    wv = _configure_webview(3, WebKit, web_dir, Gio, GLib, _on_rpc_message)
+    wv = _configure_webview(3, WebKit, web_dir, Gio, GLib, _on_rpc_message, scheme_registered)
     webview_ref["view"] = wv
+    webview_ref["win"] = win
     win.add(wv)
-    win.connect("destroy", Gtk.main_quit)
+
+    def _on_gtk3_destroy(*_a) -> None:
+        webview_ref["view"] = None
+        webview_ref["win"] = None
+        Gtk.main_quit()
+
+    win.connect("destroy", _on_gtk3_destroy)
     signal.signal(signal.SIGINT, lambda *_a: Gtk.main_quit())
     wv.load_uri(start_uri)
     win.show_all()

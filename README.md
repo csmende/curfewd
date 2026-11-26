@@ -11,16 +11,14 @@
 
 ---
 
-## Key Capabilities (`v1.2.0`)
+## Key Capabilities (`v2.0.0`)
 
-- **Native Unprivileged Material Design 3 UI (`curfewd-ui`):** WebKitGTK desktop app (GTK4/WebKit 6.0 with automatic GTK3/WebKit2 4.1 fallback) over a 100% offline `curfewd://` scheme and Polkit D-Bus bridge, plus a passwordless **My Screen Time** self-view (`curfewd-ui --my-status`).
-- **Verified Multi-DE Screen Locking:** 3-layer lock enforcement (`systemd-logind` → DE session D-Bus/CLI across Cinnamon, XFCE, MATE, GNOME, and KDE → active verification) that reliably wakes `cinnamon-screensaver` even after its 30-second inactivity exit.
-- **Fullscreen X11 Game Grab Release:** Non-destructive staged grab release (`XF86Ungrab` → unfullscreen/minimize) and retry so Steam/Proton, SDL2, Minecraft, and Roblox (Sober) cannot silently block screen locks.
-- **Individual Per-App Daily Limits (`app-limits`):** Per-app daily timers, installed `.desktop` / Flatpak / Steam app picker, instant `+15m` per-app bonuses, and isolated per-app termination when an app hits `0m`.
-- **Today-Only Overrides (`Today's Time and Schedule`):** Adjust today's allowance or allowed hours without editing the recurring weekly schedule; resets automatically at local midnight.
-- **Polkit-Authorized Async D-Bus Control Plane (`org.curfewd.Daemon1`):** Fine-grained Polkit actions (`org.curfewd.read`, `org.curfewd.manage`, `org.curfewd.lock`), non-blocking async worker pool for lock/doctor RPCs, live daemon config reload, strict D-Bus **sender-UID binding** on client methods, atomic schema-v2 JSON storage (`/etc/curfewd`, `/var/lib/curfewd`), and SQLite WAL usage history & audit logs.
-- **Modern CLI & Tray Companion:** Scriptable `curfewctl` with human durations (`+30m`, `08:00-22:00`) and global `--json`, plus a lean, auto-reconnecting `curfewd-tray` (`NameOwnerChanged` recovery) with Material Design 3 Twilight Guard status icons.
-- **1-Click Lock-Screen Protection & Hardening:** Built-in `curfewctl doctor --fix` (and 1-click UI button) root-locks desktop screensaver settings via `dconf`; hardened `curfewd.service` (`ProtectSystem=strict`, `PrivateTmp=yes`); `0` Ruff/Mypy/Bandit/ShellCheck findings and continuous GitHub CodeQL scanning.
+- **Native Unprivileged Material Design 3 UI (`curfewd-ui`):** WebKitGTK desktop app (GTK4/WebKit 6.0 with automatic GTK3/WebKit2 4.1 fallback) over a 100% offline `curfewd://` scheme with a 60-second First-Run Setup Wizard, surgical live DOM updates, 1-click `+15m`/`+30m`/bonus-note grants, Pause/Resume, Homework Mode, 3-way multi-window schedules, Holidays, Top Apps Insights, Activity Timeline, and a passwordless **My Screen Time** kid self-view (`curfewd-ui --my-status`).
+- **Ask for More Time & Offline Parent Access Code:** Kids can request extra daily or app time right from the tray or `My Screen Time`; parents approve in-app, via a **100% offline 6-digit TOTP Parent Access Code** (scannable SVG QR code in Settings—never typing `sudo` passwords in front of kids), or via a single-use non-cached Polkit action (`org.curfewd.quick_grant`).
+- **Fair, Anti-Rage Enforcement:** Advance per-app & category warnings (`10m`/`5m`/`1m`), automatic idle pause (`logind IdleHint`), soft audio chimes & a non-focus-stealing 60s corner Countdown HUD for fullscreen games, one-time-per-day **2-Minute Save Grace**, **Homework Mode**, and informative lock-screen away messages.
+- **Smart App Limits & Passive Usage Insights:** Individual per-app limits (`0m` Always Blocked up to `4h`, weekday/weekend caps, foreground-only & study-allowed flags), shared **Category Budgets** (e.g., *All Gaming: 1h*), Flatpak cgroup / Steam `SteamAppId` / process-ancestry matching, target-user app picker, and **Top Apps Used** SQLite insights with 1-click *Set Limit*.
+- **Verified Multi-DE Screen Locking & Hardening:** 3-layer lock enforcement (`systemd-logind` → DE session D-Bus/CLI across Cinnamon, XFCE, MATE, GNOME, and KDE → active verification) with staged X11 fullscreen grab release, `TestLock` verification, Wayland-aware `curfewctl doctor`, and 1-click lock-screen hardening across `dconf`, KDE Plasma Kiosk, and XFCE.
+- **Hardened Async Control Plane & Modern CLI:** Polkit-authorized `org.curfewd.Daemon1` D-Bus API, atomic schema-v3 JSON storage (lossless forward-migration from v1/v2), SQLite WAL history/insights/requests, scriptable `curfewctl --json`, and self-healing `curfewd-tray` (`curfewd-tray.service` + autostart).
 
 ### Specifications
 - **Spec 001 (`v0.6.0`, Implemented):** [Multi-DE Screen Locking & X11 Fullscreen Grab Release](docs/specs/001-multi-de-screen-locking.md)
@@ -28,6 +26,7 @@
 - **Spec 003 (`v1.0.0`, Implemented):** [Native Material Design 3 Desktop UI (`curfewd-ui`) & Per-App Limits](docs/specs/003-material-design-ui.md)
 - **Spec 004 (`v1.1.0`, Implemented):** [Complete `curfewd` Rebrand, Legacy Cleanup & Schema v2 (`app_limits`)](docs/specs/004-rebrand-and-app-limits-schema.md)
 - **Spec 005 (`v1.2.0`, Implemented):** [Architectural Modularization, Async Admin RPCs & Single-Pass Enforcement Runtime](docs/specs/005-architecture-refactor-and-async-daemon.md)
+- **Spec 006 (`v2.0.0`, Implemented):** [Family Ergonomics, Fair Enforcement & App Intelligence](docs/specs/006-family-ergonomics-and-app-intelligence.md)
 
 ---
 
@@ -36,31 +35,32 @@
 Download the latest `.deb` from [GitHub Releases](https://github.com/csmende/curfewd/releases):
 
 ```bash
-curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/curfewd_1.2.0_all.deb
+curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/curfewd_2.0.0_all.deb
 curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/SHA256SUMS
 sha256sum -c SHA256SUMS
-sudo apt install -y ./curfewd_1.2.0_all.deb
+sudo apt install -y ./curfewd_2.0.0_all.deb
 ```
 
-> **Desktop UI Runtime:** `curfewd` recommends `gir1.2-webkit-6.0 | gir1.2-webkit2-4.1` so `apt install ./curfewd_1.2.0_all.deb` automatically installs WebKitGTK on desktop systems while staying lightweight on headless hosts.
+> **Desktop UI Runtime:** `curfewd` recommends `gir1.2-webkit-6.0 | gir1.2-webkit2-4.1` so `apt install ./curfewd_2.0.0_all.deb` automatically installs WebKitGTK on desktop systems while staying lightweight on headless hosts.
 >
-> **Upgrading from `curfewd 0.7.x`–`1.0.x`?** Existing schema v1 JSON policies/configs and SQLite usage history (`history.db`) automatically forward-migrate to schema v2 (`app_limits`) without data loss.
+> **Upgrading from `curfewd 0.7.x`–`1.2.x`?** Existing schema v1/v2 JSON policies/configs and SQLite usage history (`history.db`) automatically forward-migrate to schema v3 without data loss, and configured installs skip the First-Run Setup Wizard automatically.
 
 ### Launch the Desktop UI
 
 - Open **curfewd** from your desktop application menu, or run:
   ```bash
-  curfewd-ui               # Admin Control Center (Polkit-authenticated)
-  curfewd-ui --my-status   # Passwordless My Screen Time view for current user
+  curfewd-ui                       # Admin Control Center (Polkit-authenticated)
+  curfewd-ui --my-status           # Passwordless My Screen Time view for current user
+  curfewd-ui --my-status --ask-time # Open Ask for More Time dialog directly
   ```
 
 ### Verify & Harden Host
 
 ```bash
-# Check daemon, D-Bus, Polkit, dconf lock policy, and helper binaries
+# Check daemon, D-Bus, Polkit, multi-DE lock policy, Wayland/X11 sessions, and helper binaries
 sudo curfewctl doctor
 
-# Root-lock desktop screensaver settings (also available as a 1-click button in System Health)
+# Root-lock desktop screensaver settings (dconf + KDE Kiosk + XFCE; also 1-click in System Health)
 sudo curfewctl doctor --fix
 ```
 
@@ -75,40 +75,33 @@ Every subcommand supports `--json` for scripts, dashboards, and automation:
 sudo curfewctl status
 sudo curfewctl status alice --json
 
-# Set weekly limits & curfew windows with human-readable syntax
-sudo curfewctl limit alice 1h30m --days mon-fri
+# Set weekly limits, split windows, holidays, and roles
+sudo curfewctl role alice child
+sudo curfewctl limit alice 1h30m --days mon-fri --week 12h
 sudo curfewctl limit alice 2h30m --days sat,sun
-sudo curfewctl window alice 08:00-21:00 --days sun-thu
-sudo curfewctl window alice 08:00-22:30 --days fri,sat
-sudo curfewctl lockout alice lock
+sudo curfewctl window alice 07:00-08:00,15:30-21:00 --days mon-fri
+sudo curfewctl holiday alice add 2026-12-21 2027-01-03 --mode weekend --label "Winter Break"
 
-# Override today's allowance or allowed window without altering the weekly schedule
+# Tactical controls: bonus time with chore note, Today overrides, Pause & Homework Mode
+sudo curfewctl grant alice +30m --note "Cleaned room"
 sudo curfewctl today alice --limit 2h --window 08:00-22:30
-sudo curfewctl today alice --reset
+sudo curfewctl pause alice --for 2h --reason "family movie"
+sudo curfewctl homework alice on --for 1h --reason "math assignment"
 
-# Grant or adjust bonus time today (+30m, -15m, or =2h)
-sudo curfewctl grant alice +30m
-sudo curfewctl grant alice -15m
+# Ask for More Time requests & offline Parent Access Code (TOTP)
+sudo curfewctl requests list
+sudo curfewctl requests approve 1 --grant 15m
+sudo curfewctl parent-code enable
 
-# Pause enforcement temporarily without altering saved schedules
-sudo curfewctl pause alice --for 2h --reason "school project"
-sudo curfewctl pause alice --today
-sudo curfewctl resume alice
-
-# Immediately lock active graphical session(s) with verified multi-DE feedback
-sudo curfewctl lock alice --json
-
-# View 7-day screen-time history and audit log
-sudo curfewctl history alice --days 7
-
-# Manage individual per-app daily limits
+# App Limits, shared Category Budgets & Top Apps Usage Insights
 sudo curfewctl app-limits alice enable
-sudo curfewctl app-limits alice add steam "Steam" --limit 1h --category Gaming
-sudo curfewctl app-limits alice grant steam +15m
-sudo curfewctl app-limits alice limit steam 45m
+sudo curfewctl app-limits alice category set Gaming 1h --weekend 2h
+sudo curfewctl app-limits alice add steam "Steam" --limit 45m --weekend 1h30m --category Gaming --foreground-only
+sudo curfewctl insights alice --days 7
 
-# Watch live enforcement logs
-sudo journalctl -u curfewd -f
+# Immediately lock or verify screen lock on active graphical session(s)
+sudo curfewctl lock alice --json
+sudo curfewctl test-lock alice --json
 ```
 
 ---

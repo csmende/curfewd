@@ -40,9 +40,9 @@ jobs:
           sarif_file: bandit.sarif
           category: bandit
 
-      - name: Fail if Bandit reported Medium or High severity findings
+      - name: Fail if Bandit reported any findings (Low, Medium, or High)
         run: |
-          bandit -r curfewd -ll
+          bandit -r curfewd
 
   shellcheck:
     name: ShellCheck Maintainer & Helper Scripts

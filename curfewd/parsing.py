@@ -40,6 +40,8 @@ _DURATION_TOKEN_RE = re.compile(r"(\d+)\s*([dhms])", re.IGNORECASE)
 _HHMM_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
 _WINDOW_RE = re.compile(r"^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$")
 
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
 SECONDS_PER_DAY = 86400
 
 
@@ -50,8 +52,19 @@ def validate_username(username: str) -> str:
     return username
 
 
+def validate_iso_date(raw: str) -> str:
+    """Validate a strict YYYY-MM-DD calendar date string."""
+    if not isinstance(raw, str):
+        raise ValueError(f"Invalid ISO date: {raw!r}")
+    text = raw.strip()
+    if not _ISO_DATE_RE.match(text):
+        raise ValueError(f"Invalid ISO date (expected YYYY-MM-DD): {raw!r}")
+    datetime.strptime(text, "%Y-%m-%d")
+    return text
+
+
 def parse_duration(raw: str) -> int:
-    """Parse human durations like '1h30m', '45m', '90s', '2h', '3600', or 'unlimited' into seconds."""
+    """Parse human durations like '1h30m', '45m', '90s', '2h', '3600', 'blocked', or 'unlimited' into seconds."""
     if isinstance(raw, int) and not isinstance(raw, bool):
         if raw < 0:
             raise ValueError(f"Duration must be non-negative: {raw}")
@@ -63,6 +76,8 @@ def parse_duration(raw: str) -> int:
         raise ValueError("Duration cannot be empty")
     if text in ("unlimited", "none", "inf"):
         return SECONDS_PER_DAY
+    if text in ("blocked", "block", "off"):
+        return 0
     if text.isdigit():
         return int(text)
 

@@ -4,6 +4,7 @@ import configparser
 import os
 import re
 import shlex
+import stat
 from typing import Any
 
 # Friendly metadata overrides for popular desktop/Flatpak apps and games
@@ -95,15 +96,92 @@ DEFAULT_CURATED_APPS: list[dict[str, Any]] = [
 ]
 
 
-def _default_desktop_dirs() -> list[str]:
-    home = os.path.expanduser("~")
-    return [
+_STEAM_RUNGAME_RE = re.compile(r"steam://rungameid/(\d+)", re.IGNORECASE)
+
+
+_MAX_DESKTOP_BYTES = 131072
+_MAX_ENTRIES_PER_DIR = 2000
+
+
+def _default_desktop_dirs(target_home: str | None = None) -> list[str]:
+    dirs = [
         "/var/lib/flatpak/exports/share/applications",
-        os.path.join(home, ".local/share/flatpak/exports/share/applications"),
         "/usr/local/share/applications",
         "/usr/share/applications",
-        os.path.join(home, ".local/share/applications"),
     ]
+    homes: list[str] = []
+    if target_home and os.path.isdir(target_home):
+        homes.append(target_home)
+    elif os.geteuid() != 0:
+        caller_home = os.path.expanduser("~")
+        if caller_home and os.path.isdir(caller_home):
+            homes.append(caller_home)
+    for home in homes:
+        dirs.insert(1, os.path.join(home, ".local/share/flatpak/exports/share/applications"))
+        dirs.append(os.path.join(home, ".local/share/applications"))
+    return dirs
+
+
+def _allowed_roots_for(search_dirs: list[str], target_home: str | None) -> tuple[str, ...]:
+    roots = [
+        os.path.realpath("/var/lib/flatpak"),
+        os.path.realpath("/usr/share"),
+        os.path.realpath("/usr/local/share"),
+    ]
+    if target_home and os.path.isdir(target_home):
+        roots.append(os.path.realpath(target_home))
+    for d in search_dirs:
+        if os.path.isdir(d):
+            roots.append(os.path.realpath(d))
+    return tuple(dict.fromkeys(roots))
+
+
+def _path_within_roots(real_path: str, allowed_roots: tuple[str, ...]) -> bool:
+    for root in allowed_roots:
+        try:
+            if os.path.commonpath([real_path, root]) == root:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def _read_regular_desktop_bounded(real_path: str) -> str | None:
+    """Open real_path non-blocking, fstat regular file + size cap, and read bounded bytes."""
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_CLOEXEC", 0)
+    try:
+        fd = os.open(real_path, flags)
+    except OSError:
+        return None
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_size > _MAX_DESKTOP_BYTES:
+            return None
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            chunk = os.read(fd, 8192)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > _MAX_DESKTOP_BYTES:
+                return None
+            chunks.append(chunk)
+        return b"".join(chunks).decode("utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    finally:
+        os.close(fd)
+
+
+def _is_flatpak_entry(path: str, exec_line: str) -> bool:
+    if "flatpak" in path.lower():
+        return True
+    try:
+        tokens = shlex.split(exec_line)
+    except ValueError:
+        tokens = exec_line.split()
+    return bool(tokens and os.path.basename(tokens[0]) == "flatpak" and "run" in tokens[1:4])
 
 
 def _map_category(raw_categories: str) -> str:
@@ -143,7 +221,6 @@ def _extract_pattern_from_exec(
     except ValueError:
         tokens = exec_line.split()
 
-    # Strip field codes (%u, %F, etc.) and leading `env VAR=val`
     cleaned: list[str] = []
     i = 0
     while i < len(tokens):
@@ -164,7 +241,6 @@ def _extract_pattern_from_exec(
 
     cmd = os.path.basename(cleaned[0])
 
-    # Unwrap `sh -c 'ENV=1 steam %U'` desktop launchers (e.g. Ubuntu/Mint steam.desktop)
     if cmd in ("sh", "bash", "dash") and len(cleaned) >= 3 and cleaned[1] == "-c":
         try:
             inner = shlex.split(cleaned[2])
@@ -181,7 +257,6 @@ def _extract_pattern_from_exec(
                 return "", None, None
             cmd = os.path.basename(cleaned[0])
 
-    # Handle `flatpak run [--flags] <app.id>`
     if cmd == "flatpak" and "run" in cleaned[1:3]:
         for arg in cleaned[2:]:
             if arg == "run" or arg.startswith(("-", "@@")):
@@ -190,7 +265,6 @@ def _extract_pattern_from_exec(
             low_id = app_id.lower()
             if low_id in _KNOWN_FLATPAK_OVERRIDES:
                 return _KNOWN_FLATPAK_OVERRIDES[low_id]
-            # Use the trailing app segment (e.g. com.example.MyApp -> myapp)
             tail = app_id.rsplit(".", 1)[-1].lower()
             tail = re.sub(r"[^a-z0-9._-]", "", tail)
             if tail:
@@ -210,16 +284,23 @@ def _extract_pattern_from_exec(
     return pat, None, None
 
 
-def parse_desktop_file(path: str) -> dict[str, Any] | None:
+def parse_desktop_file(
+    path: str, allowed_roots: tuple[str, ...] | None = None
+) -> dict[str, Any] | None:
     """Parse one freedesktop .desktop entry into an App Limits picker candidate."""
-    # Flatpak exports /var/lib/flatpak/exports/share/applications/*.desktop as symlinks to .desktop files
     real_path = os.path.realpath(path)
-    if not real_path.endswith(".desktop") or not os.path.isfile(real_path):
+    if not real_path.endswith(".desktop"):
         return None
+    if allowed_roots is not None and not _path_within_roots(real_path, allowed_roots):
+        return None
+    raw_text = _read_regular_desktop_bounded(real_path)
+    if raw_text is None:
+        return None
+
     cp = configparser.ConfigParser(interpolation=None, strict=False)
     try:
-        cp.read(real_path, encoding="utf-8")
-    except (configparser.Error, OSError, UnicodeDecodeError):
+        cp.read_string(raw_text)
+    except configparser.Error:
         return None
 
     if not cp.has_section("Desktop Entry"):
@@ -240,7 +321,6 @@ def parse_desktop_file(path: str) -> dict[str, Any] | None:
         return None
 
     cats_raw = sec.get("Categories", "")
-    # Skip system/settings utilities that parents wouldn't put app timers on
     cats_set = {c.strip().lower() for c in cats_raw.split(";") if c.strip()}
     if cats_set & {
         "settings",
@@ -251,8 +331,21 @@ def parse_desktop_file(path: str) -> dict[str, Any] | None:
     } and not (cats_set & {"game", "webbrowser", "audiovideo", "instantmessaging"}):
         return None
 
+    # Handle individual Steam game shortcuts (`Exec=steam steam://rungameid/413150`)
+    steam_match = _STEAM_RUNGAME_RE.search(exec_line)
+    if steam_match:
+        app_id = steam_match.group(1)
+        return {
+            "pattern": f"steam_app_{app_id}",
+            "label": name,
+            "category": "Gaming",
+            "flatpak_id": "",
+            "steam_app_id": app_id,
+            "installed": True,
+        }
+
     flatpak_id = sec.get("X-Flatpak", "").strip()
-    if not flatpak_id:
+    if not flatpak_id and _is_flatpak_entry(path, exec_line):
         fname = os.path.basename(path)
         if fname.endswith(".desktop") and fname.count(".") >= 3:
             flatpak_id = fname[: -len(".desktop")]
@@ -267,35 +360,44 @@ def parse_desktop_file(path: str) -> dict[str, Any] | None:
         "pattern": pattern,
         "label": label,
         "category": category,
+        "flatpak_id": flatpak_id,
+        "steam_app_id": "",
         "installed": True,
     }
 
 
 def scan_installed_apps(
-    search_dirs: list[str] | None = None, include_curated_fallback: bool = True
+    search_dirs: list[str] | None = None,
+    include_curated_fallback: bool = True,
+    target_home: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Scan installed desktop applications and return a sorted, deduplicated list."""
-    dirs = search_dirs if search_dirs is not None else _default_desktop_dirs()
+    """Scan installed desktop applications (including target child's home) sorted & deduplicated."""
+    dirs = (
+        search_dirs if search_dirs is not None else _default_desktop_dirs(target_home=target_home)
+    )
+    allowed_roots = _allowed_roots_for(dirs, target_home)
     seen_patterns: dict[str, dict[str, Any]] = {}
 
     for directory in dirs:
         if not os.path.isdir(directory):
             continue
+        real_dir = os.path.realpath(directory)
+        if not _path_within_roots(real_dir, allowed_roots):
+            continue
         try:
-            entries = sorted(os.listdir(directory))
+            entries = sorted(os.listdir(real_dir))[:_MAX_ENTRIES_PER_DIR]
         except OSError:
             continue
         for fname in entries:
             if not fname.endswith(".desktop"):
                 continue
-            item = parse_desktop_file(os.path.join(directory, fname))
+            item = parse_desktop_file(os.path.join(real_dir, fname), allowed_roots=allowed_roots)
             if item is None:
                 continue
             key = item["pattern"].lower()
             if key not in seen_patterns:
                 seen_patterns[key] = item
 
-    # If no installed apps were discovered (e.g. minimal environment), populate curated suggestions
     if include_curated_fallback and not seen_patterns:
         for curated in DEFAULT_CURATED_APPS:
             seen_patterns[curated["pattern"].lower()] = dict(curated)

@@ -12,6 +12,7 @@ extras/dconf-lock-screensaver.sh usr/share/doc/curfewd/examples/
 resource/server/dbus/org.curfewd.Daemon1.conf usr/share/dbus-1/system.d/
 resource/server/polkit/org.curfewd.policy usr/share/polkit-1/actions/
 resource/server/systemd/curfewd.service usr/lib/systemd/system/
+resource/server/systemd/curfewd-tray.service usr/lib/systemd/user/
 resource/launchers/curfewd-tray.desktop etc/xdg/autostart/
 resource/launchers/curfewd.desktop usr/share/applications/
 resource/appstream/org.curfewd.curfewd.metainfo.xml usr/share/metainfo/
@@ -31,10 +32,12 @@ curfewd/ui/web/app.js usr/share/curfewd/ui/
 curfewd/ui/web/js/rpc.js usr/share/curfewd/ui/js/
 curfewd/ui/web/js/state.js usr/share/curfewd/ui/js/
 curfewd/ui/web/js/views.js usr/share/curfewd/ui/js/
+curfewd/ui/web/js/views_schedule.js usr/share/curfewd/ui/js/
 curfewd/ui/web/js/events.js usr/share/curfewd/ui/js/
 
 # python package (curfewd)
 curfewd/__init__.py usr/lib/python3/dist-packages/curfewd/
+curfewd/auth_code.py usr/lib/python3/dist-packages/curfewd/
 curfewd/daemon.py usr/lib/python3/dist-packages/curfewd/
 curfewd/history.py usr/lib/python3/dist-packages/curfewd/
 curfewd/models.py usr/lib/python3/dist-packages/curfewd/
@@ -58,6 +61,7 @@ curfewd/engine/sessions.py usr/lib/python3/dist-packages/curfewd/engine/
 curfewd/tray/__init__.py usr/lib/python3/dist-packages/curfewd/tray/
 curfewd/tray/__main__.py usr/lib/python3/dist-packages/curfewd/tray/
 curfewd/tray/app.py usr/lib/python3/dist-packages/curfewd/tray/
+curfewd/tray/hud.py usr/lib/python3/dist-packages/curfewd/tray/
 curfewd/ui/__init__.py usr/lib/python3/dist-packages/curfewd/ui/
 curfewd/ui/__main__.py usr/lib/python3/dist-packages/curfewd/ui/
 curfewd/ui/app.py usr/lib/python3/dist-packages/curfewd/ui/

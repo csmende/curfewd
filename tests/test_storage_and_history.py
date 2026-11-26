@@ -124,6 +124,47 @@ class TestHistoryStore(unittest.TestCase):
                 self.assertEqual(rep["totals"]["app_limits_sec"], 1200)
             self.assertIsNone(hist._conn)
 
+    def test_app_usage_insights_and_time_requests_lifecycle(self):
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            HistoryStore(os.path.join(tmp, "history.db")) as hist,
+        ):
+            now = datetime(2026, 11, 25, 20, 0, tzinfo=timezone.utc)
+            hist.record_daily_delta(
+                "alice",
+                "2026-11-24",
+                active_sec=3600,
+                app_deltas=[
+                    ("steam", "Steam", "Gaming", 1800),
+                    ("code", "VS Code", "Productivity", 900),
+                ],
+            )
+            hist.record_daily_delta(
+                "alice",
+                "2026-11-25",
+                active_sec=2400,
+                app_deltas=[
+                    ("steam", "Steam", "Gaming", 1200),
+                    ("sober", "Roblox (Sober)", "Gaming", 600),
+                ],
+            )
+            rep = hist.get_usage_history("alice", days=7, now_local=now)
+            self.assertEqual(rep["top_apps"][0]["app_key"], "steam")
+            self.assertEqual(rep["top_apps"][0]["active_sec"], 3000)
+            self.assertEqual(rep["top_apps"][0]["days_used"], 2)
+
+            req = hist.create_time_request(
+                "alice", "app", 900, target="steam", target_label="Steam", reason="last round"
+            )
+            self.assertEqual(req["status"], "pending")
+            self.assertEqual(len(hist.list_time_requests(status="pending")), 1)
+            resolved = hist.resolve_time_request(
+                req["id"], approve=True, resolved_by="parent", granted_sec=900, note="ok"
+            )
+            self.assertIsNotNone(resolved)
+            self.assertEqual(resolved["status"], "approved")
+            self.assertEqual(len(hist.list_time_requests(status="pending")), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

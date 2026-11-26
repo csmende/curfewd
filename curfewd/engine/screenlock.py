@@ -553,11 +553,21 @@ class ScreenLockEnforcer:
                         return False, backend.name
         return None, None
 
+    @staticmethod
+    def _sanitize_lock_message(message: str) -> str:
+        printable = "".join(ch if ch.isprintable() else " " for ch in str(message or ""))
+        return " ".join(printable.split())[:140]
+
     def invoke_backend_lock(
         self,
         ctx: SessionContext,
         backend: ScreensaverBackend,
+        lock_message: str = "",
     ) -> tuple[bool, str | None]:
+        clean_msg = self._sanitize_lock_message(lock_message)
+        dbus_args = (
+            (clean_msg,) if (backend.name == "cinnamon" and clean_msg) else backend.lock_dbus_args
+        )
         if ctx.dbus_address and self._which("gdbus"):
             for obj_path in backend.dbus_paths:
                 argv = [
@@ -572,22 +582,34 @@ class ScreenLockEnforcer:
                     obj_path,
                     "--method",
                     f"{backend.dbus_interface}.Lock",
-                    *backend.lock_dbus_args,
                 ]
+                if dbus_args:
+                    argv.append("--")
+                    argv.extend(dbus_args)
                 res = self._exec(ctx, argv)
                 if res is not None and res.returncode == 0:
                     return True, f"dbus:{backend.dbus_dest}"
 
-        for cli in backend.lock_clis:
+        clis: list[tuple[str, ...]] = list(backend.lock_clis)
+        if backend.name == "cinnamon" and clean_msg:
+            clis.insert(
+                0, ("cinnamon-screensaver-command", "--lock", f"--away-message={clean_msg}")
+            )
+        for cli in clis:
             res = self._exec(ctx, list(cli))
             if res is not None and res.returncode == 0:
                 return True, f"cli:{cli[0]}"
 
         return False, None
 
-    def _try_lock_backends(self, ctx: SessionContext, backends: list[ScreensaverBackend]):
+    def _try_lock_backends(
+        self,
+        ctx: SessionContext,
+        backends: list[ScreensaverBackend],
+        lock_message: str = "",
+    ):
         for backend in backends:
-            ok, method = self.invoke_backend_lock(ctx, backend)
+            ok, method = self.invoke_backend_lock(ctx, backend, lock_message=lock_message)
             if ok:
                 return backend, method
         return None, None
@@ -616,6 +638,7 @@ class ScreenLockEnforcer:
         self,
         ctx: SessionContext,
         release_x11_grab: bool = True,
+        lock_message: str = "",
     ) -> LockResult:
         """Verify logind lock engaged; fall back to DE screensaver + X11 grab release."""
         t0 = time.monotonic()
@@ -657,7 +680,7 @@ class ScreenLockEnforcer:
             )
             return _done(True, True, str(active_be or "logind"), "logind")
 
-        matched_backend, method = self._try_lock_backends(ctx, backends)
+        matched_backend, method = self._try_lock_backends(ctx, backends, lock_message=lock_message)
         if matched_backend is not None:
             if self._verify_settle_sec > 0:
                 self._sleep(self._verify_settle_sec)
@@ -684,7 +707,7 @@ class ScreenLockEnforcer:
                 if self._try_x11_ungrab_key(ctx):
                     if self._grab_settle_sec > 0:
                         self._sleep(self._grab_settle_sec)
-                    self.invoke_backend_lock(ctx, matched_backend)
+                    self.invoke_backend_lock(ctx, matched_backend, lock_message=lock_message)
                     if self._verify_settle_sec > 0:
                         self._sleep(self._verify_settle_sec)
                     active, _ = self.is_screensaver_active(ctx, ordered)
@@ -705,7 +728,7 @@ class ScreenLockEnforcer:
                     )
                     if self._grab_settle_sec > 0:
                         self._sleep(self._grab_settle_sec)
-                    self.invoke_backend_lock(ctx, matched_backend)
+                    self.invoke_backend_lock(ctx, matched_backend, lock_message=lock_message)
                     if self._verify_settle_sec > 0:
                         self._sleep(self._verify_settle_sec)
                     active, _ = self.is_screensaver_active(ctx, ordered)
@@ -729,12 +752,16 @@ class ScreenLockEnforcer:
         logger.warning("session %r for user %r: %s", ctx.session_id, ctx.username, msg)
         return _done(False, False, "", "failed", msg)
 
-    def enforce_session_lock(self, ctx: SessionContext, release_x11_grab: bool = True) -> bool:
+    def enforce_session_lock(
+        self, ctx: SessionContext, release_x11_grab: bool = True, lock_message: str = ""
+    ) -> bool:
         """Boolean convenience wrapper around enforce_session_lock_detailed."""
-        return self.enforce_session_lock_detailed(ctx, release_x11_grab=release_x11_grab).locked
+        return self.enforce_session_lock_detailed(
+            ctx, release_x11_grab=release_x11_grab, lock_message=lock_message
+        ).locked
 
     def enforce_session_lock_async(
-        self, ctx: SessionContext, release_x11_grab: bool = True
+        self, ctx: SessionContext, release_x11_grab: bool = True, lock_message: str = ""
     ) -> bool:
         """Spawn a non-blocking daemon thread with per-session in-flight deduplication."""
         key = f"{ctx.uid}:{ctx.session_id}"
@@ -746,7 +773,12 @@ class ScreenLockEnforcer:
 
         def _worker() -> None:
             try:
-                self.enforce_session_lock(ctx, release_x11_grab=release_x11_grab)
+                if lock_message:
+                    self.enforce_session_lock(
+                        ctx, release_x11_grab=release_x11_grab, lock_message=lock_message
+                    )
+                else:
+                    self.enforce_session_lock(ctx, release_x11_grab=release_x11_grab)
             except Exception as exc:
                 logger.error(
                     "unexpected error in screenlock helper for session %r: %s", ctx.session_id, exc

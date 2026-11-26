@@ -1,5 +1,6 @@
-"""Thin org.curfewd.Daemon1 D-Bus adapter, Polkit gate, and async RPC executor (Spec 005)."""
+"""Thin org.curfewd.Daemon1 D-Bus adapter, Polkit gate, and async RPC executor (Spec 005 + Spec 006)."""
 
+import inspect
 import json
 import logging
 from collections.abc import Callable
@@ -18,16 +19,18 @@ from curfewd import (
     DBUS_OBJECT_PATH,
     POLKIT_ACTION_LOCK,
     POLKIT_ACTION_MANAGE,
+    POLKIT_ACTION_QUICK_GRANT,
     POLKIT_ACTION_READ,
 )
 from curfewd.dbus.polkit import AuthorizationError, PolkitAuthorizer
 from curfewd.engine.applimits import AppLimitsMonitor
-from curfewd.engine.doctor import apply_dconf_lock_fix, run_doctor
+from curfewd.engine.doctor import apply_all_lock_fixes, run_doctor
 from curfewd.engine.runtime import EnforcementRuntime, UserNotFoundLookupError
 from curfewd.engine.sessions import LogindSessionMonitor
 from curfewd.history import HistoryStore
 from curfewd.models import DaemonConfig
 from curfewd.storage import AtomicJsonStore
+from curfewd.ui.appscan import scan_installed_apps
 
 logger = logging.getLogger("curfewd.service")
 
@@ -55,14 +58,14 @@ class CurfewDaemonService(dbus.service.Object):
         app_limits_monitor: AppLimitsMonitor | None = None,
         authorizer: PolkitAuthorizer | None = None,
         now_fn: Callable[[], datetime] | None = None,
-        doctor_fixer: Callable[[], dict[str, Any]] | None = None,
+        doctor_fixer: Callable[..., dict[str, Any]] | None = None,
         on_config_changed: Callable[[DaemonConfig], None] | None = None,
         bus_name_str: str = DBUS_BUS_NAME,
         own_name: bool = True,
     ) -> None:
         self._bus = bus
         self._authorizer = authorizer or PolkitAuthorizer(bus)
-        self._doctor_fixer = doctor_fixer or apply_dconf_lock_fix
+        self._doctor_fixer = doctor_fixer or apply_all_lock_fixes
         self._on_config_changed = on_config_changed
         self._rpc_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="curfewd-rpc")
 
@@ -77,6 +80,7 @@ class CurfewDaemonService(dbus.service.Object):
             on_policy_changed=self.PolicyChanged,
             on_client_notification=lambda u, p: self.ClientNotification(u, json.dumps(p)),
             on_screensaver_challenge=self.ScreensaverChallenge,
+            on_time_request_updated=lambda u, r: self.TimeRequestUpdated(u, json.dumps(r)),
         )
 
         if own_name:
@@ -147,11 +151,37 @@ class CurfewDaemonService(dbus.service.Object):
     def _map_worker_error(exc: Exception) -> _DBusTypedError:
         if isinstance(exc, _DBusTypedError):
             return exc
+        if isinstance(exc, UserNotFoundLookupError):
+            return _DBusTypedError(DBUS_ERR_NOT_FOUND, str(exc))
         if isinstance(exc, PermissionError):
             return _DBusTypedError(DBUS_ERR_PERMISSION, str(exc))
         if isinstance(exc, (ValueError, KeyError, TypeError)):
             return _DBusTypedError(DBUS_ERR_VALIDATION, str(exc))
         return _DBusTypedError(DBUS_ERR_INTERNAL, str(exc))
+
+    def _auth_then(
+        self,
+        sender: str,
+        action_id: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        handler: Callable[[str], str | None],
+    ) -> None:
+        """Authorize asynchronously via Polkit on GLib loop so prompts never block tick()."""
+
+        def _on_ok(_uid: int, actor: str) -> None:
+            try:
+                res = handler(actor)
+            except Exception as exc:
+                error_cb(self._map_worker_error(exc))
+                return
+            if res is not None:
+                reply_cb(res)
+
+        def _on_err(exc: AuthorizationError) -> None:
+            error_cb(_DBusTypedError(DBUS_ERR_PERMISSION, str(exc)))
+
+        self._authorizer.authorize_async(sender, action_id, _on_ok, _on_err)
 
     def _run_async(
         self,
@@ -184,69 +214,240 @@ class CurfewDaemonService(dbus.service.Object):
 
         self._rpc_pool.submit(_worker)
 
+    def _dispatch_lock_async(
+        self,
+        safe: str,
+        actor: str,
+        event_kind: str,
+        lock_message: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+    ) -> None:
+        cfg = self._runtime.config
+        sessions_by_user = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
+        sessions = sessions_by_user.get(safe, self._runtime.last_sessions_for(safe))
+        if not sessions:
+            reply_cb(
+                json.dumps(
+                    {
+                        "username": safe,
+                        "locked": False,
+                        "verified": False,
+                        "sessions": [],
+                        "detail": "No active graphical sessions",
+                    }
+                )
+            )
+            return
+
+        monitor = self._runtime.sessions
+        if hasattr(monitor, "prepare_session_locks") and hasattr(monitor, "execute_fallback_locks"):
+            contexts = monitor.prepare_session_locks(sessions)
+            params = inspect.signature(monitor.execute_fallback_locks).parameters
+
+            def _work_fn() -> list[Any]:
+                if "lock_message" in params:
+                    return monitor.execute_fallback_locks(contexts, cfg, lock_message=lock_message)
+                return monitor.execute_fallback_locks(contexts, cfg)
+        else:
+
+            def _work_fn() -> list[Any]:
+                return monitor.lock_user_sessions(sessions, cfg, async_mode=False)
+
+        def _on_locked(results: list[Any]) -> str:
+            payload = {
+                "username": safe,
+                "locked": any(r.locked for r in results),
+                "verified": all(r.verified for r in results) if results else False,
+                "sessions": [r.to_dict() for r in results],
+            }
+            self._runtime.history.record_event(safe, event_kind, actor=actor, detail=payload)
+            return json.dumps(payload)
+
+        self._run_async(_work_fn, _on_locked, reply_cb, error_cb)
+
     # ---------------- org.curfewd.Daemon1.Admin ---------------- #
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
-    def ListUsers(self, sender: str = "") -> str:
-        self._require_auth(sender, POLKIT_ACTION_READ)
-        return json.dumps({"users": self._runtime.list_users()})
+    def ListUsers(
+        self,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        self._auth_then(
+            sender,
+            POLKIT_ACTION_READ,
+            reply_cb,
+            error_cb,
+            lambda _actor: json.dumps({"users": self._runtime.list_users()}),
+        )
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="s", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="s",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
-    def GetUserStatus(self, username: str, sender: str = "") -> str:
-        self._require_auth(sender, POLKIT_ACTION_READ)
-        safe, _ = self._ensure_known_user(str(username))
-        return json.dumps(self._runtime.compute_status(safe))
+    def GetUserStatus(
+        self,
+        username: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(_actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            return json.dumps(self._runtime.compute_status(safe))
+
+        self._auth_then(sender, POLKIT_ACTION_READ, reply_cb, error_cb, _do)
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="ss", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="ss",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
-    def SetUserPolicy(self, username: str, policy_json: str, sender: str = "") -> str:
-        _, actor = self._require_auth(sender, POLKIT_ACTION_MANAGE)
-        safe, _ = self._ensure_known_user(str(username))
-        raw = self._parse_json_object(policy_json, "Policy payload")
-        try:
-            status = self._runtime.set_user_policy(safe, raw, actor)
-        except (ValueError, KeyError, TypeError) as exc:
-            raise _DBusTypedError(DBUS_ERR_VALIDATION, f"Invalid policy: {exc}") from exc
-        return json.dumps(status)
+    def SetUserPolicy(
+        self,
+        username: str,
+        policy_json: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            raw = self._parse_json_object(policy_json, "Policy payload")
+            return json.dumps(self._runtime.set_user_policy(safe, raw, actor))
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="sis", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="sis",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
-    def GrantTime(self, username: str, delta_seconds: int, mode: str, sender: str = "") -> str:
-        _, actor = self._require_auth(sender, POLKIT_ACTION_MANAGE)
-        safe, _ = self._ensure_known_user(str(username))
-        try:
-            result = self._runtime.grant_time(safe, int(delta_seconds), str(mode), actor)
-        except ValueError as exc:
-            raise _DBusTypedError(DBUS_ERR_VALIDATION, str(exc)) from exc
-        return json.dumps(result)
+    def GrantTime(
+        self,
+        username: str,
+        delta_seconds: int,
+        mode: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            return json.dumps(self._runtime.grant_time(safe, int(delta_seconds), str(mode), actor))
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="sssb", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="ss",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def GrantTimeDetailed(
+        self,
+        username: str,
+        payload_json: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            raw = self._parse_json_object(payload_json, "Grant payload")
+            res = self._runtime.grant_time(
+                safe,
+                int(raw.get("delta_seconds", 900)),
+                str(raw.get("mode", "add")),
+                actor,
+                note=str(raw.get("note", "")),
+            )
+            return json.dumps(res)
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="sssb",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
     def PauseUser(
-        self, username: str, until_utc: str, reason: str, hide_tray: bool, sender: str = ""
-    ) -> str:
-        _, actor = self._require_auth(sender, POLKIT_ACTION_MANAGE)
-        safe, _ = self._ensure_known_user(str(username))
-        try:
-            status = self._runtime.pause_user(safe, until_utc, reason, bool(hide_tray), actor)
-        except ValueError as exc:
-            raise _DBusTypedError(DBUS_ERR_VALIDATION, str(exc)) from exc
-        return json.dumps(status)
+        self,
+        username: str,
+        until_utc: str,
+        reason: str,
+        hide_tray: bool,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            return json.dumps(
+                self._runtime.pause_user(safe, until_utc, reason, bool(hide_tray), actor)
+            )
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="s", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="s",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
-    def ResumeUser(self, username: str, sender: str = "") -> str:
-        _, actor = self._require_auth(sender, POLKIT_ACTION_MANAGE)
-        safe, _ = self._ensure_known_user(str(username))
-        return json.dumps(self._runtime.resume_user(safe, actor))
+    def ResumeUser(
+        self,
+        username: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            return json.dumps(self._runtime.resume_user(safe, actor))
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="ss",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def SetHomeworkMode(
+        self,
+        username: str,
+        payload_json: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            raw = self._parse_json_object(payload_json, "Homework mode payload")
+            return json.dumps(self._runtime.set_homework_mode(safe, raw, actor))
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
 
     @dbus.service.method(
         DBUS_ADMIN_INTERFACE,
@@ -262,102 +463,329 @@ class CurfewDaemonService(dbus.service.Object):
         error_cb: Callable[[Exception], None],
         sender: str = "",
     ) -> None:
-        _, actor = self._require_auth(sender, POLKIT_ACTION_LOCK)
-        safe, _ = self._ensure_known_user(str(username))
-        cfg = self._runtime.config
-        sessions_by_user = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
-        sessions = sessions_by_user.get(safe, self._runtime.last_sessions_for(safe))
-        if not sessions:
-            reply_cb(
-                json.dumps(
-                    {
-                        "username": safe,
-                        "locked": False,
-                        "sessions": [],
-                        "detail": "No active graphical sessions",
-                    }
-                )
+        def _do(actor: str) -> None:
+            safe, _ = self._ensure_known_user(str(username))
+            self._dispatch_lock_async(
+                safe, actor, "lock_manual", "Locked by administrator", reply_cb, error_cb
             )
-            return
 
-        monitor = self._runtime.sessions
-        if hasattr(monitor, "prepare_session_locks") and hasattr(monitor, "execute_fallback_locks"):
-            # GLib-thread Phase 1: Layer 1 logind LockSession + pure-Python SessionContext snapshots
-            contexts = monitor.prepare_session_locks(sessions)
-            work_fn = lambda: monitor.execute_fallback_locks(contexts, cfg)  # noqa: E731
-        else:
-            work_fn = lambda: monitor.lock_user_sessions(sessions, cfg, async_mode=False)  # noqa: E731
-
-        def _on_locked(results: list[Any]) -> str:
-            payload = {
-                "username": safe,
-                "locked": any(r.locked for r in results),
-                "verified": all(r.verified for r in results) if results else False,
-                "sessions": [r.to_dict() for r in results],
-            }
-            self._runtime.history.record_event(safe, "lock_manual", actor=actor, detail=payload)
-            return json.dumps(payload)
-
-        self._run_async(work_fn, _on_locked, reply_cb, error_cb)
+        self._auth_then(sender, POLKIT_ACTION_LOCK, reply_cb, error_cb, _do)
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="si", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="s",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
-    def GetUsageHistory(self, username: str, days: int, sender: str = "") -> str:
-        self._require_auth(sender, POLKIT_ACTION_READ)
-        safe, _ = self._ensure_known_user(str(username))
-        hist = self._runtime.history.get_usage_history(
-            safe, days=int(days), now_local=self._runtime.now_local()
+    def TestLock(
+        self,
+        username: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> None:
+            safe, _ = self._ensure_known_user(str(username))
+            self._dispatch_lock_async(
+                safe, actor, "lock_test", "curfewd test lock — unlock normally", reply_cb, error_cb
+            )
+
+        self._auth_then(sender, POLKIT_ACTION_LOCK, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="si",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def GetUsageHistory(
+        self,
+        username: str,
+        days: int,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(_actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            hist = self._runtime.history.get_usage_history(
+                safe, days=int(days), now_local=self._runtime.now_local()
+            )
+            return json.dumps(hist)
+
+        self._auth_then(sender, POLKIT_ACTION_READ, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def GetDaemonConfig(
+        self,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        self._auth_then(
+            sender,
+            POLKIT_ACTION_READ,
+            reply_cb,
+            error_cb,
+            lambda _actor: json.dumps(self._runtime.config.to_dict()),
         )
-        return json.dumps(hist)
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="s",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
-    def GetDaemonConfig(self, sender: str = "") -> str:
-        self._require_auth(sender, POLKIT_ACTION_READ)
-        return json.dumps(self._runtime.config.to_dict())
-
-    @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="s", out_signature="s", sender_keyword="sender"
-    )
-    def SetDaemonConfig(self, config_json: str, sender: str = "") -> str:
-        self._require_auth(sender, POLKIT_ACTION_MANAGE)
-        raw = self._parse_json_object(config_json, "Daemon config")
-        try:
+    def SetDaemonConfig(
+        self,
+        config_json: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(_actor: str) -> str:
+            raw = self._parse_json_object(config_json, "Daemon config")
             cfg = self._runtime.set_daemon_config(raw)
-        except (ValueError, KeyError, TypeError) as exc:
-            raise _DBusTypedError(DBUS_ERR_VALIDATION, f"Invalid daemon config: {exc}") from exc
-        if self._on_config_changed is not None:
-            self._on_config_changed(cfg)
-        return json.dumps(cfg.to_dict())
+            if self._on_config_changed is not None:
+                self._on_config_changed(cfg)
+            return json.dumps(cfg.to_dict())
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="ss", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="ss",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
-    def SetTodayOverride(self, username: str, override_json: str, sender: str = "") -> str:
-        _, actor = self._require_auth(sender, POLKIT_ACTION_MANAGE)
-        safe, _ = self._ensure_known_user(str(username))
-        raw = self._parse_json_object(override_json, "Override payload")
-        try:
-            status = self._runtime.set_today_override(safe, raw, actor)
-        except (ValueError, KeyError, TypeError) as exc:
-            raise _DBusTypedError(DBUS_ERR_VALIDATION, f"Invalid today override: {exc}") from exc
-        return json.dumps(status)
+    def SetTodayOverride(
+        self,
+        username: str,
+        override_json: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            raw = self._parse_json_object(override_json, "Override payload")
+            return json.dumps(self._runtime.set_today_override(safe, raw, actor))
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
 
     @dbus.service.method(
-        DBUS_ADMIN_INTERFACE, in_signature="ssi", out_signature="s", sender_keyword="sender"
+        DBUS_ADMIN_INTERFACE,
+        in_signature="ssi",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
     )
     def GrantAppTime(
-        self, username: str, pattern: str, delta_seconds: int, sender: str = ""
-    ) -> str:
-        _, actor = self._require_auth(sender, POLKIT_ACTION_MANAGE)
-        safe, _ = self._ensure_known_user(str(username))
-        try:
-            result = self._runtime.grant_app_time(safe, str(pattern), int(delta_seconds), actor)
-        except ValueError as exc:
-            raise _DBusTypedError(DBUS_ERR_VALIDATION, str(exc)) from exc
-        return json.dumps(result)
+        self,
+        username: str,
+        pattern: str,
+        delta_seconds: int,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            return json.dumps(
+                self._runtime.grant_app_time(safe, str(pattern), int(delta_seconds), actor)
+            )
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="ssi",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def GrantCategoryTime(
+        self,
+        username: str,
+        category: str,
+        delta_seconds: int,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            safe, _ = self._ensure_known_user(str(username))
+            return json.dumps(
+                self._runtime.grant_category_time(safe, str(category), int(delta_seconds), actor)
+            )
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="s",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def ListTimeRequests(
+        self,
+        status_filter: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        self._auth_then(
+            sender,
+            POLKIT_ACTION_READ,
+            reply_cb,
+            error_cb,
+            lambda _actor: json.dumps(
+                {
+                    "requests": self._runtime.history.list_time_requests(
+                        status=str(status_filter or "").strip()
+                    )
+                }
+            ),
+        )
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="ibis",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def ResolveTimeRequest(
+        self,
+        request_id: int,
+        approve: bool,
+        grant_seconds: int,
+        note: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(actor: str) -> str:
+            res = self._runtime.resolve_time_request(
+                int(request_id), bool(approve), int(grant_seconds), str(note), actor
+            )
+            return json.dumps(res)
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="iis",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def QuickApproveRequest(
+        self,
+        request_id: int,
+        grant_seconds: int,
+        note: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        """Non-cached Polkit (`auth_admin`) single-use walk-up approval for shared/child sessions."""
+
+        def _do(actor: str) -> str:
+            res = self._runtime.resolve_time_request(
+                int(request_id), True, int(grant_seconds), str(note), actor
+            )
+            return json.dumps(res)
+
+        self._auth_then(sender, POLKIT_ACTION_QUICK_GRANT, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def GetParentCodeStatus(
+        self,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        self._auth_then(
+            sender,
+            POLKIT_ACTION_READ,
+            reply_cb,
+            error_cb,
+            lambda _actor: json.dumps(self._runtime.parent_code.status()),
+        )
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="bb",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def SetupParentCode(
+        self,
+        enable: bool,
+        rotate: bool,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        """Require fresh non-cached auth_admin before enrolling, rotating, or disabling TOTP."""
+
+        def _do(actor: str) -> str:
+            res = self._runtime.parent_code.setup(enable=bool(enable), rotate=bool(rotate))
+            self._runtime.history.record_event(
+                actor,
+                "parent_code_updated",
+                actor=actor,
+                detail={"enabled": bool(enable), "rotated": bool(rotate)},
+            )
+            return json.dumps(res)
+
+        self._auth_then(sender, POLKIT_ACTION_QUICK_GRANT, reply_cb, error_cb, _do)
+
+    @dbus.service.method(
+        DBUS_ADMIN_INTERFACE,
+        in_signature="s",
+        out_signature="s",
+        sender_keyword="sender",
+        async_callbacks=("reply_cb", "error_cb"),
+    )
+    def ListInstalledApps(
+        self,
+        username: str,
+        reply_cb: Callable[[str], None],
+        error_cb: Callable[[Exception], None],
+        sender: str = "",
+    ) -> None:
+        def _do(_actor: str) -> None:
+            target_home: str | None = None
+            if str(username or "").strip():
+                _, rec = self._ensure_known_user(str(username))
+                target_home = (rec or {}).get("home_dir")
+
+            def _work() -> dict[str, Any]:
+                return {"apps": scan_installed_apps(target_home=target_home)}
+
+            self._run_async(_work, json.dumps, reply_cb, error_cb)
+
+        self._auth_then(sender, POLKIT_ACTION_READ, reply_cb, error_cb, _do)
 
     @dbus.service.method(
         DBUS_ADMIN_INTERFACE,
@@ -372,21 +800,23 @@ class CurfewDaemonService(dbus.service.Object):
         error_cb: Callable[[Exception], None],
         sender: str = "",
     ) -> None:
-        self._require_auth(sender, POLKIT_ACTION_READ)
-        cfg = self._runtime.config
-        sessions_by_user = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
-        config_dir = self._runtime.store.config_dir
-        state_dir = self._runtime.store.state_dir
+        def _do(_actor: str) -> None:
+            cfg = self._runtime.config
+            sessions_by_user = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
+            config_dir = self._runtime.store.config_dir
+            state_dir = self._runtime.store.state_dir
 
-        def _work() -> dict[str, Any]:
-            return run_doctor(
-                config_dir=config_dir,
-                state_dir=state_dir,
-                sessions_by_user=sessions_by_user,
-                dbus_connected=True,
-            )
+            def _work() -> dict[str, Any]:
+                return run_doctor(
+                    config_dir=config_dir,
+                    state_dir=state_dir,
+                    sessions_by_user=sessions_by_user,
+                    dbus_connected=True,
+                )
 
-        self._run_async(_work, json.dumps, reply_cb, error_cb)
+            self._run_async(_work, json.dumps, reply_cb, error_cb)
+
+        self._auth_then(sender, POLKIT_ACTION_READ, reply_cb, error_cb, _do)
 
     @dbus.service.method(
         DBUS_ADMIN_INTERFACE,
@@ -401,31 +831,37 @@ class CurfewDaemonService(dbus.service.Object):
         error_cb: Callable[[Exception], None],
         sender: str = "",
     ) -> None:
-        self._require_auth(sender, POLKIT_ACTION_MANAGE)
-        cfg = self._runtime.config
-        sessions_by_user = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
-        config_dir = self._runtime.store.config_dir
-        state_dir = self._runtime.store.state_dir
-        fixer = self._doctor_fixer
+        def _do(_actor: str) -> None:
+            cfg = self._runtime.config
+            sessions_by_user = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
+            config_dir = self._runtime.store.config_dir
+            state_dir = self._runtime.store.state_dir
+            fixer = self._doctor_fixer
 
-        def _work() -> dict[str, Any]:
-            try:
-                fix_result = fixer()
-            except OSError as exc:
-                if isinstance(exc, PermissionError):
-                    raise
-                raise _DBusTypedError(
-                    DBUS_ERR_INTERNAL, f"Failed to apply lock-screen protection: {exc}"
-                ) from exc
-            report = run_doctor(
-                config_dir=config_dir,
-                state_dir=state_dir,
-                sessions_by_user=sessions_by_user,
-                dbus_connected=True,
-            )
-            return {"fix_applied": fix_result, "doctor": report}
+            def _work() -> dict[str, Any]:
+                try:
+                    params = inspect.signature(fixer).parameters
+                    if "sessions_by_user" in params:
+                        fix_result = fixer(sessions_by_user=sessions_by_user)
+                    else:
+                        fix_result = fixer()
+                except OSError as exc:
+                    if isinstance(exc, PermissionError):
+                        raise
+                    raise _DBusTypedError(
+                        DBUS_ERR_INTERNAL, f"Failed to apply lock-screen protection: {exc}"
+                    ) from exc
+                report = run_doctor(
+                    config_dir=config_dir,
+                    state_dir=state_dir,
+                    sessions_by_user=sessions_by_user,
+                    dbus_connected=True,
+                )
+                return {"fix_applied": fix_result, "doctor": report}
 
-        self._run_async(_work, json.dumps, reply_cb, error_cb)
+            self._run_async(_work, json.dumps, reply_cb, error_cb)
+
+        self._auth_then(sender, POLKIT_ACTION_MANAGE, reply_cb, error_cb, _do)
 
     # ---------------- org.curfewd.Daemon1.Client (sender-UID bound) ---------------- #
 
@@ -434,7 +870,9 @@ class CurfewDaemonService(dbus.service.Object):
     )
     def GetMyStatus(self, sender: str = "") -> str:
         caller_user = self._resolve_caller(sender)
-        return json.dumps(self._runtime.compute_status(caller_user))
+        st = self._runtime.compute_status(caller_user)
+        st["parent_code_enabled"] = self._runtime.parent_code.is_enabled()
+        return json.dumps(st)
 
     @dbus.service.method(
         DBUS_CLIENT_INTERFACE, in_signature="i", out_signature="s", sender_keyword="sender"
@@ -456,6 +894,62 @@ class CurfewDaemonService(dbus.service.Object):
         caller_user = self._resolve_caller(sender)
         return self._runtime.verify_screensaver_state(caller_user, nonce, bool(active))
 
+    @dbus.service.method(
+        DBUS_CLIENT_INTERFACE, in_signature="ss", out_signature="b", sender_keyword="sender"
+    )
+    def ReportClientTelemetry(self, nonce: str, telemetry_json: str, sender: str = "") -> bool:
+        caller_user = self._resolve_caller(sender)
+        raw = self._parse_json_object(telemetry_json, "Telemetry payload")
+        try:
+            return self._runtime.verify_client_telemetry(caller_user, nonce, raw)
+        except (ValueError, TypeError) as exc:
+            raise _DBusTypedError(DBUS_ERR_VALIDATION, f"Invalid telemetry: {exc}") from exc
+
+    @dbus.service.method(
+        DBUS_CLIENT_INTERFACE, in_signature="s", out_signature="s", sender_keyword="sender"
+    )
+    def RequestMoreTime(self, request_json: str, sender: str = "") -> str:
+        caller_user = self._resolve_caller(sender)
+        raw = self._parse_json_object(request_json, "Time request payload")
+        try:
+            req = self._runtime.request_more_time(caller_user, raw)
+        except (ValueError, TypeError) as exc:
+            raise _DBusTypedError(DBUS_ERR_VALIDATION, str(exc)) from exc
+        return json.dumps(req)
+
+    @dbus.service.method(
+        DBUS_CLIENT_INTERFACE, in_signature="", out_signature="s", sender_keyword="sender"
+    )
+    def ListMyTimeRequests(self, sender: str = "") -> str:
+        caller_user = self._resolve_caller(sender)
+        reqs = self._runtime.history.list_time_requests(username=caller_user, limit=15)
+        return json.dumps({"requests": reqs})
+
+    @dbus.service.method(
+        DBUS_CLIENT_INTERFACE, in_signature="", out_signature="s", sender_keyword="sender"
+    )
+    def ClaimSaveGrace(self, sender: str = "") -> str:
+        caller_user = self._resolve_caller(sender)
+        try:
+            res = self._runtime.claim_save_grace(caller_user)
+        except ValueError as exc:
+            raise _DBusTypedError(DBUS_ERR_VALIDATION, str(exc)) from exc
+        return json.dumps(res)
+
+    @dbus.service.method(
+        DBUS_CLIENT_INTERFACE, in_signature="s", out_signature="s", sender_keyword="sender"
+    )
+    def ApproveWithParentCode(self, payload_json: str, sender: str = "") -> str:
+        caller_user = self._resolve_caller(sender)
+        raw = self._parse_json_object(payload_json, "Parent code approval payload")
+        try:
+            res = self._runtime.approve_with_parent_code(caller_user, raw)
+        except PermissionError as exc:
+            raise _DBusTypedError(DBUS_ERR_PERMISSION, str(exc)) from exc
+        except (ValueError, TypeError) as exc:
+            raise _DBusTypedError(DBUS_ERR_VALIDATION, str(exc)) from exc
+        return json.dumps(res)
+
     # ---------------- org.curfewd.Daemon1.Events (signals) ---------------- #
 
     @dbus.service.signal(DBUS_EVENTS_INTERFACE, signature="ss")
@@ -472,4 +966,8 @@ class CurfewDaemonService(dbus.service.Object):
 
     @dbus.service.signal(DBUS_EVENTS_INTERFACE, signature="ss")
     def ScreensaverChallenge(self, username: str, nonce: str) -> None:
+        pass
+
+    @dbus.service.signal(DBUS_EVENTS_INTERFACE, signature="ss")
+    def TimeRequestUpdated(self, username: str, request_json: str) -> None:
         pass

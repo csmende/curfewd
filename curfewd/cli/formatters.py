@@ -1,4 +1,4 @@
-"""Human-readable and JSON terminal formatters for `curfewctl` (Spec 005)."""
+"""Human-readable and JSON terminal formatters for `curfewctl` (Spec 005 + Spec 006)."""
 
 import json
 import sys
@@ -24,7 +24,7 @@ def print_users_table(users: list[dict[str, Any]], stream: Any) -> None:
         stream.write("No tracked or discoverable desktop users found.\n")
         return
     header = (
-        f"{'USER':<14} {'STATE':<13} {'LEFT TODAY':<11} "
+        f"{'USER':<14} {'ROLE':<7} {'STATE':<13} {'LEFT TODAY':<11} "
         f"{'SPENT':<9} {'LIMIT':<9} {'LOCKOUT':<10} {'LOGGED IN'}\n"
     )
     stream.write(header)
@@ -46,8 +46,9 @@ def print_users_table(users: list[dict[str, Any]], stream: Any) -> None:
             if (u["logged_in"] and u["screen_locked"])
             else ("yes" if u["logged_in"] else "no")
         )
+        role = str(u.get("role") or "child")
         stream.write(
-            f"{u['username']:<14} {u['enforcement_state']:<13} {left:<11} "
+            f"{u['username']:<14} {role:<7} {u['enforcement_state']:<13} {left:<11} "
             f"{spent:<9} {limit:<9} {u['lockout_action']:<10} {logged}\n"
         )
 
@@ -59,6 +60,12 @@ def _print_user_schedule(pol: dict[str, Any], stream: Any) -> None:
         lim_s = "unlimited" if lim >= 86400 else format_duration(lim)
         win_s = format_windows_human(pol["curfew_windows"].get(day, []))
         stream.write(f"  {day}: limit={lim_s:<10} windows={win_s}\n")
+    holidays = pol.get("holidays") or []
+    if holidays:
+        stream.write("Holidays:\n")
+        for h in holidays:
+            lbl = f" ({h['label']})" if h.get("label") else ""
+            stream.write(f"  - {h['id']}: {h['start_date']}..{h['end_date']} [{h['mode']}]{lbl}\n")
 
 
 def _print_user_app_limits(st: dict[str, Any], stream: Any) -> None:
@@ -66,7 +73,15 @@ def _print_user_app_limits(st: dict[str, Any], stream: Any) -> None:
     if not al.get("enabled"):
         return
     apps_list = al.get("apps") or []
-    stream.write(f"App Limits: enabled ({len(apps_list)} tracked)\n")
+    cats_list = al.get("categories") or []
+    stream.write(f"App Limits: enabled ({len(apps_list)} tracked, {len(cats_list)} categories)\n")
+    for c in cats_list:
+        run_tag = " [running]" if c.get("running") else ""
+        stream.write(
+            f"  [Category] {c['category']}: "
+            f"{format_duration(c.get('time_left_today', 0))} left / "
+            f"{format_duration(c.get('allotted_today', c.get('daily_limit_sec', 0)))}{run_tag}\n"
+        )
     for a in apps_list:
         run_tag = " [running]" if a.get("running") else ""
         stream.write(
@@ -79,15 +94,29 @@ def _print_user_app_limits(st: dict[str, Any], stream: Any) -> None:
 def print_user_status(st: dict[str, Any], stream: Any) -> None:
     pol = st["policy"]
     pause = st["pause"]
-    stream.write(f"User: {st['username']} ({st.get('full_name') or st['username']})\n")
+    hw = st.get("homework_mode") or {}
+    stream.write(
+        f"User: {st['username']} ({st.get('full_name') or st['username']}) [role={st.get('role', 'child')}]\n"
+    )
     stream.write(
         f"State: {st['enforcement_state']} | Logged in: {'yes' if st['logged_in'] else 'no'} "
-        f"| Locked: {'yes' if st['screen_locked'] else 'no'}\n"
+        f"| Locked: {'yes' if st['screen_locked'] else 'no'}"
+        f"{' | Idle-paused' if st.get('idle_paused') else ''}\n"
     )
     if pause.get("active"):
         until = pause.get("until_utc") or "indefinite"
         reason = f" ({pause['reason']})" if pause.get("reason") else ""
         stream.write(f"Pause: ACTIVE until {until}{reason}\n")
+    if hw.get("effective"):
+        until = hw.get("until_utc") or hw.get("source") or "indefinite"
+        stream.write(
+            f"Homework Mode: ACTIVE ({until}) — blocking {', '.join(hw.get('blocked_categories') or [])}\n"
+        )
+    if st.get("active_holiday"):
+        hol = st["active_holiday"]
+        stream.write(
+            f"Holiday Override: ACTIVE ({hol.get('label') or hol['id']} — {hol['mode']})\n"
+        )
 
     is_open = st["enforcement_state"] in ("unrestricted", "paused")
     left_str = (
@@ -103,10 +132,11 @@ def print_user_status(st: dict[str, Any], stream: Any) -> None:
         if st["daily_limit_today"] >= 86400
         else format_duration(st["daily_limit_today"])
     )
+    note_sfx = f" ({st['last_bonus_note']})" if st.get("last_bonus_note") else ""
     stream.write(
         f"Today: {left_str} left (continuous: {cont_str}) | "
         f"Spent: {format_duration(st['time_spent_today'])} / {daily_lim}"
-        f" | Bonus: {format_duration(st['bonus_today'])}\n"
+        f" | Bonus: {format_duration(st['bonus_today'])}{note_sfx}\n"
     )
     ovr = st.get("today_override") or {}
     if ovr.get("active"):
@@ -142,6 +172,14 @@ def print_history(hist: dict[str, Any], stream: Any) -> None:
                 f"{format_duration(row['inactive_sec']):<10} {format_duration(row['app_limits_sec']):<10} "
                 f"{format_duration(row['bonus_sec']):<9} {row['lockouts']}\n"
             )
+    top_apps = hist.get("top_apps") or []
+    if top_apps:
+        stream.write("Top apps:\n")
+        for app in top_apps[:10]:
+            stream.write(
+                f"  - {app['label']} [{app['category']}]: {format_duration(app['active_sec'])} "
+                f"(avg {format_duration(app['daily_avg_sec'])}/day)\n"
+            )
     if hist["events"]:
         stream.write("Recent events:\n")
         for ev in hist["events"][:10]:
@@ -150,9 +188,37 @@ def print_history(hist: dict[str, Any], stream: Any) -> None:
             )
 
 
+def print_insights(username: str, days: int, top_apps: list[dict[str, Any]], stream: Any) -> None:
+    stream.write(f"Top Apps for {username} (last {days} days):\n")
+    if not top_apps:
+        stream.write("  No passive app usage recorded yet.\n")
+        return
+    stream.write(f"  {'APP':<28} {'CATEGORY':<14} {'TOTAL':<10} {'DAILY AVG':<10} {'DAYS'}\n")
+    for app in top_apps:
+        stream.write(
+            f"  {app['label'][:27]:<28} {app['category'][:13]:<14} "
+            f"{format_duration(app['active_sec']):<10} {format_duration(app['daily_avg_sec']):<10} "
+            f"{app.get('days_used', 0)}\n"
+        )
+
+
+def print_requests(requests: list[dict[str, Any]], stream: Any) -> None:
+    if not requests:
+        stream.write("No time requests found.\n")
+        return
+    stream.write(f"{'ID':<5} {'USER':<12} {'STATUS':<10} {'TARGET':<18} {'REQ':<8} {'REASON'}\n")
+    for r in requests:
+        target_lbl = str(r.get("target_label") or r.get("kind") or "daily")
+        stream.write(
+            f"{r['id']:<5} {r['username']:<12} {r['status']:<10} "
+            f"{target_lbl[:17]:<18} {format_duration(r['requested_sec']):<8} {r.get('reason', '')}\n"
+        )
+
+
 def print_doctor(report: dict[str, Any], stream: Any) -> None:
+    mode_tag = f" | session={report['session_mode']}" if report.get("session_mode") else ""
     stream.write(
-        f"curfewd doctor (v{report.get('version', __version__)}) — overall: {report['overall'].upper()}\n"
+        f"curfewd doctor (v{report.get('version', __version__)}) — overall: {report['overall'].upper()}{mode_tag}\n"
     )
     for chk in report.get("checks", []):
         tag = {"ok": "OK  ", "warn": "WARN", "error": "FAIL"}.get(

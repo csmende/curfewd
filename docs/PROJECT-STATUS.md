@@ -1,6 +1,6 @@
 # `curfewd` — Project Status & Context Handoff
 
-**Current Release:** `v1.2.0` (`main`, published `2026-11-26`)
+**Current Release:** `v2.0.0` (`main`, `2026-11-26`)
 **Repository:** `https://github.com/csmende/curfewd` (GPLv3, `Architecture: all` Debian/Ubuntu/Linux Mint `.deb`)
 
 ---
@@ -14,6 +14,7 @@
 | [Spec 003](specs/003-material-design-ui.md) | Native Unprivileged Material Design 3 Desktop UI (`curfewd-ui`), Today-Only Overrides & Individual Per-App Limits | `v1.0.0` (`v1.0.1`–`v1.0.4` patches) | Shipped & Verified |
 | [Spec 004](specs/004-rebrand-and-app-limits-schema.md) | Complete `curfewd` Rebrand, Legacy Cleanup & Schema v2 (`app_limits`) | `v1.1.0` | Shipped & Verified |
 | [Spec 005](specs/005-architecture-refactor-and-async-daemon.md) | Architectural Modularization, Async Admin RPCs & Single-Pass Enforcement Runtime | `v1.2.0` | Shipped & Verified |
+| [Spec 006](specs/006-family-ergonomics-and-app-intelligence.md) | Family Ergonomics, Fair Enforcement & App Intelligence (Schema v3) | `v2.0.0` | Shipped & Verified |
 
 ## Design & Implementation Archive
 
@@ -30,6 +31,7 @@
 - **`v1.0.3` / `v1.0.4`** — Replaced legacy padlock tray icons with Material Design 3 Twilight Guard squircle + shield + crescent-moon status variants (signature indigo + emerald active badge dot, amber, crimson, and teal-emerald), updated AppStream metainfo, and cleaned up test fixtures/docs.
 - **`v1.1.0`** — Spec 004 full rebrand & cleanup: renamed tray icons to `curfewd-tray-{ok,warning,alert,unlimited}.svg`, deleted 11 unused legacy icons, `spec/`, `docs/TIMEKPR_GUIDE.md`, and `curfewd/migrate.py` (`migrate-timekpr`), and migrated `playtime` → schema v2 `app_limits` across modules, JSON, D-Bus, SQLite (`app_limits_sec`), CLI, and UI with automatic v1 → v2 forward-migration.
 - **`v1.2.0`** — Spec 005 architectural refactor & quality gates: extracted `EnforcementRuntime` with single-pass tick evaluation and prematched app kills, non-blocking async D-Bus RPCs (`LockUser`, `RunDoctor`, `ApplyDoctorFix`), live `SetDaemonConfig` reload, decomposed `evaluate_tick` / `run_cli` (`cli/formatters.py`) / modular Web UI (`ui/web/js/*.js`), fixed curfew warning spam / `appscan` bugs / SQLite WAL connection lifecycle, and added Ruff/Mypy CI gates.
+- **`v2.0.0`** — Spec 006 family ergonomics, fair enforcement & app intelligence (Schema v3): Ask for More Time + offline RFC 6238 TOTP Parent Access Code (with offline SVG QR) + non-cached `org.curfewd.quick_grant`, Homework Mode, 2-minute Save Grace, per-app/category advance warnings, audio chimes & 60s corner Countdown HUD, `IdleHint` pause, backward clock-jump guard, informative lock-screen away messages, 3-way multi-window schedules & Holidays, First-Run Setup Wizard, surgical live DOM updates, Top Apps passive usage insights, Flatpak/Steam/foreground matching, KDE/XFCE `doctor --fix`, Wayland-aware System Health + `TestLock`, and `curfewd-tray.service`.
 
 ## Local Dev, Verification & Release Commands
 

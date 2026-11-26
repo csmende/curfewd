@@ -105,7 +105,7 @@ class TestModels(unittest.TestCase):
         )
         rebuilt = UserPolicy.from_dict(pol.to_dict())
         self.assertEqual(rebuilt.to_dict(), pol.to_dict())
-        self.assertEqual(rebuilt.schema_version, 2)
+        self.assertEqual(rebuilt.schema_version, 3)
         self.assertEqual(rebuilt.lockout_action, "lock")
         self.assertEqual(rebuilt.app_limits.apps[0].daily_limit_sec, 2700)
         self.assertEqual(rebuilt.app_limits.apps[0].category, "Gaming")
@@ -116,7 +116,7 @@ class TestModels(unittest.TestCase):
             rebuilt.pause.is_effective(datetime(2026, 11, 26, 0, 1, tzinfo=timezone.utc))
         )
 
-        # Schema v1 forward-migration: legacy `playtime` policy, `playtime_enabled` config & `playtime_*` state
+        # Schema v1 & v2 forward-migration cleanly upgrades to schema v3
         v1_pol = UserPolicy.from_dict(
             {
                 "schema_version": 1,
@@ -129,7 +129,9 @@ class TestModels(unittest.TestCase):
                 },
             }
         )
-        self.assertEqual(v1_pol.schema_version, 2)
+        self.assertEqual(v1_pol.schema_version, 3)
+        self.assertEqual(v1_pol.role, "child")
+        self.assertTrue(v1_pol.save_grace_enabled)
         self.assertTrue(v1_pol.app_limits.enabled)
         self.assertEqual(v1_pol.app_limits.apps[0].daily_limit_sec, 1800)
         self.assertIn("app_limits", v1_pol.to_dict())
@@ -137,8 +139,9 @@ class TestModels(unittest.TestCase):
         self.assertNotIn("override_main", v1_pol.to_dict()["app_limits"])
 
         v1_cfg = DaemonConfig.from_dict({"schema_version": 1, "playtime_enabled": False})
-        self.assertEqual(v1_cfg.schema_version, 2)
+        self.assertEqual(v1_cfg.schema_version, 3)
         self.assertFalse(v1_cfg.app_limits_enabled)
+        self.assertEqual(v1_cfg.idle_pause_sec, 300)
 
         v1_st = UserAccountingState.from_dict(
             {
@@ -149,13 +152,58 @@ class TestModels(unittest.TestCase):
                 "app_limits_balance": 420,
             }
         )
-        self.assertEqual(v1_st.schema_version, 2)
+        self.assertEqual(v1_st.schema_version, 3)
         self.assertEqual(v1_st.app_limits_spent_today, 420)
         self.assertNotIn("app_limits_balance", v1_st.to_dict())
         self.assertEqual(
             TimeWindow.from_dict({"start": "08:00", "end": "20:00", "unaccounted": True}).to_dict(),
             {"start": "08:00", "end": "20:00"},
         )
+
+    def test_v3_holiday_homework_category_and_role_models(self):
+        from curfewd.models import CategoryLimitRule, HolidayOverride, HomeworkModeState
+        from curfewd.parsing import validate_iso_date
+
+        self.assertEqual(validate_iso_date("2026-12-25"), "2026-12-25")
+        self.assertEqual(parse_duration("blocked"), 0)
+        with self.assertRaises(ValueError):
+            validate_iso_date("2026-99-01")
+
+        hol = HolidayOverride(
+            start_date="2026-12-21", end_date="2027-01-03", mode="weekend", label="Winter Break"
+        )
+        self.assertTrue(hol.covers("2026-12-25"))
+        self.assertFalse(hol.covers("2027-01-04"))
+        with self.assertRaises(ValueError):
+            HolidayOverride(start_date="2026-12-30", end_date="2026-12-20")
+
+        pol = UserPolicy(
+            username="kid",
+            role="child",
+            holidays=[hol],
+            homework_mode=HomeworkModeState(active=True, mode="indefinite", reason="math"),
+            app_limits=AppLimitsPolicy(
+                enabled=True,
+                apps=[
+                    AppLimitRule(
+                        "steam",
+                        "Steam",
+                        daily_limit_sec=2700,
+                        weekend_limit_sec=5400,
+                        category="Gaming",
+                        foreground_only=True,
+                    )
+                ],
+                category_limits=[
+                    CategoryLimitRule("Gaming", daily_limit_sec=3600, weekend_limit_sec=7200)
+                ],
+            ),
+        )
+        rt = UserPolicy.from_dict(pol.to_dict())
+        self.assertEqual(rt.to_dict(), pol.to_dict())
+        self.assertEqual(rt.app_limits.apps[0].limit_for_day("sat"), 5400)
+        self.assertEqual(rt.app_limits.apps[0].limit_for_day("mon"), 2700)
+        self.assertEqual(rt.app_limits.category_limits[0].limit_for_day("sun"), 7200)
 
     def test_daemon_config_validation(self):
         cfg = DaemonConfig(poll_interval_sec=5, log_level="debug")
@@ -171,10 +219,15 @@ class TestModels(unittest.TestCase):
             spent_today=1200,
             spent_balance=600,
             bonus_today=600,
+            last_bonus_note="Cleaned room",
             app_spent_today={"steam": 900},
             app_bonus_today={"steam": 900},
+            category_spent_today={"Gaming": 900},
+            category_bonus_today={"Gaming": 300},
             today_limit_override=5400,
             today_windows_override=[{"start": "08:00", "end": "22:30"}],
+            save_grace_used_today=True,
+            save_grace_until_utc="2026-11-25T21:02:00+00:00",
         )
         self.assertEqual(UserAccountingState.from_dict(st.to_dict()).to_dict(), st.to_dict())
 

@@ -75,8 +75,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--version", action="version", version=f"curfewd {__version__}")
     args = parser.parse_args(argv)
 
-    from dbus.mainloop.glib import DBusGMainLoop
+    from dbus.mainloop.glib import DBusGMainLoop, threads_init
 
+    threads_init()
     DBusGMainLoop(set_as_default=True)
 
     import dbus

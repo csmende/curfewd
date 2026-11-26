@@ -35,7 +35,9 @@ class ValidationError(CurfewError):
     """Invalid policy, schedule, duration, or configuration payload."""
 
 
-def _translate_dbus_error(exc: dbus.DBusException) -> CurfewError:
+def _translate_dbus_error(
+    exc: dbus.DBusException, *, interactive_admin: bool = False
+) -> CurfewError:
     name = exc.get_dbus_name() or ""
     msg = exc.get_dbus_message() or str(exc)
     if "PermissionDenied" in name or "AccessDenied" in name:
@@ -44,6 +46,8 @@ def _translate_dbus_error(exc: dbus.DBusException) -> CurfewError:
         return UserNotFoundError(msg)
     if "ValidationError" in name:
         return ValidationError(msg)
+    if "NoReply" in name and interactive_admin:
+        return PermissionDeniedError(f"Authorization timed out or no response ({msg})")
     if any(
         k in name
         for k in ("ServiceUnknown", "NameHasNoOwner", "NoServer", "FileNotFound", "NoReply")
@@ -62,10 +66,12 @@ class CurfewClient:
         bus=None,
         bus_name: str = DBUS_BUS_NAME,
         follow_name_owner: bool | None = None,
+        admin_timeout_sec: int = 125,
     ) -> None:
         self._bus = bus
         self._bus_name = bus_name
         self._follow_name_owner = follow_name_owner
+        self._admin_timeout_sec = max(25, int(admin_timeout_sec))
         self._proxy = None
 
     def _get_bus(self):
@@ -101,11 +107,15 @@ class CurfewClient:
         return self._proxy
 
     def _call(self, interface_name: str, method_name: str, *args) -> Any:
+        is_admin = interface_name == DBUS_ADMIN_INTERFACE
         try:
             iface = dbus.Interface(self._get_proxy(), interface_name)
-            return getattr(iface, method_name)(*args)
+            fn = getattr(iface, method_name)
+            if is_admin:
+                return fn(*args, timeout=self._admin_timeout_sec)
+            return fn(*args)
         except dbus.DBusException as exc:
-            raise _translate_dbus_error(exc) from exc
+            raise _translate_dbus_error(exc, interactive_admin=is_admin) from exc
 
     def _call_json(self, interface_name: str, method_name: str, *args) -> dict[str, Any]:
         raw = self._call(interface_name, method_name, *args)
@@ -124,7 +134,22 @@ class CurfewClient:
             DBUS_ADMIN_INTERFACE, "SetUserPolicy", str(username), json.dumps(policy)
         )
 
-    def grant_time(self, username: str, delta_seconds: int, mode: str = "add") -> dict[str, Any]:
+    def grant_time(
+        self,
+        username: str,
+        delta_seconds: int,
+        mode: str = "add",
+        note: str = "",
+    ) -> dict[str, Any]:
+        if note:
+            return self._call_json(
+                DBUS_ADMIN_INTERFACE,
+                "GrantTimeDetailed",
+                str(username),
+                json.dumps(
+                    {"delta_seconds": int(delta_seconds), "mode": str(mode), "note": str(note)}
+                ),
+            )
         return self._call_json(
             DBUS_ADMIN_INTERFACE,
             "GrantTime",
@@ -152,8 +177,16 @@ class CurfewClient:
     def resume_user(self, username: str) -> dict[str, Any]:
         return self._call_json(DBUS_ADMIN_INTERFACE, "ResumeUser", str(username))
 
+    def set_homework_mode(self, username: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE, "SetHomeworkMode", str(username), json.dumps(payload)
+        )
+
     def lock_user(self, username: str) -> dict[str, Any]:
         return self._call_json(DBUS_ADMIN_INTERFACE, "LockUser", str(username))
+
+    def test_lock(self, username: str) -> dict[str, Any]:
+        return self._call_json(DBUS_ADMIN_INTERFACE, "TestLock", str(username))
 
     def get_usage_history(self, username: str, days: int = 7) -> dict[str, Any]:
         return self._call_json(
@@ -191,6 +224,68 @@ class CurfewClient:
             dbus.Int32(int(delta_seconds)),
         )
 
+    def grant_category_time(
+        self, username: str, category: str, delta_seconds: int
+    ) -> dict[str, Any]:
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE,
+            "GrantCategoryTime",
+            str(username),
+            str(category),
+            dbus.Int32(int(delta_seconds)),
+        )
+
+    def list_time_requests(self, status_filter: str = "") -> list[dict[str, Any]]:
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE, "ListTimeRequests", str(status_filter or "")
+        ).get("requests", [])
+
+    def resolve_time_request(
+        self,
+        request_id: int,
+        approve: bool,
+        grant_seconds: int = 0,
+        note: str = "",
+    ) -> dict[str, Any]:
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE,
+            "ResolveTimeRequest",
+            dbus.Int32(int(request_id)),
+            dbus.Boolean(bool(approve)),
+            dbus.Int32(int(grant_seconds)),
+            str(note or ""),
+        )
+
+    def quick_approve_request(
+        self,
+        request_id: int,
+        grant_seconds: int = 0,
+        note: str = "",
+    ) -> dict[str, Any]:
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE,
+            "QuickApproveRequest",
+            dbus.Int32(int(request_id)),
+            dbus.Int32(int(grant_seconds)),
+            str(note or ""),
+        )
+
+    def get_parent_code_status(self) -> dict[str, Any]:
+        return self._call_json(DBUS_ADMIN_INTERFACE, "GetParentCodeStatus")
+
+    def setup_parent_code(self, enable: bool = True, rotate: bool = False) -> dict[str, Any]:
+        return self._call_json(
+            DBUS_ADMIN_INTERFACE,
+            "SetupParentCode",
+            dbus.Boolean(bool(enable)),
+            dbus.Boolean(bool(rotate)),
+        )
+
+    def list_installed_apps(self, username: str = "") -> list[dict[str, Any]]:
+        return self._call_json(DBUS_ADMIN_INTERFACE, "ListInstalledApps", str(username or "")).get(
+            "apps", []
+        )
+
     def run_doctor(self) -> dict[str, Any]:
         return self._call_json(DBUS_ADMIN_INTERFACE, "RunDoctor")
 
@@ -210,6 +305,43 @@ class CurfewClient:
             DBUS_CLIENT_INTERFACE, "ReportScreensaverState", str(nonce), dbus.Boolean(bool(active))
         )
         return bool(res)
+
+    def report_client_telemetry(self, nonce: str, telemetry: dict[str, Any]) -> bool:
+        res = self._call(
+            DBUS_CLIENT_INTERFACE, "ReportClientTelemetry", str(nonce), json.dumps(telemetry)
+        )
+        return bool(res)
+
+    def request_more_time(
+        self,
+        requested_sec: int = 900,
+        kind: str = "daily",
+        target: str = "",
+        target_label: str = "",
+        reason: str = "",
+    ) -> dict[str, Any]:
+        return self._call_json(
+            DBUS_CLIENT_INTERFACE,
+            "RequestMoreTime",
+            json.dumps(
+                {
+                    "kind": str(kind),
+                    "target": str(target),
+                    "target_label": str(target_label),
+                    "requested_sec": int(requested_sec),
+                    "reason": str(reason),
+                }
+            ),
+        )
+
+    def list_my_time_requests(self) -> list[dict[str, Any]]:
+        return self._call_json(DBUS_CLIENT_INTERFACE, "ListMyTimeRequests").get("requests", [])
+
+    def claim_save_grace(self) -> dict[str, Any]:
+        return self._call_json(DBUS_CLIENT_INTERFACE, "ClaimSaveGrace")
+
+    def approve_with_parent_code(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._call_json(DBUS_CLIENT_INTERFACE, "ApproveWithParentCode", json.dumps(payload))
 
     # --- Signals & Auto-Reconnect ---
 

@@ -1,8 +1,8 @@
 """curfewd — Modern Linux screen-time enforcement daemon and control plane."""
 
-__version__ = "1.2.0"
+__version__ = "2.0.0"
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Native D-Bus coordinates
 DBUS_BUS_NAME = "org.curfewd.Daemon1"
@@ -15,6 +15,7 @@ DBUS_EVENTS_INTERFACE = "org.curfewd.Daemon1.Events"
 POLKIT_ACTION_READ = "org.curfewd.read"
 POLKIT_ACTION_MANAGE = "org.curfewd.manage"
 POLKIT_ACTION_LOCK = "org.curfewd.lock"
+POLKIT_ACTION_QUICK_GRANT = "org.curfewd.quick_grant"
 
 # System paths
 DEFAULT_CONFIG_DIR = "/etc/curfewd"

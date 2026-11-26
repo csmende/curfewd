@@ -16,7 +16,7 @@ This repository is developed using a **spec-driven design workflow** with **AI-a
 ## 2. Core Platform Invariants (`v0.7.0+`)
 
 - **Native `curfewd` namespace:** Primary service is `curfewd.service`, D-Bus bus is `org.curfewd.Daemon1` (`/org/curfewd/Daemon1`), config lives in `/etc/curfewd/daemon.json`, and state/history live in `/var/lib/curfewd/`.
-- **Schema-versioned JSON & SQLite:** All persisted configs include `"schema_version"` (`SCHEMA_VERSION = 2`) and forward-migrate cleanly without data loss.
+- **Schema-versioned JSON & SQLite:** All persisted configs include `"schema_version"` (`SCHEMA_VERSION = 3`) and forward-migrate cleanly from v1/v2 without data loss.
 - **Unprivileged UI model:** Never require running desktop GUIs as `root` via `pkexec`; all admin actions authorize in-daemon via Polkit (`org.curfewd.policy`) or `root`/`curfewd` group membership.
 - **License & attribution:** Preserve GPL-3.0-or-later licensing and attribution to Eduards Bezverhijs (`Timekpr-nExT`).
 
@@ -28,6 +28,9 @@ This repository is developed using a **spec-driven design workflow** with **AI-a
   - Always drop privileges (`user=uid`, `group=gid`, `extra_groups=[]`), use explicit `argv` lists (`shell=False`), resolve binaries strictly inside `/usr/bin:/bin:/usr/sbin:/sbin`, and pass only whitelisted environment variables (never copy `LD_PRELOAD`, `LD_LIBRARY_PATH`, or `PYTHONPATH` from `/proc`).
   - Always bind unprivileged D-Bus client calls to the caller's real Unix UID (`GetConnectionUnixUser(sender)`), open state/PID files with `O_NOFOLLOW`, write atomically (`mkstemp` + `fsync` + `os.replace`), and generate challenge tokens with `secrets` + `hmac.compare_digest`.
 - Never commit secrets, credentials, host-specific IPs, or personal identifiers.
+- **SAST hygiene (Bandit & CodeQL):**
+  - Never assign sentinel empty string literals (e.g., `""`) to keys or variables holding secrets, tokens, or passwords; represent absent secrets by omitting/deleting the key (`dict.pop(..., None)`) or using `None`.
+  - Always prefer refactoring code to eliminate SAST findings over adding `# nosec` / inline suppressions or weakening CI checks; reserve targeted `# nosec BXXX - <reason>` strictly for unavoidable protocol or stdlib constraints (e.g., RFC 6238 HMAC-SHA1, validated `subprocess` calls).
 
 ## 4. Verification Requirements
 
@@ -36,4 +39,4 @@ Before committing or opening a PR:
 1. Byte-compile all sources: `/usr/bin/python3 -m compileall -q curfewd tests`
 2. Run the full test suite: `/usr/bin/python3 -m unittest discover -s tests -v`
 3. Run lint, format, typecheck, and JS syntax checks: `ruff check curfewd tests`, `ruff format --check curfewd tests`, `mypy curfewd`, and `for f in curfewd/ui/web/app.js curfewd/ui/web/js/*.js; do node --check "$f"; done`
-4. Verify Debian metadata & security gates: `dpkg-parsechangelog`, Bandit (`0` Medium/High), ShellCheck (`0` warnings), and GitHub Actions `CI`, `Security`, and `CodeQL`.
+4. Verify Debian metadata & security gates: `dpkg-parsechangelog`, Bandit (`bandit -r curfewd` — `0` Low/Medium/High findings), ShellCheck (`0` warnings), and GitHub Actions `CI`, `Security`, and `CodeQL`.
