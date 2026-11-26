@@ -1,33 +1,37 @@
 #!/bin/sh
 set -e
 
-TK_DIR="/usr/lib/python3/dist-packages/timekpr"
-TK_UNIT_NAME="timekpr.service"
+CURFEWD_DIR="/usr/lib/python3/dist-packages/curfewd"
+CURFEWD_UNIT="curfewd.service"
 
-# Add timekpr group (for accessing administration functionality without sudo)
-getent group timekpr >/dev/null || groupadd -r timekpr
+# Create system admin group for headless curfewctl access without sudo
+getent group curfewd >/dev/null || groupadd -r curfewd
 
-# Remove stale compiled python units
-if [ -d "${TK_DIR}" ]; then
-    find "${TK_DIR}" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
-    find "${TK_DIR}" -type f -iname '*.pyc' -delete 2>/dev/null || true
+# Ensure config and state directories exist with safe ownership and modes
+install -d -m 0755 -o root -g root /etc/curfewd
+install -d -m 0750 -o root -g curfewd /var/lib/curfewd /var/lib/curfewd/users /var/lib/curfewd/state
+
+# One-way migration from legacy Timekpr-nExT / curfewd 0.6.x on first install
+if [ -f /etc/timekpr/timekpr.conf ] && [ ! -f /etc/curfewd/daemon.json ]; then
+    /usr/bin/curfewctl migrate-timekpr || true
 fi
 
-# Remove obsolete unit previously installed under /etc
-TK_OBSOLETE_UNIT="/etc/systemd/system/${TK_UNIT_NAME}"
-if [ -f "${TK_OBSOLETE_UNIT}" ] && [ ! -L "${TK_OBSOLETE_UNIT}" ]; then
-    rm -f "${TK_OBSOLETE_UNIT}"
+# Clean stale bytecode caches
+if [ -d "${CURFEWD_DIR}" ]; then
+    find "${CURFEWD_DIR}" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+    find "${CURFEWD_DIR}" -type f -iname '*.pyc' -delete 2>/dev/null || true
 fi
 
-# Enable/reload/restart systemd units when running under systemd
+# Stop obsolete timekpr.service if upgrading from 0.6.x or timekpr-next
 if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+    systemctl stop timekpr.service 2>/dev/null || true
+    systemctl disable timekpr.service 2>/dev/null || true
     systemctl daemon-reload || true
     systemctl reload dbus 2>/dev/null || true
-    systemctl enable "${TK_UNIT_NAME}" || true
-    systemctl restart "${TK_UNIT_NAME}" || true
+    systemctl enable "${CURFEWD_UNIT}" || true
+    systemctl restart "${CURFEWD_UNIT}" || true
 fi
 
-# Update GTK icon cache when utility exists
 if command -v gtk-update-icon-cache >/dev/null 2>&1 && [ -d /usr/share/icons/hicolor ]; then
     touch --no-create /usr/share/icons/hicolor || true
     gtk-update-icon-cache -f -q /usr/share/icons/hicolor || true

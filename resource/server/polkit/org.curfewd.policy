@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>curfewd</vendor>
+  <vendor_url>https://github.com/csmende/curfewd</vendor_url>
+  <icon_name>timekpr</icon_name>
+
+  <action id="org.curfewd.read">
+    <description>Inspect curfewd user schedules and screen-time status</description>
+    <message>Authentication is required to view screen-time status for other users</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.curfewd.manage">
+    <description>Manage curfewd screen-time policies, grants, and pauses</description>
+    <message>Authentication is required to modify screen-time limits and schedules</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.curfewd.lock">
+    <description>Lock or terminate a user session via curfewd</description>
+    <message>Authentication is required to lock another user's desktop session</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

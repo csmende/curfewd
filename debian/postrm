@@ -1,21 +1,25 @@
 #!/bin/sh
 set -e
 
-TK_DIR="/usr/lib/python3/dist-packages/timekpr"
-TK_UNIT_NAME="timekpr.service"
+CURFEWD_DIR="/usr/lib/python3/dist-packages/curfewd"
+CURFEWD_UNIT="curfewd.service"
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
-        systemctl stop "${TK_UNIT_NAME}" 2>/dev/null || true
-        systemctl disable "${TK_UNIT_NAME}" 2>/dev/null || true
+        systemctl stop "${CURFEWD_UNIT}" 2>/dev/null || true
+        systemctl disable "${CURFEWD_UNIT}" 2>/dev/null || true
         systemctl reload dbus 2>/dev/null || true
         systemctl daemon-reload || true
     fi
 fi
 
-if [ -d "${TK_DIR}" ]; then
-    find "${TK_DIR}" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
-    find "${TK_DIR}" -type f -iname '*.pyc' -delete 2>/dev/null || true
+if [ "$1" = "purge" ]; then
+    rm -rf /etc/curfewd /var/lib/curfewd /run/curfewd
+fi
+
+if [ -d "${CURFEWD_DIR}" ]; then
+    find "${CURFEWD_DIR}" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+    find "${CURFEWD_DIR}" -type f -iname '*.pyc' -delete 2>/dev/null || true
 fi
 
 #DEBHELPER#

@@ -23,7 +23,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             dbus \
-            gir1.2-gtk-3.0 \
             libglib2.0-bin \
             python3 \
             python3-dbus \
@@ -32,7 +31,7 @@ jobs:
 
       - name: Syntax check all Python sources
         run: |
-          /usr/bin/python3 -m compileall -q common client server tests
+          /usr/bin/python3 -m compileall -q curfewd tests
 
       - name: Run unit and live D-Bus integration tests
         run: |
@@ -54,9 +53,7 @@ jobs:
             debhelper \
             dh-python \
             dpkg-dev \
-            gir1.2-gtk-3.0 \
             lintian \
-            po-debconf \
             python3 \
             python3-dbus \
             python3-gi
@@ -71,7 +68,7 @@ jobs:
       - name: Inspect package metadata and file listing
         run: |
           dpkg-deb -I dist/curfewd_*.deb
-          dpkg-deb -c dist/curfewd_*.deb | head -n 80
+          dpkg-deb -c dist/curfewd_*.deb | head -n 90
 
       - name: Run lintian diagnostics
         run: |
@@ -82,12 +79,16 @@ jobs:
           sudo apt-get install -y ./dist/curfewd_*.deb
           test -x /usr/bin/curfewctl
           test -x /usr/bin/curfewd
-          test -x /usr/bin/timekpra
-          test -f /usr/lib/python3/dist-packages/timekpr/server/interface/dbus/logind/screenlock.py
-          test -f /usr/lib/systemd/system/timekpr.service
-          test -f /usr/share/dbus-1/system.d/timekpr.conf
+          test -x /usr/bin/curfewd-tray
+          test -f /usr/lib/python3/dist-packages/curfewd/engine/screenlock.py
+          test -f /usr/lib/systemd/system/curfewd.service
+          test -f /usr/share/dbus-1/system.d/org.curfewd.Daemon1.conf
+          test -f /usr/share/polkit-1/actions/org.curfewd.policy
+          test -f /etc/xdg/autostart/curfewd-tray.desktop
           test -x /usr/share/doc/curfewd/examples/dconf-lock-screensaver.sh
-          /usr/bin/python3 -c "import timekpr.server.interface.dbus.logind.screenlock as s; print('Imported screenlock OK:', list(s.BACKENDS))"
+          /usr/bin/curfewctl --version
+          /usr/bin/curfewctl --help >/dev/null
+          /usr/bin/python3 -c "import curfewd, curfewd.engine.screenlock as s; print('Imported curfewd', curfewd.__version__, 'backends:', list(s.BACKENDS))"
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v7

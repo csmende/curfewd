@@ -10,15 +10,7 @@ import types
 import unittest
 from unittest import mock
 
-# Ensure `timekpr` package maps to repo root even under `python3 -m unittest`
-_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if "timekpr" not in sys.modules:
-    _pkg = types.ModuleType("timekpr")
-    _pkg.__path__ = [_REPO_ROOT]
-    _pkg.__package__ = "timekpr"
-    sys.modules["timekpr"] = _pkg
-
-from timekpr.server.interface.dbus.logind import screenlock
+from curfewd.engine import screenlock
 
 
 def _proc_result(returncode=0, stdout="", stderr=""):

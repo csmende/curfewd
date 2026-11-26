@@ -1,0 +1,43 @@
+[Unit]
+Description=curfewd screen-time enforcement daemon
+Documentation=https://github.com/csmende/curfewd
+After=dbus.service systemd-logind.service polkit.service
+Wants=dbus.service systemd-logind.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/curfewd
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=120
+StartLimitBurst=10
+TimeoutStopSec=15
+
+# Managed directories
+ConfigurationDirectory=curfewd
+ConfigurationDirectoryMode=0755
+StateDirectory=curfewd
+StateDirectoryMode=0750
+RuntimeDirectory=curfewd
+RuntimeDirectoryMode=0755
+
+# Filesystem and kernel hardening (retains CAP_SETUID/CAP_SETGID/CAP_KILL for privilege-dropped lock helpers)
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/curfewd /var/lib/curfewd /run/curfewd /var/log
+ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+MemoryMax=256M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

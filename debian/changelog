@@ -1,3 +1,23 @@
+curfewd (0.7.0) unstable; urgency=medium
+
+  * Breaking (Spec 002): clean native curfewd control plane & package layout
+    - Replace legacy timekpr.service / com.timekpr.server / /etc/timekpr with
+      hardened curfewd.service, versioned org.curfewd.Daemon1 D-Bus API, and
+      atomic schema-v1 JSON storage under /etc/curfewd and /var/lib/curfewd
+    - Add Polkit authorization (org.curfewd.read, org.curfewd.manage,
+      org.curfewd.lock) so future Material Design UIs never run as root, plus
+      sender-UID verification on client D-Bus methods
+    - Add native non-destructive Pause/Resume (indefinite or timed auto-expiry),
+      verified LockUser D-Bus endpoint returning LockResult telemetry, SQLite
+      WAL usage history & audit log, and `curfewctl doctor [--fix]`
+    - Replace legacy CLI with modern `curfewctl` subcommands and global `--json`
+    - Replace legacy GTK3/Glade UI and timekprc with lean, Glade-free,
+      auto-reconnecting `curfewd-tray` (NameOwnerChanged recovery)
+    - Include one-way `curfewctl migrate-timekpr` importer (auto-run on first
+      install when /etc/timekpr/timekpr.conf is present)
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 01:50:00 +0000
+
 curfewd (0.6.1) unstable; urgency=medium
 
   * Security: generate session-attribute verification keys using CSPRNG

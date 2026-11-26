@@ -28,10 +28,10 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install "bandit[sarif]"
 
-      - name: Run Bandit across common, client, and server
+      - name: Run Bandit across curfewd package
         run: |
-          bandit -r common client server -f txt || true
-          bandit -r common client server -f sarif -o bandit.sarif || true
+          bandit -r curfewd -f txt || true
+          bandit -r curfewd -f sarif -o bandit.sarif || true
 
       - name: Upload Bandit SARIF to GitHub Code Scanning
         if: always()
@@ -42,7 +42,7 @@ jobs:
 
       - name: Fail if Bandit reported Medium or High severity findings
         run: |
-          bandit -r common client server -ll
+          bandit -r curfewd -ll
 
   shellcheck:
     name: ShellCheck Maintainer & Helper Scripts
@@ -58,9 +58,7 @@ jobs:
           shellcheck --severity=warning \
             bin/curfewctl \
             bin/curfewd \
-            bin/timekpra \
-            bin/timekprc \
-            bin/timekprd \
+            bin/curfewd-tray \
             debian/postinst \
             debian/postrm \
             extras/dconf-lock-screensaver.sh

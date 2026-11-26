@@ -8,31 +8,31 @@ This repository is developed using a **spec-driven design workflow** with **AI-a
 - Every spec should state:
   - **Problem & Motivation**
   - **Design & Architecture**
-  - **Compatibility Impact** (config, D-Bus, CLI, systemd, `.deb` upgrade path)
+  - **Compatibility Impact** (config schema, D-Bus, CLI, systemd, `.deb` upgrade path)
   - **Security & Privilege Boundaries**
   - **Verification & Acceptance Criteria**
-- Update the relevant spec and [`CHANGELOG.md`](CHANGELOG.md) when implementation changes behavior.
+- Update the relevant spec and [`debian/changelog`](debian/changelog) when implementation changes behavior.
 
-## 2. Drop-In Compatibility Invariants
+## 2. Core Platform Invariants (`v0.7.0+`)
 
-`curfewd` is deployed across multiple Linux systems and serves as a drop-in upgrade over upstream `Timekpr-nExT`:
-
-- Keep `/etc/timekpr/timekpr.conf`, `/var/lib/timekpr/config/`, and `/var/lib/timekpr/work/` backward-compatible; auto-migrate new config keys with safe defaults in [`common/utils/config.py`](common/utils/config.py).
-- Preserve `timekpra`, `timekprc`, `timekprd`, `timekpr.service` (with `Alias=curfewd.service`), and the `com.timekpr.server` D-Bus API alongside `curfewctl` / `curfewd`.
-- Preserve upstream GPL-3.0 licensing and attribution to Eduards Bezverhijs (`Timekpr-nExT`).
+- **Native `curfewd` namespace:** Primary service is `curfewd.service`, D-Bus bus is `org.curfewd.Daemon1` (`/org/curfewd/Daemon1`), config lives in `/etc/curfewd/daemon.json`, and state/history live in `/var/lib/curfewd/`.
+- **Schema-versioned JSON:** All persisted configs include `"schema_version"` and forward-migrate cleanly without data loss. Legacy `Timekpr-nExT` installs migrate via `curfewctl migrate-timekpr`.
+- **Unprivileged UI model:** Never require running desktop GUIs as `root` via `pkexec`; all admin actions authorize in-daemon via Polkit (`org.curfewd.policy`) or `root`/`curfewd` group membership.
+- **License & attribution:** Preserve GPL-3.0-or-later licensing and attribution to Eduards Bezverhijs (`Timekpr-nExT`).
 
 ## 3. Security & Reliability Boundaries
 
-- `timekprd` runs as `root`:
+- `curfewd` runs as `root`:
   - Never block the GLib main loop with slow I/O or subprocesses; run external lock helpers on deduplicated background threads with bounded timeouts.
   - Never touch shared `dbus-python` `SystemBus` proxies from worker threads; extract pure-Python metadata on the GLib thread first.
   - Always drop privileges (`user=uid`, `group=gid`, `extra_groups=[]`), use explicit `argv` lists (`shell=False`), resolve binaries strictly inside `/usr/bin:/bin:/usr/sbin:/sbin`, and pass only whitelisted environment variables (never copy `LD_PRELOAD`, `LD_LIBRARY_PATH`, or `PYTHONPATH` from `/proc`).
+  - Always bind unprivileged D-Bus client calls to the caller's real Unix UID (`GetConnectionUnixUser(sender)`), open state/PID files with `O_NOFOLLOW`, write atomically (`mkstemp` + `fsync` + `os.replace`), and generate challenge tokens with `secrets` + `hmac.compare_digest`.
 - Never commit secrets, credentials, host-specific IPs, or personal identifiers.
 
 ## 4. Verification Requirements
 
 Before committing or opening a PR:
 
-1. Byte-compile all sources: `/usr/bin/python3 -m compileall -q common client server tests`
+1. Byte-compile all sources: `/usr/bin/python3 -m compileall -q curfewd tests`
 2. Run the full test suite: `/usr/bin/python3 -m unittest discover -s tests -v`
-3. Verify Debian metadata when packaging changes: `dpkg-parsechangelog` and GitHub Actions `CI` (`.deb` build, `lintian`, and install smoke test).
+3. Verify Debian metadata & security gates: `dpkg-parsechangelog`, Bandit (`0` Medium/High), ShellCheck (`0` warnings), and GitHub Actions `CI`, `Security`, and `CodeQL`.

@@ -4,17 +4,19 @@
 
 | Version | Supported |
 |---|---|
-| `0.6.x` (`main`) | Yes |
+| `0.7.x` (`main`) | Yes |
+| `0.6.x` (legacy `timekpr` compat) | Security fixes only |
 | `< 0.6.0` (upstream `timekpr-next`) | See [upstream Launchpad](https://bugs.launchpad.net/timekpr-next) |
 
 ## Threat Model & Scope
 
-Because `curfewd` runs its enforcement daemon (`timekprd` / `curfewd`) as **`root`** while interacting with unprivileged desktop user sessions, we treat the following classes of bugs as high-priority security vulnerabilities:
+Because `curfewd` runs its enforcement daemon (`curfewd.service`) as **`root`** while interacting with unprivileged desktop user sessions, we treat the following classes of bugs as high-priority security vulnerabilities:
 
-- **Privilege escalation** from an unprivileged desktop user to `root` (including via D-Bus interfaces, `/proc` environment handling, `PATH`/`LD_PRELOAD` injection, or Debian maintainer scripts).
+- **Privilege escalation** from an unprivileged desktop user to `root` (including via D-Bus `org.curfewd.Daemon1`, Polkit policy bypass, `/proc` environment handling, `PATH`/`LD_PRELOAD` injection, or Debian maintainer scripts).
+- **Cross-user spoofing** on unprivileged client D-Bus methods (`GetMyStatus`, `ReportScreensaverState` must strictly bind to `GetConnectionUnixUser(sender)`).
 - **Command or shell injection** in daemon lock helpers, CLI wrappers, or packaging scripts.
-- **Screen-lock bypasses** allowing an unprivileged user to defeat `LOCKOUT_TYPE = lock` enforcement under documented configurations (assuming root-locked `dconf` settings via `dconf-lock-screensaver.sh`).
-- **Symlink / temp-file / config-file tampering** in `/etc/timekpr`, `/var/lib/timekpr`, or `/var/log`.
+- **Screen-lock bypasses** allowing an unprivileged user to defeat `lockout_action = "lock"` enforcement under documented configurations (assuming root-locked `dconf` settings via `curfewctl doctor --fix`).
+- **Symlink / temp-file / config-file tampering** in `/etc/curfewd`, `/var/lib/curfewd`, or `/run/curfewd`.
 
 ## Reporting a Vulnerability
 
@@ -35,7 +37,7 @@ We aim to acknowledge reports promptly and coordinate a fix and public release b
 
 This repository runs continuous automated security checks on every push, pull request, and weekly schedule:
 
-- **GitHub CodeQL** (`extended` security & quality query suite for Python and GitHub Actions)
-- **Bandit** Python SAST (uploaded as SARIF to GitHub Code Scanning)
+- **GitHub CodeQL** (`extended` security & quality query suite, `remote_and_local` threat model for Python and GitHub Actions)
+- **Bandit** Python SAST (uploaded as SARIF to GitHub Code Scanning, gated on Medium/High severity)
 - **ShellCheck** static analysis on shell wrappers, Debian maintainer scripts, and hardening scripts
 - **GitHub Secret Scanning** with push protection & **Dependabot** automated security updates
