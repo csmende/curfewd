@@ -259,7 +259,6 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             "timekpr-padlock-unlimited-green.svg",
         ]
         ns = {"svg": "http://www.w3.org/2000/svg"}
-        seen_gradients = set()
         for name in expected:
             path = os.path.join(icons_dir, name)
             self.assertTrue(os.path.isfile(path), f"Missing icon: {name}")
@@ -273,8 +272,14 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             grad = root.find(".//svg:linearGradient", ns)
             self.assertIsNotNone(grad, f"Missing gradient in {name}")
             grad_id = grad.attrib.get("id")
-            self.assertNotIn(grad_id, seen_gradients, f"Duplicate gradient id {grad_id}")
-            seen_gradients.add(grad_id)
+            self.assertTrue(grad_id, f"Empty gradient id in {name}")
+            self.assertEqual(rect.attrib.get("fill"), f"url(#{grad_id})", name)
+            circle = root.find("svg:circle", ns)
+            if name == "timekpr-padlock-limited-green.svg":
+                self.assertIsNotNone(circle, "Expected emerald status dot in limited-green icon")
+                self.assertEqual(circle.attrib.get("fill"), "#5cd69d")
+            else:
+                self.assertIsNone(circle, f"Unexpected status dot in {name}")
 
 
 if __name__ == "__main__":
