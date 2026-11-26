@@ -3,6 +3,12 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
+## [1.0.3] - 2026-11-26
+
+### Changed
+- **Material Design 3 Tray Status Icons:** Replaced the 4 legacy padlock tray icons (`resource/icons/timekpr-padlock-{limited-green,limited-yellow,limited-red,unlimited-green}.svg`) with Material Design 3 Twilight Guard squircle + shield + crescent-moon status variants (emerald, amber, crimson, and teal) matching `curfewd.svg` and `curfewd-ui`.
+- **Metadata & Docs Polish:** Updated AppStream metainfo (`1.0.1`–`1.0.3`), README release references, Spec 003 tray iconography notes, and anonymized test fixture usernames.
+
 ## [1.0.2] - 2026-11-26
 
 ### Fixed

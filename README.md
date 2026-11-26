@@ -7,13 +7,13 @@
 
 **A modern Linux screen-time enforcement daemon, native Material Design 3 desktop UI, Polkit-authorized D-Bus control plane, and ergonomic CLI — evolved from [Timekpr-nExT](https://launchpad.net/timekpr-next).**
 
-`curfewd` started as a fork of Timekpr-nExT to fix broken screen locking on modern Linux Mint Cinnamon, XFCE, MATE, and fullscreen X11 games (`v0.6.0`), rebuilt the daemon & CLI into a hardened Polkit-authorized control plane (`v0.7.0`), and now ships **`v1.0.0`** with a native, unprivileged **Material Design 3 desktop application (`curfewd-ui`)**, **Today-only overrides**, and **individual per-app daily limits**.
+`curfewd` started as a fork of Timekpr-nExT to fix broken screen locking on modern Linux Mint Cinnamon, XFCE, MATE, and fullscreen X11 games (`v0.6.0`), rebuilt the daemon & CLI into a hardened Polkit-authorized control plane (`v0.7.0`), and now ships **`v1.0.3`** with a native, unprivileged **Material Design 3 desktop application (`curfewd-ui`)**, cohesive Material 3 tray icons, **Today-only overrides**, and **individual per-app daily limits**.
 
 ---
 
 ## Why `curfewd`?
 
-| Capability | Upstream `Timekpr-nExT` (`v0.5.11`) | `curfewd` (`v1.0.0`) |
+| Capability | Upstream `Timekpr-nExT` (`v0.5.11`) | `curfewd` (`v1.0`) |
 |---|---|---|
 | **Desktop UI** | Legacy root GTK3/Glade (`pkexec`) | **Native unprivileged Material Design 3 UI (`curfewd-ui`)** over WebKitGTK + Polkit, plus passwordless **My Screen Time** (`--my-status`) |
 | **Cinnamon / XFCE / MATE screen lock** | Silent failure after `cinnamon-screensaver` 30s timeout | **Verified 3-layer lock:** `logind` → DE session D-Bus/CLI → active check |
@@ -23,13 +23,13 @@
 | **D-Bus API & Client isolation** | Legacy `com.timekpr.server`, client passes username string | **Versioned `org.curfewd.Daemon1` JSON API** + Polkit (`org.curfewd.policy`) + strict D-Bus **sender-UID binding** |
 | **Configuration & History** | Semicolon INI strings (`7;8;...;20[0-30]`), no history | **Atomic schema-v1 JSON** (`/etc/curfewd`, `/var/lib/curfewd`) + **SQLite WAL usage history** |
 | **CLI & Automation** | Positional legacy flags, text-only output | **Modern `curfewctl` subcommands** with human durations (`+30m`, `08:00-22:00`) & **`--json`** |
-| **Tray companion** | Detaches on daemon restart, 1,894-line Glade XML | **Lean auto-reconnecting `curfewd-tray`** (`NameOwnerChanged` recovery, opens **My Screen Time**) |
+| **Tray companion** | Detaches on daemon restart, 1,894-line Glade XML | **Lean auto-reconnecting `curfewd-tray`** (`NameOwnerChanged` recovery, Material 3 Twilight Guard status icons, opens **My Screen Time**) |
 | **Diagnostics & Security** | Manual debugging, bare systemd unit | **1-click Lock-Screen Protection** (`curfewctl doctor --fix` / UI), hardened `curfewd.service`, `0` Bandit/ShellCheck findings |
 
 ### Specifications
 - **Spec 001 (`v0.6.0`, Implemented):** Verified multi-DE screen locking, X11 fullscreen grab release, `dconf` lock hardening.
 - **Spec 002 (`v0.7.0`, Implemented):** Native `org.curfewd.Daemon1` D-Bus + Polkit control plane, atomic JSON storage, SQLite usage history, native `pause`/`resume`/`lock`/`doctor`, modern `curfewctl` CLI, and auto-reconnecting `curfewd-tray`.
-- **Spec 003 (`v1.0.0`, Implemented):** Native unprivileged Material Design 3 Desktop UI (`curfewd-ui`), Today-only overrides, individual per-app daily limits, installed app scanner, and 1-click lock-screen hardening.
+- **Spec 003 (`v1.0.0`–`v1.0.3`, Implemented):** Native unprivileged Material Design 3 Desktop UI (`curfewd-ui`), Material 3 tray status icons, Today-only overrides, individual per-app daily limits, installed app scanner, and 1-click lock-screen hardening.
 
 ---
 
@@ -38,13 +38,13 @@
 Download the latest `.deb` from [GitHub Releases](https://github.com/csmende/curfewd/releases):
 
 ```bash
-curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/curfewd_1.0.2_all.deb
+curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/curfewd_1.0.3_all.deb
 curl -fsSLO https://github.com/csmende/curfewd/releases/latest/download/SHA256SUMS
 sha256sum -c SHA256SUMS
-sudo apt install -y ./curfewd_1.0.2_all.deb
+sudo apt install -y ./curfewd_1.0.3_all.deb
 ```
 
-> **Desktop UI Runtime:** `curfewd` recommends `gir1.2-webkit-6.0 | gir1.2-webkit2-4.1` so `apt install ./curfewd_1.0.2_all.deb` automatically installs WebKitGTK on desktop systems while staying lightweight on headless hosts.
+> **Desktop UI Runtime:** `curfewd` recommends `gir1.2-webkit-6.0 | gir1.2-webkit2-4.1` so `apt install ./curfewd_1.0.3_all.deb` automatically installs WebKitGTK on desktop systems while staying lightweight on headless hosts.
 >
 > **Upgrading from `curfewd 0.6.x` or `timekpr-next`?**
 > On first install, if `/etc/timekpr/timekpr.conf` is found, package setup automatically runs `curfewctl migrate-timekpr` (non-destructively importing schedules and balances while leaving `/etc/timekpr` intact as a backup).

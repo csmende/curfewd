@@ -26,6 +26,21 @@
     <binary>curfewctl</binary>
   </provides>
   <releases>
+    <release version="1.0.3" date="2026-11-26">
+      <description>
+        <p>Replaced legacy tray padlock icons with Material Design 3 Twilight Guard squircle + shield + crescent-moon status variants matching curfewd-ui.</p>
+      </description>
+    </release>
+    <release version="1.0.2" date="2026-11-26">
+      <description>
+        <p>Fixed installed application scanner to follow exported Flatpak .desktop symlinks and unwrap sh -c Steam launchers.</p>
+      </description>
+    </release>
+    <release version="1.0.1" date="2026-11-26">
+      <description>
+        <p>Fixed mainloop-free D-Bus client connections, stale 0.6.x service symlink cleanup during upgrades, and systemd unit StartLimit placement.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-11-26">
       <description>
         <p>First 1.0 release with native Material Design 3 desktop UI, Today-only overrides, individual per-app daily limits, and one-click lock-screen protection.</p>

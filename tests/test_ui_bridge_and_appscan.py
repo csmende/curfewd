@@ -247,6 +247,35 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
             self.assertTrue(down["ok"])
             self.assertEqual(down["data"]["surface"], "unavailable")
 
+    def test_material3_brand_and_tray_svg_icons_valid(self):
+        import xml.etree.ElementTree as ET
+
+        icons_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "resource", "icons"))
+        expected = [
+            "curfewd.svg",
+            "timekpr-padlock-limited-green.svg",
+            "timekpr-padlock-limited-yellow.svg",
+            "timekpr-padlock-limited-red.svg",
+            "timekpr-padlock-unlimited-green.svg",
+        ]
+        ns = {"svg": "http://www.w3.org/2000/svg"}
+        seen_gradients = set()
+        for name in expected:
+            path = os.path.join(icons_dir, name)
+            self.assertTrue(os.path.isfile(path), f"Missing icon: {name}")
+            root = ET.parse(path).getroot()  # nosec B314 - static local repo assets
+            self.assertEqual(root.attrib.get("viewBox"), "0 0 40 40", name)
+            rect = root.find("svg:rect", ns)
+            self.assertIsNotNone(rect, f"Missing squircle rect in {name}")
+            self.assertEqual(rect.attrib.get("rx"), "11", name)
+            paths = root.findall("svg:path", ns)
+            self.assertEqual(len(paths), 2, f"Expected shield + crescent paths in {name}")
+            grad = root.find(".//svg:linearGradient", ns)
+            self.assertIsNotNone(grad, f"Missing gradient in {name}")
+            grad_id = grad.attrib.get("id")
+            self.assertNotIn(grad_id, seen_gradients, f"Duplicate gradient id {grad_id}")
+            seen_gradients.add(grad_id)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -81,7 +81,7 @@ Scans freedesktop `.desktop` entries across `/usr/share/applications`, `/usr/loc
 
 ### 3.4 Tray Companion Integration (`curfewd-tray`)
 
-`curfewd-tray` adds an **"Open My Screen Time"** menu item launching `/usr/bin/curfewd-ui --my-status` without a password prompt, updates its launcher/notification icon to `curfewd`, and removes obsolete `unaccounted` icon logic.
+`curfewd-tray` adds an **"Open My Screen Time"** menu item launching `/usr/bin/curfewd-ui --my-status` without a password prompt, updates its launcher/notification icon to `curfewd`, replaces the 4 legacy padlock tray status icons (`timekpr-padlock-{limited-green,limited-yellow,limited-red,unlimited-green}.svg`) with Material Design 3 Twilight Guard squircle + shield + crescent-moon status variants matching `curfewd.svg`, and removes obsolete `unaccounted` icon logic.
 
 ---
 

@@ -1,3 +1,16 @@
+curfewd (1.0.3) unstable; urgency=medium
+
+  * Replace the 4 legacy tray padlock SVGs (`timekpr-padlock-limited-green`,
+    `limited-yellow`, `limited-red`, `unlimited-green`) with Material Design 3
+    Twilight Guard squircle + shield + crescent-moon status icons matching
+    `curfewd.svg`
+  * Update AppStream metainfo releases (`1.0.1`–`1.0.3`), README version
+    references, and Spec 003 tray iconography docs
+  * Replace personal test username in `tests/test_screenlock.py` with generic
+    fixture data
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 15:18:00 +0000
+
 curfewd (1.0.2) unstable; urgency=medium
 
   * Fix installed application scanner (`curfewd.ui.appscan`) to follow

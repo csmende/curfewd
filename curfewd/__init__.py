@@ -1,6 +1,6 @@
 """curfewd — Modern Linux screen-time enforcement daemon and control plane."""
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 SCHEMA_VERSION = 1
 

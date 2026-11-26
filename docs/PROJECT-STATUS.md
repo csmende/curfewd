@@ -1,6 +1,6 @@
 # `curfewd` — Project Status & Context Handoff
 
-**Current Release:** `v1.0.2` (`main`, published `2026-11-26`)
+**Current Release:** `v1.0.3` (`main`, published `2026-11-26`)
 **Repository:** `https://github.com/csmende/curfewd` (GPLv3, `Architecture: all` Debian/Ubuntu/Linux Mint `.deb`)
 
 ---
@@ -9,9 +9,9 @@
 
 | Spec | Title | Shipped In | Status |
 |---|---|---|---|
-| [Spec 001](specs/001-reliable-screen-lock-and-grab-release.md) | Reliable Multi-DE Screen Lock & X11 Fullscreen Grab Release | `v0.6.0` (ported to native engine in `v0.7.0`) | Shipped & Verified |
+| [Spec 001](specs/001-multi-de-screen-locking.md) | Reliable Multi-DE Screen Lock & X11 Fullscreen Grab Release | `v0.6.0` (ported to native engine in `v0.7.0`) | Shipped & Verified |
 | [Spec 002](specs/002-curfewd-control-plane-and-cli.md) | Clean-Break `curfewd` Control Plane, Polkit D-Bus API, Atomic JSON/SQLite Storage, `curfewctl`, `curfewd-tray` | `v0.7.0` | Shipped & Verified |
-| [Spec 003](specs/003-material-design-ui.md) | Native Unprivileged Material Design 3 Desktop UI (`curfewd-ui`), Today-Only Overrides & Individual Per-App Limits | `v1.0.0` (`v1.0.1`–`v1.0.2` patches) | Shipped & Verified |
+| [Spec 003](specs/003-material-design-ui.md) | Native Unprivileged Material Design 3 Desktop UI (`curfewd-ui`), Today-Only Overrides & Individual Per-App Limits | `v1.0.0` (`v1.0.1`–`v1.0.3` patches) | Shipped & Verified |
 
 ## Design & Implementation Archive
 
@@ -26,11 +26,12 @@
 - **`v1.0.0`** — Native WebKitGTK Material Design 3 UI (`curfewd-ui`, GTK4/WebKit 6.0 with GTK3/WebKit2 4.1 fallback, offline `curfewd://` scheme), Today-only overrides (`SetTodayOverride` / `curfewctl today`), individual per-app daily limits (`GrantAppTime` / `curfewctl app-limits`), `ApplyDoctorFix`, passwordless `GetMyHistory(days)` self-view, Twilight Guard brand icon & AppStream metadata.
 - **`v1.0.1`** — Live Mint 22.3 fixes: mainloop-free `CurfewClient._get_proxy()`, stale `0.6.x` `/etc/systemd/system/curfewd.service` alias symlink cleanup in `debian/postinst`, `StartLimit*` moved to `[Unit]`.
 - **`v1.0.2`** — App scanner (`curfewd/ui/appscan.py`) resolves symlinked Flatpak `.desktop` exports and unwraps `sh -c '...'` launchers (e.g., Ubuntu/Mint Steam).
+- **`v1.0.3`** — Replaced legacy padlock tray icons (`timekpr-padlock-{limited-green,limited-yellow,limited-red,unlimited-green}.svg`) with Material Design 3 Twilight Guard squircle + shield + crescent-moon status variants matching `curfewd.svg`, updated AppStream metainfo, and cleaned up test fixtures/docs.
 
 ## Local Dev, Verification & Release Commands
 
 ```bash
-# Unit & D-Bus integration tests (54 tests)
+# Unit & D-Bus integration tests (55 tests)
 python3 -m unittest discover -s tests -v
 
 # Frontend JS syntax check
