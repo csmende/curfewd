@@ -3,6 +3,11 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
+## [1.0.2] - 2026-11-26
+
+### Fixed
+- **App Limits Picker (Flatpak & Steam discovery):** Updated `curfewd.ui.appscan` to resolve exported Flatpak `.desktop` symlinks (`/var/lib/flatpak/exports/share/applications/*.desktop`) and unwrap `sh -c` desktop wrappers (`steam.desktop`).
+
 ## [1.0.1] - 2026-11-26
 
 ### Fixed

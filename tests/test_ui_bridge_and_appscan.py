@@ -130,20 +130,25 @@ class _FakeUIClient:
 class TestAppScanner(unittest.TestCase):
     def test_scans_native_and_flatpak_desktop_entries_and_filters_noise(self):
         with tempfile.TemporaryDirectory() as tmp:
-            # Native game
+            # Native game wrapped in `sh -c 'ENV=1 steam %U'` (Ubuntu/Linux Mint style)
             with open(os.path.join(tmp, "steam.desktop"), "w", encoding="utf-8") as fh:
-                fh.write("[Desktop Entry]\nType=Application\nName=Steam\nExec=/usr/games/steam %U\nCategories=Network;FileTransfer;Game;\n")
-            # Flatpak Roblox (Sober)
-            with open(os.path.join(tmp, "org.vinegarhq.Sober.desktop"), "w", encoding="utf-8") as fh:
+                fh.write("[Desktop Entry]\nType=Application\nName=Install Steam\nExec=sh -c 'STEAM_FRAME_FORCE_CLOSE=1 steam %U'\nCategories=Network;FileTransfer;Game;\n")
+            # Symlinked Flatpak Roblox (Sober), matching /var/lib/flatpak/exports/share/applications layout
+            fp_target = os.path.join(tmp, "real_sober.desktop")
+            with open(fp_target, "w", encoding="utf-8") as fh:
                 fh.write("[Desktop Entry]\nType=Application\nName=Sober\nExec=/usr/bin/flatpak run --branch=stable org.vinegarhq.Sober\nX-Flatpak=org.vinegarhq.Sober\nCategories=Game;\n")
+            os.symlink(fp_target, os.path.join(tmp, "org.vinegarhq.Sober.desktop"))
             # Hidden / NoDisplay / Settings utility should be ignored
             with open(os.path.join(tmp, "hidden.desktop"), "w", encoding="utf-8") as fh:
                 fh.write("[Desktop Entry]\nType=Application\nName=Hidden\nExec=/usr/bin/foo\nNoDisplay=true\n")
             with open(os.path.join(tmp, "settings.desktop"), "w", encoding="utf-8") as fh:
                 fh.write("[Desktop Entry]\nType=Application\nName=Display Settings\nExec=cinnamon-settings display\nCategories=Settings;System;\n")
-            # Symlink should be rejected
-            os.symlink(os.path.join(tmp, "steam.desktop"), os.path.join(tmp, "link.desktop"))
-            self.assertIsNone(parse_desktop_file(os.path.join(tmp, "link.desktop")))
+            # Symlink pointing to a non-.desktop file must still be rejected
+            secret_file = os.path.join(tmp, "not_a_desktop.txt")
+            with open(secret_file, "w", encoding="utf-8") as fh:
+                fh.write("[Desktop Entry]\nType=Application\nName=Bad\nExec=/usr/bin/bad\n")
+            os.symlink(secret_file, os.path.join(tmp, "badlink.desktop"))
+            self.assertIsNone(parse_desktop_file(os.path.join(tmp, "badlink.desktop")))
 
             apps = scan_installed_apps(search_dirs=[tmp], include_curated_fallback=False)
             patterns = [a["pattern"] for a in apps]
@@ -151,6 +156,8 @@ class TestAppScanner(unittest.TestCase):
             self.assertIn("sober", patterns)
             self.assertNotIn("foo", patterns)
             self.assertNotIn("cinnamon-settings", patterns)
+            steam = next(a for a in apps if a["pattern"] == "steam")
+            self.assertEqual(steam["label"], "Steam")
             sober = next(a for a in apps if a["pattern"] == "sober")
             self.assertEqual(sober["label"], "Roblox (Sober)")
             self.assertEqual(sober["category"], "Gaming")

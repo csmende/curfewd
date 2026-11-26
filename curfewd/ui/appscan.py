@@ -145,6 +145,21 @@ def _extract_pattern_from_exec(exec_line: str, flatpak_id: str = "") -> tuple[st
 
     cmd = os.path.basename(cleaned[0])
 
+    # Unwrap `sh -c 'ENV=1 steam %U'` desktop launchers (e.g. Ubuntu/Mint steam.desktop)
+    if cmd in ("sh", "bash", "dash") and len(cleaned) >= 3 and cleaned[1] == "-c":
+        try:
+            inner = shlex.split(cleaned[2])
+        except ValueError:
+            inner = cleaned[2].split()
+        idx = 0
+        while idx < len(inner) and (inner[idx].startswith("%") or ("=" in inner[idx] and not inner[idx].startswith("-"))):
+            idx += 1
+        if idx < len(inner):
+            cleaned = [tok for tok in inner[idx:] if not tok.startswith("%")]
+            if not cleaned:
+                return "", None, None
+            cmd = os.path.basename(cleaned[0])
+
     # Handle `flatpak run [--flags] <app.id>`
     if cmd == "flatpak" and "run" in cleaned[1:3]:
         for arg in cleaned[2:]:
@@ -172,11 +187,13 @@ def _extract_pattern_from_exec(exec_line: str, flatpak_id: str = "") -> tuple[st
 
 def parse_desktop_file(path: str) -> dict[str, Any] | None:
     """Parse one freedesktop .desktop entry into an App Limits picker candidate."""
-    if not os.path.isfile(path) or os.path.islink(path):
+    # Flatpak exports /var/lib/flatpak/exports/share/applications/*.desktop as symlinks to .desktop files
+    real_path = os.path.realpath(path)
+    if not real_path.endswith(".desktop") or not os.path.isfile(real_path):
         return None
     cp = configparser.ConfigParser(interpolation=None, strict=False)
     try:
-        cp.read(path, encoding="utf-8")
+        cp.read(real_path, encoding="utf-8")
     except (configparser.Error, OSError, UnicodeDecodeError):
         return None
 
