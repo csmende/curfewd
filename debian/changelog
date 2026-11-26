@@ -1,3 +1,12 @@
+curfewd (1.0.4) unstable; urgency=medium
+
+  * Refine Material Design 3 tray status SVGs (`timekpr-padlock-limited-green`
+    now uses the signature Twilight Guard indigo squircle with an emerald
+    active status badge dot, alongside refined amber, crimson, and
+    teal-emerald variants)
+
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 15:25:00 +0000
+
 curfewd (1.0.3) unstable; urgency=medium
 
   * Replace the 4 legacy tray padlock SVGs (`timekpr-padlock-limited-green`,

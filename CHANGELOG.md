@@ -3,6 +3,11 @@
 All notable changes to **curfewd** are documented here.
 For historical upstream releases (`v0.5.11` and earlier), see [`debian/changelog`](debian/changelog).
 
+## [1.0.4] - 2026-11-26
+
+### Changed
+- **Refined Material Design 3 Tray Status Icons:** Updated `timekpr-padlock-limited-green.svg` to the signature Twilight Guard indigo squircle (`#3f51b5` → `#6c63ff`) with a `#5cd69d` emerald active status dot, alongside refined amber (`#b45309` → `#f59e0b`), crimson (`#b91c1c` → `#ef4444`), and teal-emerald (`#0f766e` → `#10b981`) state SVGs.
+
 ## [1.0.3] - 2026-11-26
 
 ### Changed

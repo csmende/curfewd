@@ -26,6 +26,11 @@
     <binary>curfewctl</binary>
   </provides>
   <releases>
+    <release version="1.0.4" date="2026-11-26">
+      <description>
+        <p>Refined Material Design 3 tray status icons with the Twilight Guard indigo squircle and emerald active status badge dot.</p>
+      </description>
+    </release>
     <release version="1.0.3" date="2026-11-26">
       <description>
         <p>Replaced legacy tray padlock icons with Material Design 3 Twilight Guard squircle + shield + crescent-moon status variants matching curfewd-ui.</p>
