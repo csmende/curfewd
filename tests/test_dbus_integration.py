@@ -119,8 +119,10 @@ class _RecordingNotifier(DesktopNotifier):
 @unittest.skipUnless(shutil.which("dbus-daemon"), "dbus-daemon required for live D-Bus tests")
 class TestLiveDaemonDBusIntegration(unittest.TestCase):
     def setUp(self) -> None:
-        threads_init()
-        DBusGMainLoop(set_as_default=True)
+        if dbus.get_default_main_loop() is None:
+            threads_init()
+            DBusGMainLoop(set_as_default=True)
+        self._extra_buses: list[dbus.bus.BusConnection] = []
         self._tmpdir = tempfile.TemporaryDirectory()
         self._bus_proc = subprocess.Popen(
             ["dbus-daemon", "--session", "--nofork", "--print-address=1"],
@@ -174,6 +176,22 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self._thread.start()
         self._client = CurfewClient(bus=self._client_bus)
 
+    def _open_extra_bus(self) -> dbus.bus.BusConnection:
+        """Open a BusConnection on the GLib thread and defer closing until loop exit."""
+        created: list[dbus.bus.BusConnection] = []
+        done = threading.Event()
+
+        def _create() -> bool:
+            created.append(dbus.bus.BusConnection(self._bus_addr))
+            done.set()
+            return False
+
+        GLib.idle_add(_create)
+        self.assertTrue(done.wait(timeout=3.0), "Timed out opening BusConnection on GLib thread")
+        bus = created[0]
+        self._extra_buses.append(bus)
+        return bus
+
     def _fake_doctor_fix(self):
         self._doctor_fix_calls += 1
         return {"applied": True, "files": [], "dconf_updated": True, "detail": "stub ok"}
@@ -183,6 +201,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
             with contextlib.suppress(Exception):
                 self._service.remove_from_connection()
             self._service._bus_name = None
+            self._service._name = None
             self._loop.quit()
             return False
 
@@ -190,8 +209,9 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self._thread.join(timeout=3.0)
         self._service.shutdown()
         self._history.close()
-        self._server_bus.close()
-        self._client_bus.close()
+        for bus in (*reversed(self._extra_buses), self._client_bus, self._server_bus):
+            with contextlib.suppress(Exception):
+                bus.close()
         self._bus_proc.terminate()
         try:
             self._bus_proc.wait(timeout=3.0)
@@ -334,8 +354,8 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
 
     def test_tray_auto_reconnects_when_daemon_restarts(self):
         notifier = _RecordingNotifier()
-        watch_bus = dbus.bus.BusConnection(self._bus_addr)
-        rpc_bus = dbus.bus.BusConnection(self._bus_addr)
+        watch_bus = self._open_extra_bus()
+        rpc_bus = self._open_extra_bus()
 
         class _ThreadedTestClient(CurfewClient):
             def __init__(self) -> None:
@@ -375,9 +395,14 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         restarted_refs = []
 
         def _restart_daemon():
-            self._service.remove_from_connection()
-            self._service._bus_name = None
-            self._server_bus.close()
+            old_svc = self._service
+            old_bus = self._server_bus
+            with contextlib.suppress(Exception):
+                old_svc.remove_from_connection()
+            old_svc._bus_name = None
+            old_svc._name = None
+            old_svc.shutdown()
+            old_bus.close()
 
             def _start_new():
                 new_bus = dbus.bus.BusConnection(self._bus_addr)
@@ -415,8 +440,6 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         )
         self.assertEqual(len(notifier.messages), 1)
         self.assertIn("10m", notifier.messages[0][1])
-        watch_bus.close()
-        rpc_bus.close()
 
     def test_client_proxy_works_without_mainloop(self):
         """Regression test: one-shot curfewctl / worker threads work when follow_name_owner_changes raises RuntimeError."""
@@ -439,7 +462,7 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         self._sessions.lock_started.clear()
         lock_result: dict[str, object] = {}
 
-        lock_bus = dbus.bus.BusConnection(self._bus_addr)
+        lock_bus = self._open_extra_bus()
         lock_client = CurfewClient(bus=lock_bus, follow_name_owner=False)
 
         def _invoke_lock() -> None:
@@ -459,7 +482,6 @@ class TestLiveDaemonDBusIntegration(unittest.TestCase):
         )
 
         t.join(timeout=3.0)
-        lock_bus.close()
         self.assertTrue(lock_result.get("resp", {}).get("locked"))
 
     def test_set_daemon_config_invokes_live_reload_callback(self):

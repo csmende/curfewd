@@ -3,6 +3,8 @@ Node.js frontend state, and Hypothesis property-based fuzz tests (Spec 006 harde
 
 from __future__ import annotations
 
+import contextlib
+import json
 import os
 import shutil
 import subprocess
@@ -614,15 +616,22 @@ class TestTelemetryTTLAndEnforcementHardening(unittest.TestCase):
         import getpass
 
         import dbus
-        from dbus.mainloop.glib import DBusGMainLoop, threads_init
+        from dbus.mainloop.glib import DBusGMainLoop
         from gi.repository import GLib
 
-        from curfewd.dbus.client import CurfewClient, ValidationError
+        from curfewd import (
+            DBUS_ADMIN_INTERFACE,
+            DBUS_BUS_NAME,
+            DBUS_CLIENT_INTERFACE,
+            DBUS_OBJECT_PATH,
+        )
         from curfewd.dbus.polkit import PolkitAuthorizer
         from curfewd.dbus.service import CurfewDaemonService
 
-        threads_init()
-        loop_ctx = DBusGMainLoop()
+        # Run entirely on the main GLib thread with async D-Bus calls to avoid
+        # libdbus/dbus-glib cross-thread BusConnection open/close race conditions.
+        if dbus.get_default_main_loop() is None:
+            DBusGMainLoop(set_as_default=True)
         with tempfile.TemporaryDirectory() as tmp:
             sock_path = os.path.join(tmp, "bus")
             bus_addr = f"unix:path={sock_path}"
@@ -632,15 +641,19 @@ class TestTelemetryTTLAndEnforcementHardening(unittest.TestCase):
                 stderr=subprocess.DEVNULL,
             )
             svc_bus = None
-            cli_bus = None
-            loop = None
+            cli1_bus = None
+            cli2_bus = None
+            service = None
+            hist = None
             try:
                 for _ in range(50):
                     if os.path.exists(sock_path):
                         break
                     time.sleep(0.05)
 
-                svc_bus = dbus.bus.BusConnection(bus_addr, mainloop=loop_ctx)
+                svc_bus = dbus.bus.BusConnection(bus_addr)
+                cli1_bus = dbus.bus.BusConnection(bus_addr)
+                cli2_bus = dbus.bus.BusConnection(bus_addr)
                 store = AtomicJsonStore(
                     config_dir=os.path.join(tmp, "etc"),
                     state_dir=os.path.join(tmp, "var"),
@@ -648,62 +661,142 @@ class TestTelemetryTTLAndEnforcementHardening(unittest.TestCase):
                 hist = HistoryStore(os.path.join(tmp, "h.db"))
                 cur_user = getpass.getuser()
 
-                # Custom authorizer whose authorize_async simulates a 0.8s interactive Polkit dialog on GLib
+                # Custom authorizer whose authorize_async simulates a 0.6s interactive Polkit dialog
                 class _SlowAsyncAuthorizer(PolkitAuthorizer):
                     def authorize_async(self, sender, action_id, on_ok, on_err):
-                        GLib.timeout_add(800, lambda: (on_ok(os.getuid(), cur_user), False)[1])
+                        GLib.timeout_add(600, lambda: (on_ok(os.getuid(), cur_user), False)[1])
 
                 auth = _SlowAsyncAuthorizer(bus=svc_bus)
                 service = CurfewDaemonService(svc_bus, store, hist, authorizer=auth)
                 service._runtime.set_user_policy(
                     cur_user, UserPolicy(username=cur_user).to_dict(), actor="root"
                 )
-                loop = GLib.MainLoop()
-                loop_thread = threading.Thread(target=loop.run, daemon=True)
-                loop_thread.start()
-
-                # Client 1 triggers slow interactive Admin call (GetDaemonConfig) in background thread
-                admin_done = threading.Event()
-                admin_res: list[dict] = []
-
-                def _slow_admin_call():
-                    b1 = dbus.bus.BusConnection(bus_addr)
-                    try:
-                        c1 = CurfewClient(bus=b1, follow_name_owner=False)
-                        admin_res.append(c1.get_daemon_config())
-                    finally:
-                        b1.close()
-                        admin_done.set()
-
-                t_admin = threading.Thread(target=_slow_admin_call, daemon=True)
-                t_admin.start()
-                time.sleep(0.08)
-
-                # While Admin Polkit dialog is waiting (0.8s), unprivileged GetMyStatus MUST answer immediately!
-                cli_bus = dbus.bus.BusConnection(bus_addr)
-                c2 = CurfewClient(bus=cli_bus, follow_name_owner=False)
-                t0 = time.monotonic()
-                st = c2.get_my_status()
-                dt = time.monotonic() - t0
-                self.assertEqual(st["username"], cur_user)
-                self.assertLess(dt, 0.45, f"GetMyStatus stalled {dt:.2f}s behind slow Polkit!")
-
-                # Malformed telemetry payload must raise ValidationError and NOT burn nonce
                 service._runtime._pending_nonces[cur_user] = "good-nonce-123"
-                with self.assertRaises(ValidationError):
-                    c2.report_client_telemetry("good-nonce-123", {"idle_sec": "not-a-number"})
-                self.assertIn(cur_user, service._runtime._pending_nonces)
 
-                self.assertTrue(admin_done.wait(timeout=3.0))
+                loop = GLib.MainLoop()
+                admin_res: list[dict] = []
+                status_res: list[dict] = []
+                status_elapsed: list[float] = []
+                status_before_admin: list[bool] = []
+                telem_errors: list[str] = []
+                unexpected_errors: list[str] = []
+
+                def _maybe_quit() -> None:
+                    if admin_res and status_res and telem_errors:
+                        loop.quit()
+
+                def _on_admin_ok(raw_json: str) -> None:
+                    admin_res.append(json.loads(str(raw_json)))
+                    _maybe_quit()
+
+                def _on_admin_err(err: Exception) -> None:
+                    unexpected_errors.append(f"admin: {err}")
+                    loop.quit()
+
+                def _fire_concurrent_user_calls() -> bool:
+                    t0 = time.monotonic()
+
+                    def _on_status_ok(raw_json: str) -> None:
+                        status_elapsed.append(time.monotonic() - t0)
+                        status_before_admin.append(not admin_res)
+                        status_res.append(json.loads(str(raw_json)))
+                        _maybe_quit()
+
+                    def _on_status_err(err: Exception) -> None:
+                        unexpected_errors.append(f"status: {err}")
+                        loop.quit()
+
+                    def _on_telem_ok(val: bool) -> None:
+                        unexpected_errors.append(f"telemetry unexpectedly succeeded: {val}")
+                        loop.quit()
+
+                    def _on_telem_err(err: Exception) -> None:
+                        telem_errors.append(
+                            err.get_dbus_name() if hasattr(err, "get_dbus_name") else str(err)
+                        )
+                        _maybe_quit()
+
+                    # While Admin Polkit dialog is suspended (0.6s), unprivileged GetMyStatus
+                    # must reply immediately and malformed telemetry must return ValidationError.
+                    cli2_bus.call_async(
+                        DBUS_BUS_NAME,
+                        DBUS_OBJECT_PATH,
+                        DBUS_CLIENT_INTERFACE,
+                        "GetMyStatus",
+                        "",
+                        (),
+                        reply_handler=_on_status_ok,
+                        error_handler=_on_status_err,
+                    )
+                    cli2_bus.call_async(
+                        DBUS_BUS_NAME,
+                        DBUS_OBJECT_PATH,
+                        DBUS_CLIENT_INTERFACE,
+                        "ReportClientTelemetry",
+                        "ss",
+                        ("good-nonce-123", json.dumps({"idle_sec": "not-a-number"})),
+                        reply_handler=_on_telem_ok,
+                        error_handler=_on_telem_err,
+                    )
+                    return False
+
+                def _start_calls() -> bool:
+                    cli1_bus.call_async(
+                        DBUS_BUS_NAME,
+                        DBUS_OBJECT_PATH,
+                        DBUS_ADMIN_INTERFACE,
+                        "GetDaemonConfig",
+                        "",
+                        (),
+                        reply_handler=_on_admin_ok,
+                        error_handler=_on_admin_err,
+                    )
+                    GLib.timeout_add(60, _fire_concurrent_user_calls)
+                    return False
+
+                timed_out = False
+
+                def _safety_timeout() -> bool:
+                    nonlocal timed_out
+                    timed_out = True
+                    unexpected_errors.append("timed out waiting for async D-Bus replies")
+                    loop.quit()
+                    return False
+
+                GLib.idle_add(_start_calls)
+                timeout_id = GLib.timeout_add(4000, _safety_timeout)
+                loop.run()
+                if not timed_out:
+                    GLib.source_remove(timeout_id)
+
+                self.assertEqual(unexpected_errors, [])
                 self.assertEqual(len(admin_res), 1)
+                self.assertEqual(len(status_res), 1)
+                self.assertEqual(status_res[0]["username"], cur_user)
+                self.assertTrue(
+                    status_before_admin and status_before_admin[0],
+                    "GetMyStatus did not complete before slow async Polkit finished!",
+                )
+                self.assertLess(
+                    status_elapsed[0],
+                    0.45,
+                    f"GetMyStatus stalled {status_elapsed[0]:.2f}s behind slow Polkit!",
+                )
+                self.assertEqual(telem_errors, ["org.curfewd.Daemon1.Error.ValidationError"])
+                # Malformed telemetry payload must NOT burn the pending nonce
+                self.assertIn(cur_user, service._runtime._pending_nonces)
             finally:
-                if loop is not None:
-                    GLib.idle_add(loop.quit)
-                    loop_thread.join(timeout=2.0)
-                if cli_bus is not None:
-                    cli_bus.close()
-                if svc_bus is not None:
-                    svc_bus.close()
+                if service is not None:
+                    with contextlib.suppress(Exception):
+                        service.remove_from_connection()
+                    service._bus_name = None
+                    service._name = None
+                    service.shutdown()
+                if hist is not None:
+                    hist.close()
+                for b in (cli2_bus, cli1_bus, svc_bus):
+                    if b is not None:
+                        b.close()
                 daemon.terminate()
                 daemon.wait(timeout=5)
 
