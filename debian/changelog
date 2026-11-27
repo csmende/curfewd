@@ -22,6 +22,17 @@ curfewd (2.0.0) unstable; urgency=medium
       `daily_app_usage` Top Apps insights with 1-click Set Limit; target-user
       app scanning; KDE Plasma Kiosk & XFCE `doctor --fix` hardening;
       Wayland-aware System Health + `TestLock`; and `curfewd-tray.service`
+  * v2.0.0 RC4 (Spec 007 / TBD-BELLE-006): Lock-screen grant indicator &
+    fullscreen game notifications
+    - Add `ScreenLockEnforcer.update_lock_message(_async)` and
+      `LogindSessionMonitor.notify_lock_screen` to update Cinnamon lock-screen
+      away messages when time is granted, paused, or overridden while locked
+      (only if already locked)
+    - Propagate `session_locked` in `ClientNotification` with critical/resident
+      D-Bus hints in `curfewd-tray`
+    - Add `curfewd.tray.osd` (X11 `_NET_WM_STATE_FULLSCREEN` detection via
+      `xprop`/`Gdk`, non-focus-stealing GTK3 `override-redirect` OSD banner,
+      critical/DND-override hints, and fullscreen `AudioChimePlayer` trigger)
   * v2.0.0 RC stabilization & hardening (#7-#13):
     - Track root-verified per-session lock state from `ScreenLockEnforcer`
       callbacks to eliminate repeated lockout event/counter inflation and

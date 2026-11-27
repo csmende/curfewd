@@ -23,9 +23,11 @@ from curfewd.storage import AtomicJsonStore
 
 
 class _StubSessionMonitor:
-    def __init__(self, username: str) -> None:
+    def __init__(self, username: str, locked: bool = False) -> None:
         self.username = username
+        self.locked = locked
         self.lockout_actions: list[tuple[str, str]] = []
+        self.lock_screen_messages: list[str] = []
 
     def list_user_sessions(self, _tracked_types=None):
         return {
@@ -36,7 +38,7 @@ class _StubSessionMonitor:
                     "username": self.username,
                     "session_type": "x11",
                     "active": True,
-                    "locked": False,
+                    "locked": self.locked,
                     "idle": False,
                     "display": ":0",
                     "desktop": "X-Cinnamon",
@@ -44,6 +46,12 @@ class _StubSessionMonitor:
                 }
             ]
         }
+
+    def notify_lock_screen(self, sessions, message: str) -> int:
+        if not sessions or not message:
+            return 0
+        self.lock_screen_messages.append(message)
+        return len(sessions)
 
     def summarize_sessions(self, sessions):
         return [
@@ -571,6 +579,58 @@ class TestEnforcementRuntime(unittest.TestCase):
                 self.assertEqual(rep["top_apps"][0]["app_key"], "steam:3072000")
                 self.assertEqual(rep["top_apps"][0]["label"], "Cozy Adventure")
                 self.assertEqual(rep["top_apps"][0]["active_sec"], 35)
+
+    def test_grant_time_and_pause_notify_lock_screen_only_when_locked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AtomicJsonStore(
+                config_dir=os.path.join(tmp, "etc"),
+                state_dir=os.path.join(tmp, "var"),
+            )
+            store.ensure_dirs()
+            pol = UserPolicy(
+                username="alice",
+                daily_limits=dict.fromkeys(WEEKDAYS, 3600),
+                curfew_windows={d: [TimeWindow("08:00", "23:00")] for d in WEEKDAYS},
+            )
+            store.save_user_policy(pol)
+            store.save_user_state(
+                UserAccountingState(
+                    username="alice",
+                    date="2026-11-25",
+                    week_key="2026-W48",
+                    month_key="2026-11",
+                    spent_today=3600,
+                    spent_balance=3600,
+                )
+            )
+            sess_mon = _StubSessionMonitor("alice", locked=True)
+            notif_events: list[tuple[str, dict]] = []
+
+            with HistoryStore(os.path.join(tmp, "var", "history.db")) as hist:
+                rt = EnforcementRuntime(
+                    store=store,
+                    history=hist,
+                    session_monitor=sess_mon,
+                    now_fn=lambda: datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc),
+                    on_client_notification=lambda u, p: notif_events.append((u, p)),
+                )
+                rt.tick()
+                rt.grant_time("alice", 900, "add", actor="parent", note="finished chores")
+                self.assertEqual(len(sess_mon.lock_screen_messages), 1)
+                self.assertIn("Bonus time added (+15m)", sess_mon.lock_screen_messages[0])
+                self.assertIn("finished chores", sess_mon.lock_screen_messages[0])
+                self.assertTrue(notif_events[-1][1]["session_locked"])
+
+                rt.pause_user("alice", "", "chore", False, actor="parent")
+                self.assertEqual(len(sess_mon.lock_screen_messages), 2)
+                self.assertIn("Screen time paused", sess_mon.lock_screen_messages[1])
+                self.assertTrue(notif_events[-1][1]["session_locked"])
+
+                sess_mon.locked = False
+                rt.tick()
+                rt.grant_time("alice", 300, "add", actor="parent")
+                self.assertEqual(len(sess_mon.lock_screen_messages), 2)
+                self.assertFalse(notif_events[-1][1]["session_locked"])
 
 
 if __name__ == "__main__":

@@ -112,7 +112,9 @@ class _RecordingNotifier(DesktopNotifier):
         super().__init__(session_bus=None)
         self.messages: list[tuple[str, str, int]] = []
 
-    def send(self, summary: str, body: str, urgency: int = 1, icon: str = "curfewd") -> None:
+    def send(
+        self, summary: str, body: str, urgency: int = 1, icon: str = "curfewd", **_kwargs
+    ) -> None:
         self.messages.append((summary, body, urgency))
 
 

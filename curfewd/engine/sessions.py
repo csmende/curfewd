@@ -306,6 +306,20 @@ class LogindSessionMonitor:
         for ctx in self.build_contexts(sessions):
             self._screenlock.verify_session_lock_async(ctx, on_complete=on_complete)
 
+    def notify_lock_screen(
+        self,
+        sessions: list[dict[str, Any]],
+        message: str,
+    ) -> int:
+        """Queue non-blocking lock-screen indicator updates for locked graphical sessions."""
+        if not sessions or not message:
+            return 0
+        queued = 0
+        for ctx in self.build_contexts(sessions):
+            if self._screenlock.update_lock_message_async(ctx, message):
+                queued += 1
+        return queued
+
     def enforce_lockout_action(
         self,
         action: str,

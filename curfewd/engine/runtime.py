@@ -38,7 +38,7 @@ from curfewd.models import (
     UserAccountingState,
     UserPolicy,
 )
-from curfewd.parsing import validate_username
+from curfewd.parsing import format_duration, validate_username
 from curfewd.storage import AtomicJsonStore
 from curfewd.ui.appscan import scan_installed_apps
 
@@ -1056,6 +1056,24 @@ class EnforcementRuntime:
         self._emit_notification(safe, {"kind": "policy_changed"})
         return status
 
+    def _maybe_notify_lock_screen(
+        self,
+        safe: str,
+        status: dict[str, Any],
+        message: str,
+    ) -> bool:
+        """If the user's session is currently locked and now has time, update the lock-screen indicator."""
+        sessions = self._last_sessions.get(safe, [])
+        _, screen_locked, *_ = self._session_flags(safe, sessions)
+        if not screen_locked:
+            return False
+        has_time = int(status.get("time_left_continuous", 0) or 0) > 0 or status.get(
+            "enforcement_state"
+        ) in ("ok", "warning", "paused", "unrestricted")
+        if has_time and message:
+            self._sessions.notify_lock_screen(sessions, message)
+        return True
+
     def grant_time(
         self,
         safe: str,
@@ -1087,9 +1105,23 @@ class EnforcementRuntime:
         )
         status = self.compute_status(safe)
         self._emit_status(safe, status)
+        lock_msg = (
+            f"Bonus time added (+{format_duration(applied)})"
+            + (f" ({clean_note})" if clean_note else "")
+            + " — unlock to resume"
+            if applied > 0
+            else ""
+        )
+        session_locked = self._maybe_notify_lock_screen(safe, status, lock_msg)
         self._emit_notification(
             safe,
-            {"kind": "time_granted", "applied_sec": applied, "note": clean_note, "actor": actor},
+            {
+                "kind": "time_granted",
+                "applied_sec": applied,
+                "note": clean_note,
+                "actor": actor,
+                "session_locked": session_locked,
+            },
         )
         return {"applied_sec": applied, "note": clean_note, "status": status}
 
@@ -1116,7 +1148,17 @@ class EnforcementRuntime:
         self._emit_policy_changed(safe)
         status = self.compute_status(safe)
         self._emit_status(safe, status)
-        self._emit_notification(safe, {"kind": "paused", "pause": policy.pause.to_dict()})
+        session_locked = self._maybe_notify_lock_screen(
+            safe, status, "Screen time paused — unlock to resume"
+        )
+        self._emit_notification(
+            safe,
+            {
+                "kind": "paused",
+                "pause": policy.pause.to_dict(),
+                "session_locked": session_locked,
+            },
+        )
         return status
 
     def resume_user(self, safe: str, actor: str) -> dict[str, Any]:
@@ -1200,7 +1242,10 @@ class EnforcementRuntime:
         self._history.record_event(safe, "today_override", actor=actor, detail=res)
         status = self.compute_status(safe)
         self._emit_status(safe, status)
-        self._emit_notification(safe, {"kind": "policy_changed"})
+        session_locked = self._maybe_notify_lock_screen(
+            safe, status, "Schedule updated — unlock to resume"
+        )
+        self._emit_notification(safe, {"kind": "policy_changed", "session_locked": session_locked})
         return status
 
     def grant_app_time(

@@ -24,6 +24,7 @@ from curfewd.dbus.client import CurfewClient, CurfewError
 from curfewd.engine.screenlock import TRUSTED_BIN_PATH, select_backends
 from curfewd.parsing import format_duration
 from curfewd.tray.hud import AudioChimePlayer, CountdownHUD
+from curfewd.tray.osd import FullscreenOsdBanner, is_fullscreen_window_active
 
 logger = logging.getLogger("curfewd.tray")
 
@@ -189,14 +190,40 @@ class SessionTelemetryProbe:
 
 
 class DesktopNotifier:
-    """Sends org.freedesktop.Notifications popups without requiring GTK Glade."""
+    """Sends org.freedesktop.Notifications popups with fullscreen OSD & lock-screen hints."""
 
-    def __init__(self, session_bus=None) -> None:
+    def __init__(
+        self,
+        session_bus=None,
+        fullscreen_probe: Callable[[], bool] | None = None,
+        osd_banner: FullscreenOsdBanner | None = None,
+    ) -> None:
         self._bus = session_bus
         self._iface: Any = None
         self._last_id = 0
+        self._fullscreen_probe = fullscreen_probe or is_fullscreen_window_active
+        self._osd_banner: FullscreenOsdBanner | None = (
+            FullscreenOsdBanner() if osd_banner is None else osd_banner
+        )
 
-    def send(self, summary: str, body: str, urgency: int = 1, icon: str = "curfewd") -> None:
+    def send(
+        self,
+        summary: str,
+        body: str,
+        urgency: int = 1,
+        icon: str = "curfewd",
+        session_locked: bool = False,
+        accent: str = "info",
+    ) -> None:
+        fullscreen = False
+        if urgency >= 1:
+            try:
+                fullscreen = bool(self._fullscreen_probe())
+            except Exception as exc:
+                logger.debug("fullscreen probe failed: %s", exc)
+
+        eff_urgency = 2 if (fullscreen or session_locked) else max(0, min(2, urgency))
+
         try:
             import dbus
 
@@ -209,8 +236,14 @@ class DesktopNotifier:
                     follow_name_owner_changes=True,
                 )
                 self._iface = dbus.Interface(proxy, "org.freedesktop.Notifications")
-            hints = dbus.Dictionary({"urgency": dbus.Byte(max(0, min(2, urgency)))}, signature="sv")
-            timeout_ms = 10000 if urgency >= 2 else 5000
+            hint_map: dict[str, Any] = {"urgency": dbus.Byte(eff_urgency)}
+            if fullscreen or session_locked:
+                hint_map["transient"] = dbus.Boolean(False)
+                hint_map["x-cinnamon-override-dnd"] = dbus.Boolean(True)
+            if session_locked:
+                hint_map["resident"] = dbus.Boolean(True)
+            hints = dbus.Dictionary(hint_map, signature="sv")
+            timeout_ms = 10000 if eff_urgency >= 2 else 5000
             self._last_id = int(
                 self._iface.Notify(
                     "curfewd",
@@ -225,6 +258,10 @@ class DesktopNotifier:
             )
         except Exception as exc:
             logger.debug("desktop notification skipped: %s", exc)
+
+        if fullscreen and self._osd_banner is not None:
+            duration_ms = 9000 if eff_urgency >= 2 else 5500
+            self._osd_banner.show(summary, body, duration_ms=duration_ms, accent=accent)
 
 
 class TrayController:
@@ -409,6 +446,7 @@ class TrayController:
         applied = int(payload.get("applied_sec", 0))
         note = str(payload.get("note") or "").strip()
         note_sfx = f" — {note}" if note else ""
+        session_locked = bool(payload.get("session_locked", False))
         if is_app:
             label = str(payload.get("label") or payload.get("pattern") or "App")
             if applied >= 0:
@@ -416,23 +454,31 @@ class TrayController:
                     "Bonus app time added",
                     f"+{format_duration(applied)} added for {label} today{note_sfx}.",
                     urgency=1,
+                    accent="success",
                 )
             else:
                 self.notifier.send(
                     "App time adjusted",
                     f"{format_duration(applied)} adjusted for {label} today.",
                     urgency=1,
+                    accent="info",
                 )
             return
         if applied >= 0:
+            unlock_note = " You may unlock your session now." if session_locked else ""
             self.notifier.send(
                 "Bonus screen time added",
-                f"+{format_duration(applied)} added today{note_sfx}.",
+                f"+{format_duration(applied)} added today{note_sfx}.{unlock_note}",
                 urgency=1,
+                session_locked=session_locked,
+                accent="success",
             )
         else:
             self.notifier.send(
-                "Screen time adjusted", f"{format_duration(applied)} adjusted today.", urgency=1
+                "Screen time adjusted",
+                f"{format_duration(applied)} adjusted today.",
+                urgency=1,
+                accent="info",
             )
 
     def on_client_notification(self, username: str, payload_json: str) -> None:
@@ -444,13 +490,25 @@ class TrayController:
             return
 
         kind = payload.get("kind")
-        if payload.get("chime"):
-            self.chime.play(urgent=int(payload.get("seconds_left", 999)) <= 60)
+        session_locked = bool(payload.get("session_locked", False))
+        if payload.get("chime") or (
+            kind in ("warning", "app_warning", "category_warning", "countdown", "app_limit_reached")
+            and self.notifier._fullscreen_probe()
+        ):
+            self.chime.play(
+                urgent=(
+                    kind in ("countdown", "app_limit_reached")
+                    or int(payload.get("seconds_left", 999)) <= 60
+                )
+            )
 
         if kind == "warning":
             left = format_duration(int(payload.get("seconds_left", 0)))
             self.notifier.send(
-                "Screen time remaining", f"{left} remaining before curfew/lock.", urgency=1
+                "Screen time remaining",
+                f"{left} remaining before curfew/lock.",
+                urgency=1,
+                accent="warning",
             )
         elif kind in ("app_warning", "category_warning"):
             label = str(payload.get("label") or payload.get("pattern") or "App")
@@ -459,6 +517,7 @@ class TrayController:
                 f"{label} time remaining",
                 f"{left} left on {label} today — remember to save your progress!",
                 urgency=1,
+                accent="warning",
             )
         elif kind == "countdown":
             secs = int(payload.get("seconds_left", 0))
@@ -467,6 +526,7 @@ class TrayController:
                 "Screen time is up",
                 f"Session will {action} in {secs} seconds. Save your work!",
                 urgency=2,
+                accent="critical",
             )
         elif kind == "time_granted":
             self._notify_grant(payload, is_app=False)
@@ -480,12 +540,13 @@ class TrayController:
                 if reason == "homework_mode"
                 else f"{labels} reached its daily time limit and was closed."
             )
-            self.notifier.send("App closed", msg, urgency=1)
+            self.notifier.send("App closed", msg, urgency=1, accent="critical")
         elif kind == "save_grace_granted":
             self.notifier.send(
                 "2-minute save grace active",
                 "Finish saving your work — screen will lock in 2 minutes.",
                 urgency=1,
+                accent="info",
             )
         elif kind == "homework_mode_changed":
             if payload.get("active"):
@@ -493,31 +554,56 @@ class TrayController:
                     "Homework Mode active",
                     "Daily screen-time countdown is paused while games & social apps are blocked.",
                     urgency=0,
+                    accent="info",
                 )
             else:
                 self.notifier.send(
-                    "Homework Mode ended", "Your regular schedule is active again.", urgency=0
+                    "Homework Mode ended",
+                    "Your regular schedule is active again.",
+                    urgency=0,
+                    accent="info",
                 )
         elif kind == "time_request_resolved":
             lbl = str(payload.get("target_label") or "Screen time")
             if payload.get("approved"):
                 dur = format_duration(int(payload.get("granted_sec", 0)))
-                self.notifier.send("Time request approved", f"+{dur} granted for {lbl}!", urgency=1)
+                self.notifier.send(
+                    "Time request approved",
+                    f"+{dur} granted for {lbl}!",
+                    urgency=1,
+                    accent="success",
+                )
             else:
                 self.notifier.send(
-                    "Time request declined", f"Your request for more {lbl} was declined.", urgency=1
+                    "Time request declined",
+                    f"Your request for more {lbl} was declined.",
+                    urgency=1,
+                    accent="warning",
                 )
         elif kind == "paused":
+            unlock_note = " You may unlock your session now." if session_locked else ""
             self.notifier.send(
-                "Screen time limits paused", "Limits have been temporarily paused.", urgency=0
+                "Screen time limits paused",
+                f"Limits have been temporarily paused.{unlock_note}",
+                urgency=0,
+                session_locked=session_locked,
+                accent="info",
             )
         elif kind == "resumed":
             self.notifier.send(
-                "Screen time limits resumed", "Your regular schedule is active again.", urgency=1
+                "Screen time limits resumed",
+                "Your regular schedule is active again.",
+                urgency=1,
+                accent="warning",
             )
         elif kind == "policy_changed":
+            unlock_note = " You may unlock your session now." if session_locked else ""
             self.notifier.send(
-                "Schedule updated", "Your screen-time schedule was updated.", urgency=0
+                "Schedule updated",
+                f"Your screen-time schedule was updated.{unlock_note}",
+                urgency=0,
+                session_locked=session_locked,
+                accent="info",
             )
 
     @staticmethod

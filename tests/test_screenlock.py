@@ -587,5 +587,89 @@ GLib.MainLoop().run()
                 daemon.wait(timeout=3)
 
 
+class TestLockScreenMessage(unittest.TestCase):
+    def _make_ctx(self, desktop: str = "X-Cinnamon") -> screenlock.SessionContext:
+        return screenlock.SessionContext(
+            session_id="c1",
+            uid=1000,
+            username="alice",
+            gid=1000,
+            home_dir="/home/alice",
+            session_type="x11",
+            display=":0",
+            dbus_address="unix:path=/run/user/1000/bus",
+            desktop=desktop,
+        )
+
+    def test_refuses_to_lock_when_screensaver_inactive(self):
+        called_argvs: list[list[str]] = []
+
+        def fake_run(argv, **_kwargs):
+            called_argvs.append(list(argv))
+            if any("GetActive" in a for a in argv):
+                return subprocess.CompletedProcess(argv, 0, stdout="(false,)\n", stderr="")
+            return subprocess.CompletedProcess(argv, 0, stdout="()", stderr="")
+
+        enforcer = screenlock.ScreenLockEnforcer(
+            which_fn=lambda cmd: f"/usr/bin/{cmd}",
+            runner=fake_run,
+            sleep_fn=lambda _s: None,
+        )
+        ok = enforcer.update_lock_message(self._make_ctx(), "Bonus time added (+15m)")
+        self.assertFalse(ok)
+        self.assertFalse(any("Lock" in a for argv in called_argvs for a in argv))
+
+    def test_updates_cinnamon_away_message_when_locked_via_dbus_and_cli_fallback(self):
+        called_argvs: list[list[str]] = []
+
+        def fake_run(argv, **_kwargs):
+            called_argvs.append(list(argv))
+            if any("NameHasOwner" in a or "GetActive" in a for a in argv):
+                return subprocess.CompletedProcess(argv, 0, stdout="(true,)\n", stderr="")
+            if "gdbus" in argv[0] and "org.cinnamon.ScreenSaver.Lock" in argv:
+                return subprocess.CompletedProcess(argv, 0, stdout="()", stderr="")
+            return subprocess.CompletedProcess(argv, 1, stdout="", stderr="err")
+
+        enforcer = screenlock.ScreenLockEnforcer(
+            which_fn=lambda cmd: f"/usr/bin/{cmd}",
+            runner=fake_run,
+            sleep_fn=lambda _s: None,
+        )
+        ok = enforcer.update_lock_message(self._make_ctx(), "Bonus time added\n(+15m)\x07")
+        self.assertTrue(ok)
+        lock_calls = [a for a in called_argvs if "org.cinnamon.ScreenSaver.Lock" in a]
+        self.assertEqual(len(lock_calls), 1)
+        self.assertEqual(lock_calls[0][-1], "Bonus time added (+15m)")
+
+        # CLI fallback when gdbus fails
+        called_argvs.clear()
+
+        def fake_run_cli_fallback(argv, **_kwargs):
+            called_argvs.append(list(argv))
+            if argv[0].endswith("cinnamon-screensaver-command") and "-q" in argv:
+                return subprocess.CompletedProcess(
+                    argv, 0, stdout="The screensaver is active\n", stderr=""
+                )
+            if argv[0].endswith("cinnamon-screensaver-command") and any(
+                a.startswith("--away-message=") for a in argv
+            ):
+                return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+            return subprocess.CompletedProcess(argv, 1, stdout="", stderr="dbus failed")
+
+        enforcer2 = screenlock.ScreenLockEnforcer(
+            which_fn=lambda cmd: f"/usr/bin/{cmd}",
+            runner=fake_run_cli_fallback,
+            sleep_fn=lambda _s: None,
+        )
+        self.assertTrue(enforcer2.update_lock_message(self._make_ctx(), "Bonus time added (+15m)"))
+        self.assertTrue(
+            any(
+                a[0].endswith("cinnamon-screensaver-command")
+                and "--away-message=Bonus time added (+15m)" in a
+                for a in called_argvs
+            )
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

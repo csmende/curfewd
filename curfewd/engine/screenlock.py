@@ -903,3 +903,68 @@ class ScreenLockEnforcer:
         )
         thread.start()
         return True
+
+    def update_lock_message(self, ctx: SessionContext, message: str) -> bool:
+        """Update the lock-screen away message only if the session is already locked."""
+        clean_msg = self._sanitize_lock_message(message)
+        if not clean_msg:
+            return False
+
+        backends = select_backends(ctx.desktop)
+        active, active_be = self.is_screensaver_active(ctx, backends)
+        if active is not True:
+            logger.debug(
+                "skipping lock-screen message for session %r (screensaver not active)",
+                ctx.session_id,
+            )
+            return False
+
+        msg_backends = [b for b in backends if b.name == "cinnamon"]
+        if active_be:
+            msg_backends.sort(key=lambda b: 0 if b.name == active_be else 1)
+
+        for backend in msg_backends:
+            ok, method = self.invoke_backend_lock(ctx, backend, lock_message=clean_msg)
+            if ok:
+                logger.info(
+                    "updated lock-screen indicator for user %r session %r via %s",
+                    ctx.username,
+                    ctx.session_id,
+                    method,
+                )
+                return True
+        return False
+
+    def update_lock_message_async(self, ctx: SessionContext, message: str) -> bool:
+        """Spawn a non-blocking daemon thread to update the lock-screen away message."""
+        clean_msg = self._sanitize_lock_message(message)
+        if not clean_msg:
+            return False
+
+        key = f"msg:{ctx.uid}:{ctx.session_id}"
+        with self._lock:
+            if key in self._in_flight:
+                logger.debug(
+                    "lock-screen message already in progress for session %r", ctx.session_id
+                )
+                return False
+            self._in_flight.add(key)
+
+        def _worker() -> None:
+            try:
+                self.update_lock_message(ctx, clean_msg)
+            except Exception as exc:
+                logger.error(
+                    "unexpected error updating lock message for session %r: %s",
+                    ctx.session_id,
+                    exc,
+                )
+            finally:
+                with self._lock:
+                    self._in_flight.discard(key)
+
+        thread = threading.Thread(
+            target=_worker, name=f"curfewd-lockmsg-{ctx.session_id}", daemon=True
+        )
+        thread.start()
+        return True

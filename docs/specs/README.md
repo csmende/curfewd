@@ -12,6 +12,7 @@
 | `004` | [Complete `curfewd` Rebrand, Legacy Cleanup & Schema v2 (`app_limits`)](004-rebrand-and-app-limits-schema.md) | Implemented | `v1.1.0` |
 | `005` | [Architectural Modularization, Async Admin RPCs & Single-Pass Enforcement Runtime](005-architecture-refactor-and-async-daemon.md) | Implemented | `v1.2.0` |
 | `006` | [Family Ergonomics, Fair Enforcement & App Intelligence](006-family-ergonomics-and-app-intelligence.md) | Implemented | `v2.0.0` |
+| `007` | [Lock-Screen Time-Granted Indicator & Fullscreen Game Notifications](007-lock-indicator-and-fullscreen-notifications.md) | Implemented (`TBD-BELLE-006`) | `v2.0.0` |
 
 ## Adding a New Spec
 
