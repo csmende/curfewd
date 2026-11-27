@@ -616,15 +616,22 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
 
     def test_web_ui_html_assets_match_webkit_allowlist_and_packaging(self):
         import re
+        import sys
+        from pathlib import Path
+
+        tests_dir = str(Path(__file__).resolve().parent)
+        if tests_dir not in sys.path:
+            sys.path.insert(0, tests_dir)
+
+        from verify_deb import parse_debian_install
 
         from curfewd.ui.app import _ALLOWED_ASSETS, _MIME_TYPES, resolve_web_dir
 
         web_dir = resolve_web_dir()
-        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        repo_root = Path(__file__).resolve().parent.parent
         with open(os.path.join(web_dir, "index.html"), encoding="utf-8") as fh:
             html = fh.read()
-        with open(os.path.join(repo_root, "debian", "install"), encoding="utf-8") as fh:
-            deb_install = fh.read()
+        install_map = parse_debian_install(repo_root)
 
         refs = re.findall(r'(?:src|href)="curfewd://app(/[^"]+)"', html)
         self.assertGreaterEqual(len(refs), 6)
@@ -636,9 +643,10 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
                 os.path.isfile(os.path.join(web_dir, rel)),
                 f"Referenced UI asset missing on disk: {rel}",
             )
+            src_rel = f"curfewd/ui/web/{rel}"
             self.assertIn(
-                f"curfewd/ui/web/{rel}",
-                deb_install,
+                f"usr/share/curfewd/ui/{rel}",
+                install_map.get(src_rel, set()),
                 f"UI asset missing from debian/install: {rel}",
             )
 

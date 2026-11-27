@@ -33,6 +33,16 @@ curfewd (2.0.0) unstable; urgency=medium
     - Add `curfewd.tray.osd` (X11 `_NET_WM_STATE_FULLSCREEN` detection via
       `xprop`/`Gdk`, non-focus-stealing GTK3 `override-redirect` OSD banner,
       critical/DND-override hints, and fullscreen `AudioChimePlayer` trigger)
+  * v2.0.0 RC5 packaging & release-gate fix:
+    - Switch `debian/install` Python package and Web UI JS listings to
+      directory globs (`curfewd/*.py`, `curfewd/*/*.py`,
+      `curfewd/ui/web/js/*.js`) so `curfewd/tray/osd.py` and future modules are
+      never omitted from `.deb` builds
+    - Call `systemctl --user reset-failed curfewd-tray.service` before restart
+      in `debian/postinst` to recover cleanly from RC4 start-limit failures
+    - Add `tests/verify_deb.py` and `tests/test_packaging.py` and enforce full
+      `.deb` manifest, AST internal-import, and isolated `/usr/bin/python3 -I`
+      import checks in both `CI` and `Release` workflows prior to publishing
   * v2.0.0 RC stabilization & hardening (#7-#13):
     - Track root-verified per-session lock state from `ScreenLockEnforcer`
       callbacks to eliminate repeated lockout event/counter inflation and
