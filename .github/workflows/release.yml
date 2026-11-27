@@ -139,6 +139,16 @@ jobs:
           ls -lh dist/
           cat dist/SHA256SUMS
 
+      - name: Verify .deb package completeness and isolated imports
+        env:
+          RAW_VER: ${{ steps.meta.outputs.raw_ver }}
+        run: |
+          set -euo pipefail
+          ASSET_PATH="dist/curfewd_${RAW_VER}_all.deb"
+          /usr/bin/python3 tests/verify_deb.py "${ASSET_PATH}" --expected-version "${RAW_VER}"
+          sudo apt-get install -y --no-install-recommends "./${ASSET_PATH}"
+          /usr/bin/python3 tests/verify_deb.py --installed "${ASSET_PATH}" --expected-version "${RAW_VER}"
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -64,3 +64,6 @@ Two usability gaps remained in `v2.0.0-rc3`:
 ## 6. Verification & Acceptance Criteria
 
 - Unit tests in `tests/test_screenlock.py` (`TestLockScreenMessage`), `tests/test_runtime.py`, and `tests/test_tray_osd.py` covering lock-screen refusal when unlocked, Cinnamon D-Bus/CLI away-message updates, `grant_time`/`pause_user` lock-screen triggers, X11 fullscreen detection, `FullscreenOsdBanner`, critical/resident hints, and chime alerts.
+- Packaging invariants in `tests/test_packaging.py` and `tests/verify_deb.py` (gated in both `.github/workflows/ci.yml` and `.github/workflows/release.yml` before publishing) verifying:
+  - `debian/install` uses directory globs covering every tracked Python module (`curfewd/**/*.py`), including `curfewd/tray/osd.py`, and every Web UI/runtime asset.
+  - Every tracked `curfewd/**/*.py` module appears in `dpkg-deb -c curfewd_*.deb`, passes an AST internal-import audit on the extracted archive, and imports cleanly in isolated `/usr/bin/python3 -I` runs from `/` (never falling back to the repository working directory).

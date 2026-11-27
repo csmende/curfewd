@@ -85,7 +85,8 @@ jobs:
             lintian \
             python3 \
             python3-dbus \
-            python3-gi
+            python3-gi \
+            python3-psutil
 
       - name: Build binary .deb package
         run: |
@@ -98,6 +99,10 @@ jobs:
         run: |
           dpkg-deb -I dist/curfewd_*.deb
           dpkg-deb -c dist/curfewd_*.deb | head -n 90
+
+      - name: Verify .deb manifest, AST imports, and isolated archive imports
+        run: |
+          /usr/bin/python3 tests/verify_deb.py dist/curfewd_*.deb
 
       - name: Run lintian diagnostics
         run: |
@@ -116,6 +121,7 @@ jobs:
           test -f /usr/lib/python3/dist-packages/curfewd/engine/applimits.py
           test -f /usr/lib/python3/dist-packages/curfewd/engine/runtime.py
           test -f /usr/lib/python3/dist-packages/curfewd/tray/hud.py
+          test -f /usr/lib/python3/dist-packages/curfewd/tray/osd.py
           test -f /usr/lib/python3/dist-packages/curfewd/ui/bridge.py
           test -f /usr/share/curfewd/ui/index.html
           test -f /usr/share/curfewd/ui/styles.css
@@ -139,10 +145,7 @@ jobs:
           test -f /usr/share/curfewd/icons/curfewd-tray-unlimited.svg
           test ! -e /usr/share/curfewd/icons/timekpr-padlock-limited-green.svg
           test -x /usr/share/doc/curfewd/examples/dconf-lock-screensaver.sh
-          /usr/bin/curfewctl --version
-          /usr/bin/curfewctl --help >/dev/null
-          /usr/bin/curfewd-ui --version
-          /usr/bin/python3 -c "import curfewd, curfewd.auth_code, curfewd.cli.formatters, curfewd.engine.runtime, curfewd.engine.screenlock as s, curfewd.engine.applimits, curfewd.tray.hud, curfewd.ui.bridge, curfewd.ui.appscan; print('Imported curfewd', curfewd.__version__, 'schema:', curfewd.SCHEMA_VERSION, 'backends:', list(s.BACKENDS))"
+          /usr/bin/python3 tests/verify_deb.py --installed dist/curfewd_*.deb
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v7

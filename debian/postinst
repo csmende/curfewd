@@ -62,6 +62,7 @@ if [ "${1:-}" = "configure" ] && [ -d /run/systemd/system ] \
             sleep 1
         fi
         systemctl --machine="${uname}@.host" --user daemon-reload 2>/dev/null || true
+        systemctl --machine="${uname}@.host" --user reset-failed curfewd-tray.service 2>/dev/null || true
         systemctl --machine="${uname}@.host" --user restart curfewd-tray.service 2>/dev/null || true
     done
 fi
