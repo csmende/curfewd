@@ -229,7 +229,13 @@ def print_doctor(report: dict[str, Any], stream: Any) -> None:
     if sessions:
         stream.write("Active graphical sessions:\n")
         for s in sessions:
+            if "screen_locked" in s and "logind_locked" in s:
+                lock_txt = (
+                    f"screen_locked={s['screen_locked']} (logind_locked={s['logind_locked']})"
+                )
+            else:
+                lock_txt = f"logind_locked={s.get('logind_locked', s.get('locked', False))}"
             stream.write(
                 f"  - {s['username']} session={s['session_id']} type={s['session_type']} "
-                f"desktop={s['desktop']} locked={s['locked']} backends={','.join(s['lock_backends'])}\n"
+                f"desktop={s['desktop']} {lock_txt} backends={','.join(s['lock_backends'])}\n"
             )

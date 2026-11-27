@@ -1,2 +1,17 @@
 #!/bin/sh
+if [ "${1:-}" = "--autostart" ]; then
+    shift
+    if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] \
+        && command -v systemctl >/dev/null 2>&1 \
+        && systemctl --user show-environment >/dev/null 2>&1; then
+        # Export graphical session vars for desktops (Cinnamon/MATE/XFCE) without graphical-session.target
+        systemctl --user import-environment \
+            DISPLAY XAUTHORITY WAYLAND_DISPLAY \
+            XDG_CURRENT_DESKTOP DESKTOP_SESSION XDG_SESSION_TYPE \
+            DBUS_SESSION_BUS_ADDRESS 2>/dev/null || true
+        if systemctl --user start --no-block curfewd-tray.service 2>/dev/null; then
+            exit 0
+        fi
+    fi
+fi
 exec /usr/bin/python3 -m curfewd.tray "$@"

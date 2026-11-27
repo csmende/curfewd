@@ -86,6 +86,14 @@ def _row_to_request(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+_CHECKPOINT_PRAGMAS = {
+    "PASSIVE": "PRAGMA wal_checkpoint(PASSIVE)",
+    "FULL": "PRAGMA wal_checkpoint(FULL)",
+    "RESTART": "PRAGMA wal_checkpoint(RESTART)",
+    "TRUNCATE": "PRAGMA wal_checkpoint(TRUNCATE)",
+}
+
+
 class HistoryStore:
     """Persists daily screen-time rollups, per-app usage insights, time requests, and audit events."""
 
@@ -105,6 +113,7 @@ class HistoryStore:
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute("PRAGMA wal_autocheckpoint=200")
             self._conn = conn
         return self._conn
 
@@ -115,10 +124,24 @@ class HistoryStore:
             with conn:
                 yield conn
 
+    def checkpoint(self, mode: str = "TRUNCATE") -> tuple[int, int, int]:
+        """Run a SQLite WAL checkpoint (PASSIVE, FULL, RESTART, or TRUNCATE)."""
+        pragma = _CHECKPOINT_PRAGMAS.get(str(mode).strip().upper())
+        if pragma is None:
+            raise ValueError(f"Unsupported WAL checkpoint mode: {mode!r}")
+        with self._lock:
+            conn = self._get_conn()
+            row = conn.execute(pragma).fetchone()
+            if row is None:
+                return (0, 0, 0)
+            return (int(row[0]), int(row[1]), int(row[2]))
+
     def close(self) -> None:
-        """Close the underlying SQLite connection cleanly."""
+        """Checkpoint WAL cleanly and close the underlying SQLite connection."""
         with self._lock:
             if self._conn is not None:
+                with suppress(sqlite3.Error):
+                    self._conn.execute(_CHECKPOINT_PRAGMAS["TRUNCATE"])
                 self._conn.close()
                 self._conn = None
 
@@ -477,4 +500,7 @@ class HistoryStore:
                 "DELETE FROM time_requests WHERE status != 'pending' AND created_utc < ?",
                 (event_cutoff,),
             )
-            return c1.rowcount, c2.rowcount
+            deleted = (c1.rowcount, c2.rowcount)
+        with suppress(sqlite3.Error):
+            self.checkpoint("TRUNCATE")
+        return deleted

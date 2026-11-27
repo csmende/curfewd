@@ -256,6 +256,322 @@ class TestEnforcementRuntime(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     rt.claim_save_grace("alice")
 
+    def test_cinnamon_lockout_deduplicates_events_and_backs_off_reverification(self):
+        """Regression test for #7: DEs without logind LockedHint must not spam lockouts/events."""
+        from curfewd.models import LockResult
+
+        class _VerifyingSessionMonitor(_StubSessionMonitor):
+            def __init__(self, username: str) -> None:
+                super().__init__(username)
+                self.screensaver_locked = False
+                self.lock_calls = 0
+                self.verify_calls = 0
+                self.fail_next_lock = False
+
+            def enforce_lockout_action(
+                self,
+                action,
+                username,
+                _uid,
+                sessions,
+                _config,
+                lock_message="",
+                on_lock_result=None,
+            ):
+                self.lockout_actions.append((action, username))
+                self.lock_calls += 1
+                if self.fail_next_lock:
+                    self.screensaver_locked = False
+                    if on_lock_result:
+                        on_lock_result(
+                            LockResult(
+                                session_id=sessions[0]["session_id"],
+                                username=username,
+                                locked=False,
+                                verified=False,
+                                backend="dbus:org.cinnamon.ScreenSaver",
+                                stage="failed",
+                            )
+                        )
+                    return
+                self.screensaver_locked = True
+                if on_lock_result:
+                    on_lock_result(
+                        LockResult(
+                            session_id=sessions[0]["session_id"],
+                            username=username,
+                            locked=True,
+                            verified=True,
+                            backend="dbus:org.cinnamon.ScreenSaver",
+                            stage="dbus_or_cli",
+                        )
+                    )
+
+            def verify_user_sessions_locked(self, sessions, _config, on_complete=None):
+                self.verify_calls += 1
+                if on_complete:
+                    on_complete(
+                        LockResult(
+                            session_id=sessions[0]["session_id"],
+                            username=self.username,
+                            locked=self.screensaver_locked,
+                            verified=True,
+                            backend="cinnamon",
+                            stage="verify" if self.screensaver_locked else "verify_unlocked",
+                        )
+                    )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AtomicJsonStore(
+                config_dir=os.path.join(tmp, "etc"),
+                state_dir=os.path.join(tmp, "var"),
+            )
+            store.ensure_dirs()
+            store.save_daemon_config(DaemonConfig(final_countdown_sec=0))
+            pol = UserPolicy(
+                username="alice",
+                daily_limits=dict.fromkeys(WEEKDAYS, 3600),
+                curfew_windows={d: [TimeWindow("08:00", "21:00")] for d in WEEKDAYS},
+            )
+            store.save_user_policy(pol)
+            store.save_user_state(
+                UserAccountingState(
+                    username="alice",
+                    date="2026-11-25",
+                    week_key="2026-W48",
+                    month_key="2026-11",
+                    spent_today=3600,
+                    spent_balance=3600,
+                )
+            )
+
+            sess_mon = _VerifyingSessionMonitor("alice")
+            fake_mono = [1000.0]
+
+            def _mono() -> float:
+                return fake_mono[0]
+
+            with (
+                HistoryStore(os.path.join(tmp, "var", "history.db")) as hist,
+                mock.patch("curfewd.engine.runtime.time.monotonic", side_effect=_mono),
+            ):
+                rt = EnforcementRuntime(
+                    store=store,
+                    history=hist,
+                    session_monitor=sess_mon,
+                    now_fn=lambda: datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc),
+                )
+
+                # First tick fails to lock -> retries on tick 2 without double-counting lockouts
+                sess_mon.fail_next_lock = True
+                rt.tick()
+                self.assertEqual(sess_mon.lock_calls, 1)
+                fake_mono[0] += 4.0
+                sess_mon.fail_next_lock = False
+                rt.tick()
+                self.assertEqual(sess_mon.lock_calls, 2)
+                self.assertTrue(sess_mon.screensaver_locked)
+
+                # Subsequent 8 ticks (24s) while still locked -> zero lock calls, zero verify calls
+                for _ in range(8):
+                    fake_mono[0] += 3.0
+                    rt.tick()
+                self.assertEqual(sess_mon.lock_calls, 2)
+                self.assertEqual(sess_mon.verify_calls, 0)
+
+                # After 30s -> lightweight verify runs, confirms locked, still no new lock call
+                fake_mono[0] += 10.0
+                rt.tick()
+                self.assertEqual(sess_mon.lock_calls, 2)
+                self.assertEqual(sess_mon.verify_calls, 1)
+
+                rep1 = hist.get_usage_history(
+                    "alice",
+                    days=7,
+                    now_local=datetime(2026, 11, 25, 16, 1, tzinfo=timezone.utc),
+                )
+                self.assertEqual(rep1["totals"]["lockouts"], 1)
+                self.assertEqual(
+                    len([e for e in rep1["events"] if e["kind"] == "lockout"]),
+                    1,
+                )
+
+                # Simulate child bypassing/unlocking screensaver while still locked out
+                sess_mon.screensaver_locked = False
+                fake_mono[0] += 31.0
+                rt.tick()  # triggers lightweight verify -> discovers unlocked
+                self.assertEqual(sess_mon.verify_calls, 2)
+                fake_mono[0] += 3.0
+                rt.tick()  # re-locks immediately & records genuine 2nd lockout
+                self.assertEqual(sess_mon.lock_calls, 3)
+                self.assertTrue(sess_mon.screensaver_locked)
+
+                rep2 = hist.get_usage_history(
+                    "alice",
+                    days=7,
+                    now_local=datetime(2026, 11, 25, 16, 2, tzinfo=timezone.utc),
+                )
+                self.assertEqual(rep2["totals"]["lockouts"], 2)
+                self.assertEqual(
+                    len([e for e in rep2["events"] if e["kind"] == "lockout"]),
+                    2,
+                )
+
+    def test_schema_v2_migration_defaults_admin_users_to_parent_role(self):
+        """Regression test for #11: v2 policies lacking 'role' default sudo/admin users to 'parent'."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AtomicJsonStore(
+                config_dir=os.path.join(tmp, "etc"),
+                state_dir=os.path.join(tmp, "var"),
+            )
+            store.ensure_dirs()
+            # Seed legacy schema v2 policies without a "role" key
+            for uname in ("parentadmin", "kiduser"):
+                with open(store.user_policy_path(uname), "w", encoding="utf-8") as fh:
+                    json.dump(
+                        {
+                            "schema_version": 2,
+                            "username": uname,
+                            "enabled": True,
+                            "lockout_action": "lock",
+                        },
+                        fh,
+                    )
+            # Explicit v3 role="child" on an admin must still be respected
+            with open(store.user_policy_path("explicitadmin"), "w", encoding="utf-8") as fh:
+                json.dump(
+                    {
+                        "schema_version": 3,
+                        "username": "explicitadmin",
+                        "role": "child",
+                        "enabled": True,
+                        "lockout_action": "lock",
+                    },
+                    fh,
+                )
+
+            with (
+                HistoryStore(os.path.join(tmp, "var", "history.db")) as hist,
+                mock.patch(
+                    "curfewd.engine.runtime.is_system_admin_user",
+                    side_effect=lambda u: u in ("parentadmin", "explicitadmin"),
+                ),
+            ):
+                rt = EnforcementRuntime(
+                    store=store,
+                    history=hist,
+                    session_monitor=_StubSessionMonitor("kiduser"),
+                    now_fn=lambda: datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc),
+                )
+                self.assertEqual(rt.get_policy("parentadmin").role, "parent")
+                self.assertEqual(rt.get_policy("kiduser").role, "child")
+                self.assertEqual(rt.get_policy("explicitadmin").role, "child")
+
+    def test_runtime_passes_cached_catalog_and_batches_history_deltas(self):
+        """Regression tests for #12 (cached app catalog) and #13 (batched SQLite writes)."""
+        from curfewd.engine.applimits import ProcessScanResult
+
+        class _RecordingMonitor:
+            def __init__(self) -> None:
+                self.received_catalogs: list[list[dict]] = []
+                self.received_ignores: list[list[str]] = []
+
+            def scan_user_processes(
+                self,
+                uid,
+                apps,
+                category_limits=None,
+                catalog=None,
+                active_window_pid=None,
+                homework_blocked_categories=None,
+                collect_passive=True,
+                exempt_patterns=None,
+                passive_ignore_list=None,
+            ):
+                self.received_catalogs.append(list(catalog or []))
+                self.received_ignores.append(list(passive_ignore_list or []))
+                return ProcessScanResult(
+                    passive_apps=[("steam:3072000", "Cozy Adventure", "Gaming")]
+                )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AtomicJsonStore(
+                config_dir=os.path.join(tmp, "etc"),
+                state_dir=os.path.join(tmp, "var"),
+            )
+            store.ensure_dirs()
+            store.save_daemon_config(
+                DaemonConfig(
+                    save_interval_sec=30,
+                    passive_app_insights_enabled=True,
+                    passive_app_ignore_list=["org.example.wallpaper"],
+                )
+            )
+            store.save_user_policy(
+                UserPolicy(
+                    username="alice",
+                    role="child",
+                    daily_limits=dict.fromkeys(WEEKDAYS, 7200),
+                    curfew_windows={d: [TimeWindow("08:00", "21:00")] for d in WEEKDAYS},
+                )
+            )
+            loader_calls = []
+
+            def _loader(uname: str):
+                loader_calls.append(uname)
+                return [
+                    {"steam_app_id": "3072000", "label": "Cozy Adventure", "category": "Gaming"}
+                ]
+
+            rec_mon = _RecordingMonitor()
+            fake_mono = [500.0]
+
+            with (
+                HistoryStore(os.path.join(tmp, "var", "history.db")) as hist,
+                mock.patch(
+                    "curfewd.engine.runtime.time.monotonic", side_effect=lambda: fake_mono[0]
+                ),
+            ):
+                rt = EnforcementRuntime(
+                    store=store,
+                    history=hist,
+                    session_monitor=_StubSessionMonitor("alice"),
+                    app_limits_monitor=rec_mon,
+                    now_fn=lambda: datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc),
+                    app_catalog_loader=_loader,
+                )
+                with mock.patch.object(
+                    hist, "record_daily_delta", wraps=hist.record_daily_delta
+                ) as spy_write:
+                    # 6 ticks spaced 3s apart (15s elapsed < 30s save_interval) -> 0 SQLite commits yet
+                    rt.tick()
+                    for _ in range(5):
+                        fake_mono[0] += 3.0
+                        rt.tick()
+                    self.assertEqual(spy_write.call_count, 0)
+                    # App catalog loaded once and reused from cache across all 6 ticks
+                    self.assertEqual(loader_calls, ["alice"])
+                    self.assertEqual(len(rec_mon.received_catalogs), 6)
+                    self.assertEqual(rec_mon.received_catalogs[0][0]["steam_app_id"], "3072000")
+                    self.assertEqual(rec_mon.received_ignores[0], ["org.example.wallpaper"])
+
+                    # Crossing save_interval_sec flushes all buffered deltas in ONE batched write
+                    fake_mono[0] += 20.0
+                    rt.tick()
+                    self.assertEqual(spy_write.call_count, 1)
+
+                rep = hist.get_usage_history(
+                    "alice",
+                    days=7,
+                    now_local=datetime(2026, 11, 25, 16, 1, tzinfo=timezone.utc),
+                )
+                self.assertEqual(rep["totals"]["active_sec"], 35)
+                self.assertEqual(rep["top_apps"][0]["app_key"], "steam:3072000")
+                self.assertEqual(rep["top_apps"][0]["label"], "Cozy Adventure")
+                self.assertEqual(rep["top_apps"][0]["active_sec"], 35)
+
 
 if __name__ == "__main__":
     unittest.main()

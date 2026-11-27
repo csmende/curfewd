@@ -112,6 +112,37 @@ _BUILTIN_PROCESS_CATALOG: dict[str, tuple[str, str, str]] = {
     "net.ankiweb.anki": ("anki", "Anki", "Productivity"),
 }
 
+# Always-on background wallpaper, tray, and system utility daemons excluded from passive insights
+# (never affects explicit AppLimitRule or CategoryLimitRule/Homework Mode enforcement).
+_PASSIVE_IGNORED_APPS = frozenset(
+    {
+        "io.github.jeffshee.hidamari",
+        "hidamari",
+        "variety",
+        "komorebi",
+        "flameshot",
+        "org.flameshot.flameshot",
+        "copyq",
+        "com.github.hluk.copyq",
+        "easyeffects",
+        "com.github.wwmm.easyeffects",
+        "openrgb",
+        "org.openrgb.openrgb",
+        "solaar",
+        "io.github.pwr_solaar.solaar",
+        "syncthing",
+        "nextcloud",
+        "com.nextcloud.desktopclient.nextcloud",
+        "dropbox",
+        "kdeconnect",
+        "albert",
+        "ulauncher",
+        "deskflow",
+        "input-leap",
+        "barrier",
+    }
+)
+
 
 @dataclass
 class ProcessScanResult:
@@ -379,7 +410,10 @@ class AppLimitsMonitor:
         catalog_by_key: dict[str, tuple[str, str, str]],
     ) -> tuple[str, str, str] | None:
         if rec["steam_app_id"]:
-            return (f"steam:{rec['steam_app_id']}", f"Steam Game ({rec['steam_app_id']})", "Gaming")
+            skey = f"steam:{rec['steam_app_id']}"
+            if skey in catalog_by_key:
+                return catalog_by_key[skey]
+            return (skey, f"Steam Game ({rec['steam_app_id']})", "Gaming")
         fp = rec["flatpak_id"].lower()
         if fp:
             if fp in catalog_by_key:
@@ -416,8 +450,30 @@ class AppLimitsMonitor:
                 catalog_map[pat] = (pat, lbl, cat)
             fp = str(item.get("flatpak_id") or "").strip().lower()
             if fp:
-                catalog_map[fp] = (pat or fp, lbl, cat)
+                canonical_key = (
+                    _BUILTIN_PROCESS_CATALOG[fp][0] if fp in _BUILTIN_PROCESS_CATALOG else fp
+                )
+                catalog_map[fp] = (canonical_key, lbl, cat)
+            steam_id = str(item.get("steam_app_id") or "").strip()
+            if steam_id.isdigit() and steam_id != "0":
+                skey = f"steam:{steam_id}"
+                catalog_map[skey] = (skey, lbl, cat or "Gaming")
         return catalog_map
+
+    @staticmethod
+    def _is_passive_ignored(
+        app_key: str,
+        label: str,
+        rec: dict[str, Any],
+        ignore_set: frozenset[str],
+    ) -> bool:
+        candidates = (
+            app_key.lower(),
+            label.lower(),
+            rec["flatpak_id"].lower(),
+            rec["name"].lower(),
+        )
+        return any(c in ignore_set for c in candidates if c)
 
     def scan_user_processes(
         self,
@@ -429,6 +485,7 @@ class AppLimitsMonitor:
         homework_blocked_categories: list[str] | None = None,
         collect_passive: bool = True,
         exempt_patterns: list[str] | None = None,
+        passive_ignore_list: list[str] | None = None,
     ) -> ProcessScanResult:
         """Perform a single /proc pass for all rule, category, homework, and passive insights."""
         need_steam_env = bool(collect_passive or any(a.steam_app_id for a in apps))
@@ -441,9 +498,19 @@ class AppLimitsMonitor:
         effective_fg_pid = (
             active_window_pid if (active_window_pid and active_window_pid in ppid_map) else None
         )
+        fg_flatpak_id = ""
+        if effective_fg_pid is not None:
+            for rec in records:
+                if rec["pid"] == effective_fg_pid and rec["flatpak_id"]:
+                    fg_flatpak_id = rec["flatpak_id"].lower()
+                    break
+
         compiled = self._compile_patterns(apps)
         compiled_exempt = self._compile_raw_patterns(exempt_patterns)
         catalog_map = self._build_catalog_map(catalog)
+        passive_ignore = _PASSIVE_IGNORED_APPS | frozenset(
+            str(x).strip().lower() for x in (passive_ignore_list or []) if str(x).strip()
+        )
 
         tracked_cats_lower = {c.category.lower(): c.category for c in (category_limits or [])}
         for hc in homework_blocked_categories or []:
@@ -518,7 +585,13 @@ class AppLimitsMonitor:
             if passive is not None:
                 app_key, label, cat = passive
                 if collect_passive and not logged_passive_for_pid:
-                    seen_passive.setdefault(app_key, (app_key, label, cat))
+                    is_passive_fg = is_fg or (
+                        bool(fg_flatpak_id) and rec["flatpak_id"].lower() == fg_flatpak_id
+                    )
+                    if (not effective_fg_pid or is_passive_fg) and not self._is_passive_ignored(
+                        app_key, label, rec, passive_ignore
+                    ):
+                        seen_passive.setdefault(app_key, (app_key, label, cat))
                 if cat.lower() in tracked_cats_lower and not always_allowed_here:
                     result.category_matches.append(
                         {

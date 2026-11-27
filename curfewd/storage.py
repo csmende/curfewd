@@ -118,13 +118,13 @@ class AtomicJsonStore:
         path = self.user_policy_path(username)
         return os.path.isfile(path) and not os.path.islink(path)
 
-    def load_user_policy(self, username: str) -> UserPolicy:
+    def load_user_policy(self, username: str, *, default_role: str = "child") -> UserPolicy:
         safe = validate_username(username)
         data = _read_json_nofollow(self.user_policy_path(safe))
         if data is None:
-            return UserPolicy(username=safe)
+            return UserPolicy(username=safe, role=default_role)
         data["username"] = safe
-        return UserPolicy.from_dict(data)
+        return UserPolicy.from_dict(data, default_role=default_role)
 
     def save_user_policy(self, policy: UserPolicy) -> None:
         os.makedirs(self.users_dir, mode=0o750, exist_ok=True)

@@ -510,6 +510,7 @@ class CurfewDaemonService(dbus.service.Object):
     ) -> None:
         def _do(_actor: str) -> str:
             safe, _ = self._ensure_known_user(str(username))
+            self._runtime.flush_history_deltas()
             hist = self._runtime.history.get_usage_history(
                 safe, days=int(days), now_local=self._runtime.now_local()
             )
@@ -775,15 +776,21 @@ class CurfewDaemonService(dbus.service.Object):
         sender: str = "",
     ) -> None:
         def _do(_actor: str) -> None:
+            safe_user: str | None = None
             target_home: str | None = None
             if str(username or "").strip():
-                _, rec = self._ensure_known_user(str(username))
+                safe_user, rec = self._ensure_known_user(str(username))
                 target_home = (rec or {}).get("home_dir")
 
             def _work() -> dict[str, Any]:
                 return {"apps": scan_installed_apps(target_home=target_home)}
 
-            self._run_async(_work, json.dumps, reply_cb, error_cb)
+            def _finish(result: dict[str, Any]) -> str:
+                if safe_user:
+                    self._runtime.update_app_catalog_cache(safe_user, result.get("apps") or [])
+                return json.dumps(result)
+
+            self._run_async(_work, _finish, reply_cb, error_cb)
 
         self._auth_then(sender, POLKIT_ACTION_READ, reply_cb, error_cb, _do)
 
@@ -802,7 +809,8 @@ class CurfewDaemonService(dbus.service.Object):
     ) -> None:
         def _do(_actor: str) -> None:
             cfg = self._runtime.config
-            sessions_by_user = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
+            raw_sessions = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
+            sessions_by_user = self._runtime.annotate_sessions_for_doctor(raw_sessions)
             config_dir = self._runtime.store.config_dir
             state_dir = self._runtime.store.state_dir
 
@@ -833,7 +841,8 @@ class CurfewDaemonService(dbus.service.Object):
     ) -> None:
         def _do(_actor: str) -> None:
             cfg = self._runtime.config
-            sessions_by_user = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
+            raw_sessions = self._runtime.sessions.list_user_sessions(cfg.tracked_session_types)
+            sessions_by_user = self._runtime.annotate_sessions_for_doctor(raw_sessions)
             config_dir = self._runtime.store.config_dir
             state_dir = self._runtime.store.state_dir
             fixer = self._doctor_fixer
@@ -880,6 +889,7 @@ class CurfewDaemonService(dbus.service.Object):
     def GetMyHistory(self, days: int, sender: str = "") -> str:
         caller_user = self._resolve_caller(sender)
         safe_days = max(1, min(30, int(days)))
+        self._runtime.flush_history_deltas()
         hist = self._runtime.history.get_usage_history(
             caller_user, days=safe_days, now_local=self._runtime.now_local()
         )
