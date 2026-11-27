@@ -1,8 +1,9 @@
 [Unit]
 Description=curfewd desktop tray, countdown HUD & notification companion
 Documentation=https://github.com/csmende/curfewd
-PartOf=graphical-session.target
 After=graphical-session.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple

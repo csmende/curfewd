@@ -472,13 +472,17 @@ def run_doctor(
     for uname, sess_list in (sessions_by_user or {}).items():
         for s in sess_list:
             backends = [b.name for b in select_backends(s.get("desktop", ""))]
+            logind_locked = bool(s.get("logind_locked", s.get("locked", False)))
+            screen_locked = bool(s.get("screen_locked", logind_locked))
             active_sessions.append(
                 {
                     "username": uname,
                     "session_id": s.get("session_id"),
                     "session_type": s.get("session_type"),
                     "desktop": s.get("desktop") or "unknown",
-                    "locked": bool(s.get("locked", False)),
+                    "locked": screen_locked,
+                    "logind_locked": logind_locked,
+                    "screen_locked": screen_locked,
                     "idle": bool(s.get("idle", False)),
                     "lock_backends": backends,
                 }

@@ -165,6 +165,21 @@ class TestHistoryStore(unittest.TestCase):
             self.assertEqual(resolved["status"], "approved")
             self.assertEqual(len(hist.list_time_requests(status="pending")), 0)
 
+    def test_wal_autocheckpoint_and_truncate_checkpoint_on_close(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = os.path.join(tmp, "history.db")
+            wal_path = db_path + "-wal"
+            with HistoryStore(db_path) as hist:
+                auto = hist._get_conn().execute("PRAGMA wal_autocheckpoint").fetchone()[0]
+                self.assertEqual(auto, 200)
+                hist.record_daily_delta("alice", "2026-11-25", active_sec=300)
+                busy, _log, _chk = hist.checkpoint("PASSIVE")
+                self.assertEqual(busy, 0)
+                with self.assertRaises(ValueError):
+                    hist.checkpoint("INVALID")
+            # close() ran TRUNCATE checkpoint so WAL is removed or 0 bytes
+            self.assertTrue(not os.path.exists(wal_path) or os.path.getsize(wal_path) == 0)
+
 
 if __name__ == "__main__":
     unittest.main()

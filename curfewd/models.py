@@ -586,7 +586,7 @@ class UserPolicy:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "UserPolicy":
+    def from_dict(cls, data: dict[str, Any], *, default_role: str = "child") -> "UserPolicy":
         # Forward-migrate schema v1 `playtime` key cleanly into `app_limits`
         raw_app_limits = data.get("app_limits")
         if raw_app_limits is None:
@@ -596,7 +596,7 @@ class UserPolicy:
         return cls(
             username=str(data["username"]),
             schema_version=SCHEMA_VERSION,
-            role=str(data.get("role") or "child"),
+            role=str(data.get("role") or default_role),
             enabled=bool(True if data.get("enabled") is None else data.get("enabled")),
             lockout_action=str(data.get("lockout_action") or "lock"),
             daily_limits=dict(raw_daily) if isinstance(raw_daily, dict) else default_daily_limits(),
@@ -742,6 +742,7 @@ class DaemonConfig:
     warning_chime_enabled: bool = True
     countdown_hud_enabled: bool = True
     passive_app_insights_enabled: bool = True
+    passive_app_ignore_list: list[str] = field(default_factory=list)
     setup_completed: bool = False
     session_lock_fallback: bool = True
     release_x11_grab_on_lock: bool = True
@@ -772,6 +773,9 @@ class DaemonConfig:
         self.warning_chime_enabled = bool(self.warning_chime_enabled)
         self.countdown_hud_enabled = bool(self.countdown_hud_enabled)
         self.passive_app_insights_enabled = bool(self.passive_app_insights_enabled)
+        self.passive_app_ignore_list = sorted(
+            {str(x).strip().lower() for x in (self.passive_app_ignore_list or []) if str(x).strip()}
+        )
         self.setup_completed = bool(self.setup_completed)
         self.session_lock_fallback = bool(self.session_lock_fallback)
         self.release_x11_grab_on_lock = bool(self.release_x11_grab_on_lock)
@@ -800,6 +804,7 @@ class DaemonConfig:
         raw_al_enabled = data.get("app_limits_enabled")
         if raw_al_enabled is None:
             raw_al_enabled = data.get("playtime_enabled", True)
+        raw_ignore = data.get("passive_app_ignore_list")
         return cls(
             schema_version=SCHEMA_VERSION,
             poll_interval_sec=int(data.get("poll_interval_sec", 3)),
@@ -815,6 +820,7 @@ class DaemonConfig:
             warning_chime_enabled=bool(data.get("warning_chime_enabled", True)),
             countdown_hud_enabled=bool(data.get("countdown_hud_enabled", True)),
             passive_app_insights_enabled=bool(data.get("passive_app_insights_enabled", True)),
+            passive_app_ignore_list=list(raw_ignore) if isinstance(raw_ignore, list) else [],
             setup_completed=bool(data.get("setup_completed", False)),
             session_lock_fallback=bool(data.get("session_lock_fallback", True)),
             release_x11_grab_on_lock=bool(data.get("release_x11_grab_on_lock", True)),

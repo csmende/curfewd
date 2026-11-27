@@ -110,8 +110,22 @@ jobs:
           if count != 1:
               raise SystemExit("Failed to stamp pre-release version in debian/changelog")
           p.write_text(updated, encoding="utf-8")
+
+          init_py = pathlib.Path("curfewd/__init__.py")
+          raw_ver = os.environ["RAW_VER"]
+          init_text = init_py.read_text(encoding="utf-8")
+          init_updated, init_count = re.subn(
+              r'^(__version__\s*=\s*")[^"]+(")',
+              rf'\g<1>{raw_ver}\g<2>',
+              init_text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if init_count != 1:
+              raise SystemExit("Failed to stamp pre-release version in curfewd/__init__.py")
+          init_py.write_text(init_updated, encoding="utf-8")
           PY
-            echo "Stamped pre-release Debian package version: $(dpkg-parsechangelog -S Version)"
+            echo "Stamped pre-release Debian version: $(dpkg-parsechangelog -S Version) / Python version: ${RAW_VER}"
           fi
 
           dpkg-buildpackage -us -uc -b

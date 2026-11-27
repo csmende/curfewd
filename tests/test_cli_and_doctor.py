@@ -572,6 +572,38 @@ class TestCurfewctlCLI(unittest.TestCase):
             self.assertTrue(apply_xfce_lock_fix(root_prefix=tmp)["applied"])
             self.assertTrue(apply_dconf_lock_fix(root_prefix=tmp)["applied"])
 
+    def test_doctor_reports_screen_locked_and_logind_locked_separately(self):
+        from curfewd.cli.formatters import print_doctor
+
+        with tempfile.TemporaryDirectory() as tmp:
+            rep = run_doctor(
+                config_dir=tmp,
+                state_dir=tmp,
+                sessions_by_user={
+                    "alice": [
+                        {
+                            "session_id": "c1",
+                            "session_type": "x11",
+                            "desktop": "X-Cinnamon",
+                            "locked": False,
+                            "logind_locked": False,
+                            "screen_locked": True,
+                            "idle": False,
+                        }
+                    ]
+                },
+                dbus_connected=True,
+                root_prefix=tmp,
+            )
+            sess = rep["active_sessions"][0]
+            self.assertTrue(sess["screen_locked"])
+            self.assertFalse(sess["logind_locked"])
+            self.assertTrue(sess["locked"])
+
+            buf = io.StringIO()
+            print_doctor(rep, buf)
+            self.assertIn("screen_locked=True (logind_locked=False)", buf.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

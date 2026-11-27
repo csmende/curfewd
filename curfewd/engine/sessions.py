@@ -5,6 +5,7 @@ import logging
 import os
 import pwd
 import re
+from collections.abc import Callable
 from typing import Any
 
 from curfewd.engine.screenlock import ScreenLockEnforcer, SessionContext, build_session_context
@@ -277,6 +278,7 @@ class LogindSessionMonitor:
         config: DaemonConfig,
         async_mode: bool = True,
         lock_message: str = "",
+        on_complete: Callable[[LockResult], None] | None = None,
     ) -> list[LockResult]:
         """Invoke Layer 1 logind LockSession + Layers 2-3 verified multi-DE lock."""
         contexts = self.prepare_session_locks(sessions)
@@ -287,9 +289,22 @@ class LogindSessionMonitor:
                         ctx,
                         release_x11_grab=config.release_x11_grab_on_lock,
                         lock_message=lock_message,
+                        on_complete=on_complete,
                     )
             return []
         return self.execute_fallback_locks(contexts, config, lock_message=lock_message)
+
+    def verify_user_sessions_locked(
+        self,
+        sessions: list[dict[str, Any]],
+        config: DaemonConfig,
+        on_complete: Callable[[LockResult], None] | None = None,
+    ) -> None:
+        """GLib-thread helper: snapshot contexts and asynchronously verify screensaver lock state."""
+        if not config.session_lock_fallback or not sessions:
+            return
+        for ctx in self.build_contexts(sessions):
+            self._screenlock.verify_session_lock_async(ctx, on_complete=on_complete)
 
     def enforce_lockout_action(
         self,
@@ -299,14 +314,27 @@ class LogindSessionMonitor:
         sessions: list[dict[str, Any]],
         config: DaemonConfig,
         lock_message: str = "",
+        on_lock_result: Callable[[LockResult], None] | None = None,
     ) -> None:
         """Execute the configured lockout action ('lock', 'suspend', 'terminate', 'kill', 'shutdown')."""
         mgr = self._get_manager()
         if action == "lock":
-            self.lock_user_sessions(sessions, config, async_mode=True, lock_message=lock_message)
+            self.lock_user_sessions(
+                sessions,
+                config,
+                async_mode=True,
+                lock_message=lock_message,
+                on_complete=on_lock_result,
+            )
             return
         if action == "suspend":
-            self.lock_user_sessions(sessions, config, async_mode=True, lock_message=lock_message)
+            self.lock_user_sessions(
+                sessions,
+                config,
+                async_mode=True,
+                lock_message=lock_message,
+                on_complete=on_lock_result,
+            )
             if mgr is not None:
                 try:
                     mgr.Suspend(False)

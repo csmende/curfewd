@@ -366,12 +366,153 @@ def parse_desktop_file(
     }
 
 
+_STEAM_MANIFEST_RE = re.compile(r"^appmanifest_(\d+)\.acf$")
+_ACF_APPID_RE = re.compile(r'"appid"\s+"(\d+)"', re.IGNORECASE)
+_ACF_NAME_RE = re.compile(r'"name"\s+"([^"]+)"', re.IGNORECASE)
+_VDF_PATH_RE = re.compile(r'"path"\s+"([^"]+)"', re.IGNORECASE)
+_MAX_STEAM_MANIFEST_BYTES = 65536
+_MAX_STEAM_MANIFESTS_PER_DIR = 500
+_MAX_STEAM_LIBRARIES = 16
+_STEAM_TOOL_PREFIXES = (
+    "proton ",
+    "proton-",
+    "steam linux runtime",
+    "steamworks common redistributables",
+)
+
+
+def _read_regular_nofollow_bounded(
+    path: str, max_bytes: int = _MAX_STEAM_MANIFEST_BYTES
+) -> str | None:
+    """Open path without following symlinks, verify regular file + size cap, and decode UTF-8."""
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+    )
+    try:
+        fd = os.open(path, flags)
+    except OSError:
+        return None
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_size > max_bytes:
+            return None
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            chunk = os.read(fd, 8192)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_bytes:
+                return None
+            chunks.append(chunk)
+        return b"".join(chunks).decode("utf-8", errors="ignore")
+    except OSError:
+        return None
+    finally:
+        os.close(fd)
+
+
+def _discover_steamapps_dirs(target_home: str | None = None) -> list[str]:
+    """Return deduplicated real Steam steamapps directories for target_home (including libraryfolders.vdf)."""
+    home = target_home
+    if not home and os.geteuid() != 0:
+        home = os.path.expanduser("~")
+    if not home or not os.path.isdir(home):
+        return []
+
+    seeds = [
+        os.path.join(home, ".local/share/Steam/steamapps"),
+        os.path.join(home, ".steam/steam/steamapps"),
+        os.path.join(home, ".steam/debian-installation/steamapps"),
+        os.path.join(home, ".var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps"),
+    ]
+    seen_real: list[str] = []
+    seen_set: set[str] = set()
+
+    def _add_dir(candidate: str) -> None:
+        if len(seen_real) >= _MAX_STEAM_LIBRARIES or not os.path.isdir(candidate):
+            return
+        real = os.path.realpath(candidate)
+        if real not in seen_set and os.path.isdir(real):
+            seen_set.add(real)
+            seen_real.append(real)
+
+    for seed in seeds:
+        _add_dir(seed)
+
+    # Discover additional Steam library folders declared in libraryfolders.vdf
+    for base_dir in list(seen_real):
+        vdf_text = _read_regular_nofollow_bounded(os.path.join(base_dir, "libraryfolders.vdf"))
+        if not vdf_text:
+            continue
+        for m in _VDF_PATH_RE.finditer(vdf_text):
+            lib_root = m.group(1).replace("\\\\", "/").strip()
+            if not lib_root or not os.path.isabs(lib_root):
+                continue
+            _add_dir(os.path.join(lib_root, "steamapps"))
+    return seen_real
+
+
+def _is_steam_runtime_tool(name: str) -> bool:
+    low = name.strip().lower()
+    return low == "proton" or low.startswith(_STEAM_TOOL_PREFIXES)
+
+
+def scan_steam_games(
+    target_home: str | None = None,
+    steamapps_dirs: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Safely scan Steam appmanifest_*.acf files to map Steam AppIDs to human-readable game titles."""
+    dirs = (
+        list(steamapps_dirs)
+        if steamapps_dirs is not None
+        else _discover_steamapps_dirs(target_home=target_home)
+    )
+    games_by_id: dict[str, dict[str, Any]] = {}
+    for sdir in dirs[:_MAX_STEAM_LIBRARIES]:
+        if not os.path.isdir(sdir):
+            continue
+        try:
+            entries = sorted(os.listdir(sdir))[:_MAX_STEAM_MANIFESTS_PER_DIR]
+        except OSError:
+            continue
+        for fname in entries:
+            m_file = _STEAM_MANIFEST_RE.match(fname)
+            if not m_file:
+                continue
+            text = _read_regular_nofollow_bounded(os.path.join(sdir, fname))
+            if not text:
+                continue
+            m_id = _ACF_APPID_RE.search(text)
+            m_name = _ACF_NAME_RE.search(text)
+            app_id = (m_id.group(1) if m_id else m_file.group(1)).strip()
+            name = (m_name.group(1) if m_name else "").strip()
+            if not app_id.isdigit() or app_id == "0" or not name or _is_steam_runtime_tool(name):
+                continue
+            games_by_id.setdefault(
+                app_id,
+                {
+                    "pattern": f"steam_app_{app_id}",
+                    "label": name,
+                    "category": "Gaming",
+                    "flatpak_id": "",
+                    "steam_app_id": app_id,
+                    "installed": True,
+                },
+            )
+    return list(games_by_id.values())
+
+
 def scan_installed_apps(
     search_dirs: list[str] | None = None,
     include_curated_fallback: bool = True,
     target_home: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Scan installed desktop applications (including target child's home) sorted & deduplicated."""
+    """Scan installed desktop applications (including target child's home & Steam manifests) sorted & deduplicated."""
     dirs = (
         search_dirs if search_dirs is not None else _default_desktop_dirs(target_home=target_home)
     )
@@ -397,6 +538,12 @@ def scan_installed_apps(
             key = item["pattern"].lower()
             if key not in seen_patterns:
                 seen_patterns[key] = item
+
+    if search_dirs is None:
+        for game in scan_steam_games(target_home=target_home):
+            key = game["pattern"].lower()
+            if key not in seen_patterns:
+                seen_patterns[key] = game
 
     if include_curated_fallback and not seen_patterns:
         for curated in DEFAULT_CURATED_APPS:

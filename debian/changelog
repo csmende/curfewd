@@ -22,8 +22,31 @@ curfewd (2.0.0) unstable; urgency=medium
       `daily_app_usage` Top Apps insights with 1-click Set Limit; target-user
       app scanning; KDE Plasma Kiosk & XFCE `doctor --fix` hardening;
       Wayland-aware System Health + `TestLock`; and `curfewd-tray.service`
+  * v2.0.0 RC stabilization & hardening (#7-#13):
+    - Track root-verified per-session lock state from `ScreenLockEnforcer`
+      callbacks to eliminate repeated lockout event/counter inflation and
+      journald spam on DEs without `logind` `LockedHint` (30s re-verify)
+    - Enable systemd supervision of `curfewd-tray.service` on Cinnamon, MATE,
+      and XFCE via `curfewd-tray --autostart`, drop hard
+      `PartOf=graphical-session.target`, and migrate active graphical
+      sessions from pre-systemd trays in `postinst`
+    - Set `Group=curfewd` in `curfewd.service` (plus `chown -hR root:curfewd`
+      on upgrade) so `StateDirectory=curfewd` preserves `curfewd` group access
+    - Remove duplicate manual `systemctl enable`/`restart` from
+      `debian/postinst` so `dh_installsystemd` restarts `curfewd.service`
+      once per upgrade
+    - Default missing `"role"` keys during v2 -> v3 migration to `"parent"`
+      for local admin group members (`sudo`/`wheel`/`admin`/`curfewd`)
+    - Scan Steam `appmanifest_*.acf` titles, pass a non-blocking cached app
+      catalog into passive insights, gate passive attribution by foreground
+      window PID when known, and filter wallpaper/tray daemons plus
+      configurable `passive_app_ignore_list`
+    - Clarify `screen_locked` vs `logind_locked` in `curfewctl doctor`, batch
+      SQLite `daily_usage`/`daily_app_usage` deltas to `save_interval_sec`
+      with `wal_autocheckpoint=200` + `TRUNCATE` checkpoints, and stamp RC
+      versions into `curfewd/__init__.py` during pre-release builds
 
- -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 20:15:00 +0000
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 23:55:00 +0000
 
 curfewd (1.2.0) unstable; urgency=medium
 

@@ -5,6 +5,7 @@ import inspect
 import logging
 import os
 import secrets
+import threading
 import time
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
@@ -32,19 +33,29 @@ from curfewd.history import HistoryStore
 from curfewd.models import (
     DaemonConfig,
     HomeworkModeState,
+    LockResult,
     PauseState,
     UserAccountingState,
     UserPolicy,
 )
 from curfewd.parsing import validate_username
 from curfewd.storage import AtomicJsonStore
+from curfewd.ui.appscan import scan_installed_apps
 
 logger = logging.getLogger("curfewd.runtime")
 
 # Re-challenge desktop tray screensaver/telemetry state every N seconds
 _CHALLENGE_INTERVAL_SEC = 15.0
-# Minimum interval between repetitive lock retries while locked_out and active
+# Minimum interval between repetitive lock retries while unlocked during lockout
 _LOCK_RETRY_INTERVAL_SEC = 3.0
+# Lightweight root re-verification interval once sessions are verified locked (DEs without logind LockedHint)
+_LOCK_REVERIFY_INTERVAL_SEC = 30.0
+# Fail-closed max age for root-verified lock state if re-verification does not complete
+_LOCK_VERIFY_MAX_AGE_SEC = 65.0
+# Cache installed desktop/Steam app catalog per user for passive insight classification
+_APP_CATALOG_TTL_SEC = 600.0
+# Periodic passive SQLite WAL checkpoint interval to keep history.db-wal compact
+_WAL_CHECKPOINT_INTERVAL_SEC = 600.0
 # Max kid time requests allowed within sliding window
 _MAX_REQUESTS_PER_WINDOW = 3
 _REQUEST_WINDOW_MINUTES = 10
@@ -79,6 +90,7 @@ class EnforcementRuntime:
         on_client_notification: Callable[[str, dict[str, Any]], None] | None = None,
         on_screensaver_challenge: Callable[[str, str], None] | None = None,
         on_time_request_updated: Callable[[str, dict[str, Any]], None] | None = None,
+        app_catalog_loader: Callable[[str], list[dict[str, Any]]] | None = None,
     ) -> None:
         self._store = store
         self._history = history
@@ -93,6 +105,7 @@ class EnforcementRuntime:
         self._on_client_notification = on_client_notification
         self._on_screensaver_challenge = on_screensaver_challenge
         self._on_time_request_updated = on_time_request_updated
+        self._app_catalog_loader = app_catalog_loader
 
         self._store.ensure_dirs()
         self._config: DaemonConfig = self._store.load_daemon_config()
@@ -114,6 +127,11 @@ class EnforcementRuntime:
         self._active_limited_patterns: dict[str, list[str]] = {}
         self._active_categories: dict[str, list[str]] = {}
 
+        # Per-user cached installed app + Steam game catalog (refreshed off the main loop)
+        self._catalog_lock = threading.Lock()
+        self._app_catalog_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+        self._app_catalog_inflight: set[str] = set()
+
         # Client screensaver & telemetry challenge/response state (strictly TTL-bounded)
         self._pending_nonces: dict[str, str] = {}
         self._last_challenge_mono: dict[str, float] = {}
@@ -122,11 +140,22 @@ class EnforcementRuntime:
         self._tray_idle_sec: dict[str, int] = {}
         self._tray_active_pid: dict[str, int] = {}
 
-        # Lockout countdown & save timers
+        # Lockout countdown, root-verified lock state & batched persistence timers
         self._countdowns: dict[str, int] = {}
         self._last_lock_attempt_mono: dict[str, float] = {}
+        self._last_reverify_mono: dict[str, float] = {}
+        self._lockout_recorded: set[str] = set()
+        self._was_verified_locked: set[str] = set()
+        self._lock_state_guard = threading.Lock()
+        # Maps username -> {session_id: (locked, verified, mono_ts, backend)} (updated from worker threads)
+        self._verified_sessions: dict[str, dict[str, tuple[bool, bool, float, str]]] = {}
+        # Batched per-tick daily & per-app history deltas flushed at save_interval_sec / reads / shutdown
+        self._pending_daily_deltas: dict[tuple[str, str], list[int]] = {}
+        self._pending_app_deltas: dict[tuple[str, str], dict[str, tuple[str, str, int]]] = {}
         self._last_tick_mono: float | None = None
-        self._last_save_mono: float = time.monotonic()
+        now_init = time.monotonic()
+        self._last_save_mono: float = now_init
+        self._last_wal_checkpoint_mono: float = now_init
 
     @property
     def config(self) -> DaemonConfig:
@@ -177,10 +206,8 @@ class EnforcementRuntime:
     def get_policy(self, username: str) -> UserPolicy:
         safe = validate_username(username)
         if safe not in self._policies:
-            has_saved = self._store.has_user_policy(safe)
-            pol = self._store.load_user_policy(safe)
-            if not has_saved and is_system_admin_user(safe):
-                pol.role = "parent"
+            default_role = "parent" if is_system_admin_user(safe) else "child"
+            pol = self._store.load_user_policy(safe, default_role=default_role)
             self._policies[safe] = pol
         return self._policies[safe]
 
@@ -197,18 +224,109 @@ class EnforcementRuntime:
             raise UserNotFoundLookupError(f"User not found: {safe}")
         return safe, rec
 
+    def record_lock_result(self, result: LockResult) -> None:
+        """Thread-safe callback storing root-verified per-session lock status from ScreenLockEnforcer."""
+        try:
+            safe = validate_username(result.username)
+        except ValueError:
+            return
+        sid = str(result.session_id)
+        now_mono = time.monotonic()
+        with self._lock_state_guard:
+            user_map = self._verified_sessions.setdefault(safe, {})
+            if result.stage == "verify_unverifiable":
+                prev = user_map.get(sid)
+                if prev is not None and prev[0]:
+                    # Keep minimal unverifiable locker locked with refreshed timestamp
+                    user_map[sid] = (True, False, now_mono, prev[3])
+                else:
+                    user_map[sid] = (False, False, now_mono, "")
+            else:
+                user_map[sid] = (
+                    bool(result.locked),
+                    bool(result.verified),
+                    now_mono,
+                    str(result.backend or ""),
+                )
+
+    def _clear_lockout_state(self, safe: str, clear_verified: bool = True) -> None:
+        """Reset per-user lockout episode counters and optional root-verified lock cache."""
+        self._countdowns.pop(safe, None)
+        self._lockout_recorded.discard(safe)
+        self._was_verified_locked.discard(safe)
+        self._last_reverify_mono.pop(safe, None)
+        if clear_verified:
+            with self._lock_state_guard:
+                self._verified_sessions.pop(safe, None)
+
     def _clear_user_runtime_caches(self, safe: str) -> None:
         """Evict ephemeral session, process, countdown, and telemetry caches on logout/expiry."""
         self._active_limited_apps.pop(safe, None)
         self._active_limited_patterns.pop(safe, None)
         self._active_categories.pop(safe, None)
-        self._countdowns.pop(safe, None)
+        self._clear_lockout_state(safe, clear_verified=True)
+        self._last_lock_attempt_mono.pop(safe, None)
         self._pending_nonces.pop(safe, None)
         self._last_challenge_mono.pop(safe, None)
         self._tray_telemetry_mono.pop(safe, None)
         self._tray_screensaver_active.pop(safe, None)
         self._tray_idle_sec.pop(safe, None)
         self._tray_active_pid.pop(safe, None)
+
+    def _root_verified_lock_status(
+        self,
+        safe: str,
+        sessions: list[dict[str, Any]],
+        now_mono: float,
+    ) -> tuple[bool, bool, list[dict[str, Any]]]:
+        """Return (all_locked, needs_reverify, sessions_to_reverify) from root-verified LockResults."""
+        if not sessions:
+            return False, False, []
+        with self._lock_state_guard:
+            verified_map = dict(self._verified_sessions.get(safe, {}))
+
+        tray_ts = self._tray_telemetry_mono.get(safe)
+        tray_fresh = tray_ts is not None and (now_mono - tray_ts) <= (_CHALLENGE_INTERVAL_SEC * 2.0)
+        # Fail-closed early unlock signal: tray claiming unlocked triggers immediate root re-check,
+        # while tray claiming locked NEVER marks a session root-verified.
+        tray_reports_unlocked = tray_fresh and not bool(
+            self._tray_screensaver_active.get(safe, False)
+        )
+
+        all_locked = True
+        needs_reverify = False
+        reverify_sessions: list[dict[str, Any]] = []
+        for s in sessions:
+            if self._config.use_locked_hint and s.get("locked", False):
+                continue
+            sid = str(s.get("session_id", ""))
+            entry = verified_map.get(sid)
+            if entry is None:
+                all_locked = False
+                continue
+            is_locked, _is_verified, ts, _backend = entry
+            age = now_mono - ts
+            if not is_locked or age > _LOCK_VERIFY_MAX_AGE_SEC:
+                all_locked = False
+                continue
+            if age >= _LOCK_REVERIFY_INTERVAL_SEC or (
+                tray_reports_unlocked and tray_ts is not None and tray_ts > ts
+            ):
+                needs_reverify = True
+                reverify_sessions.append(s)
+        return all_locked, needs_reverify, reverify_sessions
+
+    def is_session_verified_locked(
+        self, safe: str, session_id: str, now_mono: float | None = None
+    ) -> bool:
+        """Return True if daemon root-verified this session locked within the valid TTL."""
+        mono = time.monotonic() if now_mono is None else now_mono
+        with self._lock_state_guard:
+            entry = self._verified_sessions.get(safe, {}).get(str(session_id))
+        if entry is None:
+            return False
+        is_locked, _is_verified, ts, _backend = entry
+        return bool(is_locked and (mono - ts) <= _LOCK_VERIFY_MAX_AGE_SEC)
 
     def _fresh_telemetry(self, safe: str, now_mono: float | None = None) -> tuple[bool, int, int]:
         """Return (screensaver_active, idle_sec, active_window_pid), expiring fail-closed after TTL."""
@@ -234,12 +352,14 @@ class EnforcementRuntime:
         now_mono: float | None = None,
     ) -> tuple[bool, bool, bool, bool, bool]:
         """Return (any_active, screen_locked, logind_locked, is_idle, logind_idle)."""
+        mono = time.monotonic() if now_mono is None else now_mono
         any_active = any(s.get("active", False) for s in sessions)
         logind_locked = (
             any(s.get("locked", False) for s in sessions) if self._config.use_locked_hint else False
         )
-        tray_ss, tray_idle_sec, _ = self._fresh_telemetry(safe, now_mono=now_mono)
-        screen_locked = logind_locked or tray_ss
+        root_verified_locked, _, _ = self._root_verified_lock_status(safe, sessions, mono)
+        tray_ss, tray_idle_sec, _ = self._fresh_telemetry(safe, now_mono=mono)
+        screen_locked = logind_locked or root_verified_locked or tray_ss
         logind_idle = bool(sessions) and all(s.get("idle", False) for s in sessions)
         tray_idle = self._config.idle_pause_sec > 0 and tray_idle_sec >= self._config.idle_pause_sec
         is_idle = logind_idle or tray_idle
@@ -329,12 +449,17 @@ class EnforcementRuntime:
         excluded = set(self._config.excluded_users)
         active_usernames = set(sessions_by_user.keys())
 
-        # Evict stale runtime/telemetry/process caches for logged-out users
+        # Evict stale runtime/telemetry/process/lockout caches for logged-out users
+        with self._lock_state_guard:
+            verified_users = set(self._verified_sessions)
         tracked_cached = (
             set(self._active_limited_apps)
             | set(self._active_limited_patterns)
             | set(self._active_categories)
             | set(self._countdowns)
+            | set(self._lockout_recorded)
+            | set(self._was_verified_locked)
+            | verified_users
             | set(self._tray_telemetry_mono)
             | set(self._pending_nonces)
         )
@@ -354,8 +479,86 @@ class EnforcementRuntime:
             self.flush_states()
             self._history.expire_stale_requests(now_utc=now_local.astimezone(timezone.utc))
             self._last_save_mono = now_mono
+            if (now_mono - self._last_wal_checkpoint_mono) >= _WAL_CHECKPOINT_INTERVAL_SEC:
+                chk_fn = getattr(self._history, "checkpoint", None)
+                if callable(chk_fn):
+                    try:
+                        chk_fn("PASSIVE")
+                    except Exception as exc:
+                        logger.debug("periodic WAL checkpoint skipped: %s", exc)
+                self._last_wal_checkpoint_mono = now_mono
 
         return True
+
+    def update_app_catalog_cache(self, username: str, apps: list[dict[str, Any]]) -> None:
+        """Warm or refresh the per-user installed app catalog cache safely."""
+        try:
+            safe = validate_username(username)
+        except ValueError:
+            return
+        with self._catalog_lock:
+            self._app_catalog_cache[safe] = (time.monotonic(), list(apps))
+
+    def _get_app_catalog(self, safe: str, now_mono: float) -> list[dict[str, Any]]:
+        """Return cached per-user app/Steam catalog, refreshing off the GLib main loop on expiry."""
+        with self._catalog_lock:
+            entry = self._app_catalog_cache.get(safe)
+            if entry is not None and (now_mono - entry[0]) < _APP_CATALOG_TTL_SEC:
+                return entry[1]
+            cached = entry[1] if entry is not None else []
+            if self._app_catalog_loader is not None:
+                loader = self._app_catalog_loader
+                loaded = list(loader(safe))
+                self._app_catalog_cache[safe] = (now_mono, loaded)
+                return loaded
+            if safe in self._app_catalog_inflight:
+                return cached
+            self._app_catalog_inflight.add(safe)
+
+        rec = lookup_user_record(safe) or {}
+        home_dir = rec.get("home_dir")
+
+        def _refresh_worker() -> None:
+            try:
+                scanned = scan_installed_apps(target_home=home_dir, include_curated_fallback=False)
+                with self._catalog_lock:
+                    self._app_catalog_cache[safe] = (time.monotonic(), scanned)
+            except Exception as exc:
+                logger.debug("app catalog refresh failed for %r: %s", safe, exc)
+            finally:
+                with self._catalog_lock:
+                    self._app_catalog_inflight.discard(safe)
+
+        threading.Thread(
+            target=_refresh_worker, name=f"curfewd-catalog-{safe}", daemon=True
+        ).start()
+        return cached
+
+    def annotate_sessions_for_doctor(
+        self, sessions_by_user: dict[str, list[dict[str, Any]]]
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Return shallow copies of sessions annotated with logind_locked and daemon screen_locked."""
+        now_mono = time.monotonic()
+        annotated: dict[str, list[dict[str, Any]]] = {}
+        for uname, sess_list in sessions_by_user.items():
+            try:
+                safe = validate_username(uname)
+            except ValueError:
+                annotated[uname] = [dict(s) for s in sess_list]
+                continue
+            tray_ss, _, _ = self._fresh_telemetry(safe, now_mono=now_mono)
+            enriched: list[dict[str, Any]] = []
+            for s in sess_list:
+                copy = dict(s)
+                logind_locked = bool(s.get("locked", False))
+                verified = self.is_session_verified_locked(
+                    safe, str(s.get("session_id", "")), now_mono=now_mono
+                )
+                copy["logind_locked"] = logind_locked
+                copy["screen_locked"] = logind_locked or verified or tray_ss
+                enriched.append(copy)
+            annotated[uname] = enriched
+        return annotated
 
     def _scan_processes_for_user(
         self,
@@ -400,8 +603,12 @@ class EnforcementRuntime:
                 "homework_blocked_categories": policy.homework_mode.blocked_categories,
                 "collect_passive": need_passive,
             }
+            if "catalog" in sig:
+                kwargs["catalog"] = self._get_app_catalog(safe, now_mono)
             if "exempt_patterns" in sig:
                 kwargs["exempt_patterns"] = policy.homework_mode.allowed_apps if hw_relevant else []
+            if "passive_ignore_list" in sig:
+                kwargs["passive_ignore_list"] = self._config.passive_app_ignore_list
             return self._app_limits.scan_user_processes(**kwargs)
 
         # Compatibility fallback for minimal unit-test stub monitors
@@ -472,7 +679,7 @@ class EnforcementRuntime:
             else None
         )
         if eval_res.active_delta or eval_res.inactive_delta or eval_res.app_limits_delta:
-            self._history.record_daily_delta(
+            self._buffer_daily_delta(
                 safe,
                 date_str,
                 active_sec=eval_res.active_delta,
@@ -609,10 +816,25 @@ class EnforcementRuntime:
     ) -> None:
         fn = self._sessions.enforce_lockout_action
         params = inspect.signature(fn).parameters
-        if "lock_message" in params:
-            fn(action, safe, uid, sessions, self._config, lock_message=lock_message)
-        else:
-            fn(action, safe, uid, sessions, self._config)
+        has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        kwargs: dict[str, Any] = {}
+        if "lock_message" in params or has_var_kw:
+            kwargs["lock_message"] = lock_message
+        if "on_lock_result" in params or has_var_kw:
+            kwargs["on_lock_result"] = self.record_lock_result
+        fn(action, safe, uid, sessions, self._config, **kwargs)
+
+    def _maybe_reverify_locked_sessions(
+        self, safe: str, reverify_sessions: list[dict[str, Any]], now_mono: float
+    ) -> None:
+        if not reverify_sessions:
+            return
+        if (now_mono - self._last_reverify_mono.get(safe, 0.0)) < _LOCK_RETRY_INTERVAL_SEC:
+            return
+        self._last_reverify_mono[safe] = now_mono
+        verify_fn = getattr(self._sessions, "verify_user_sessions_locked", None)
+        if callable(verify_fn):
+            verify_fn(reverify_sessions, self._config, on_complete=self.record_lock_result)
 
     def _enforce_session_lockout(
         self,
@@ -622,14 +844,35 @@ class EnforcementRuntime:
         eval_res: EvaluationResult,
         sessions: list[dict[str, Any]],
         any_active: bool,
-        screen_locked: bool,
+        logind_locked: bool,
         now_mono: float,
         elapsed: int,
         date_str: str,
     ) -> None:
-        if not (eval_res.should_enforce and any_active and not screen_locked):
-            self._countdowns.pop(safe, None)
+        if not (eval_res.should_enforce and any_active):
+            self._clear_lockout_state(safe, clear_verified=not eval_res.should_enforce)
             return
+
+        if logind_locked:
+            self._countdowns.pop(safe, None)
+            self._was_verified_locked.add(safe)
+            return
+
+        all_verified_locked, needs_reverify, reverify_sessions = self._root_verified_lock_status(
+            safe, sessions, now_mono
+        )
+        if all_verified_locked:
+            self._countdowns.pop(safe, None)
+            self._was_verified_locked.add(safe)
+            if needs_reverify:
+                self._maybe_reverify_locked_sessions(safe, reverify_sessions, now_mono)
+            return
+
+        # Transition from confirmed locked -> unlocked while still locked out: skip countdown & re-record
+        if safe in self._was_verified_locked:
+            self._was_verified_locked.discard(safe)
+            self._lockout_recorded.discard(safe)
+            self._countdowns[safe] = 0
 
         rem = self._countdowns.get(safe)
         if rem is None:
@@ -653,11 +896,20 @@ class EnforcementRuntime:
         last_try = self._last_lock_attempt_mono.get(safe, 0.0)
         if (now_mono - last_try) >= _LOCK_RETRY_INTERVAL_SEC:
             self._last_lock_attempt_mono[safe] = now_mono
-            logger.warning(
-                "time expired for user %r; enforcing lockout action=%s",
-                safe,
-                policy.lockout_action,
-            )
+            is_new_episode = safe not in self._lockout_recorded
+            if is_new_episode:
+                self._lockout_recorded.add(safe)
+                logger.warning(
+                    "time expired for user %r; enforcing lockout action=%s",
+                    safe,
+                    policy.lockout_action,
+                )
+            else:
+                logger.debug(
+                    "retrying lockout action=%s for user %r (lock not yet verified)",
+                    policy.lockout_action,
+                    safe,
+                )
             self._invoke_lockout_action(
                 policy.lockout_action,
                 safe,
@@ -665,13 +917,14 @@ class EnforcementRuntime:
                 sessions,
                 _format_lock_message(eval_res),
             )
-            self._history.record_daily_delta(safe, date_str, lockouts=1)
-            self._history.record_event(
-                safe,
-                "lockout",
-                actor="daemon",
-                detail={"action": policy.lockout_action},
-            )
+            if is_new_episode:
+                self._history.record_daily_delta(safe, date_str, lockouts=1)
+                self._history.record_event(
+                    safe,
+                    "lockout",
+                    actor="daemon",
+                    detail={"action": policy.lockout_action},
+                )
 
     def _maybe_send_challenge(self, safe: str, now_mono: float) -> None:
         if (now_mono - self._last_challenge_mono.get(safe, 0.0)) >= _CHALLENGE_INTERVAL_SEC:
@@ -680,8 +933,67 @@ class EnforcementRuntime:
             self._pending_nonces[safe] = nonce
             self._emit_challenge(safe, nonce)
 
+    def _buffer_daily_delta(
+        self,
+        safe: str,
+        date_str: str,
+        active_sec: int = 0,
+        inactive_sec: int = 0,
+        app_limits_sec: int = 0,
+        app_deltas: list[tuple[str, str, str, int]] | None = None,
+    ) -> None:
+        key = (safe, date_str)
+        bucket = self._pending_daily_deltas.get(key)
+        if bucket is None:
+            self._pending_daily_deltas[key] = [
+                int(active_sec),
+                int(inactive_sec),
+                int(app_limits_sec),
+            ]
+        else:
+            bucket[0] += int(active_sec)
+            bucket[1] += int(inactive_sec)
+            bucket[2] += int(app_limits_sec)
+
+        if app_deltas:
+            app_map = self._pending_app_deltas.setdefault(key, {})
+            for app_key, label, cat, sec in app_deltas:
+                if sec <= 0:
+                    continue
+                prev = app_map.get(app_key)
+                if prev is None:
+                    app_map[app_key] = (label, cat, int(sec))
+                else:
+                    app_map[app_key] = (label, cat, prev[2] + int(sec))
+
+    def flush_history_deltas(self) -> int:
+        """Commit buffered per-tick usage and per-app deltas to SQLite in batched transactions."""
+        keys = list(set(self._pending_daily_deltas) | set(self._pending_app_deltas))
+        flushed = 0
+        for key in keys:
+            safe, date_str = key
+            daily = self._pending_daily_deltas.pop(key, None) or [0, 0, 0]
+            app_map = self._pending_app_deltas.pop(key, None) or {}
+            app_deltas = [(k, lbl, cat, sec) for k, (lbl, cat, sec) in app_map.items()] or None
+            if not any(daily) and not app_deltas:
+                continue
+            try:
+                self._history.record_daily_delta(
+                    safe,
+                    date_str,
+                    active_sec=daily[0],
+                    inactive_sec=daily[1],
+                    app_limits_sec=daily[2],
+                    app_deltas=app_deltas,
+                )
+                flushed += 1
+            except Exception as exc:
+                logger.error("failed to flush history deltas for %r (%s): %s", safe, date_str, exc)
+        return flushed
+
     def flush_states(self) -> None:
-        """Persist all cached accounting states atomically to disk."""
+        """Persist all cached accounting states atomically and flush batched history deltas."""
+        self.flush_history_deltas()
         for state in self._states.values():
             try:
                 self._store.save_user_state(state)
@@ -724,13 +1036,14 @@ class EnforcementRuntime:
     def set_user_policy(self, safe: str, raw: dict[str, Any], actor: str) -> dict[str, Any]:
         payload = dict(raw)
         payload["username"] = safe
-        policy = UserPolicy.from_dict(payload)
+        existing_role = self.get_policy(safe).role
+        policy = UserPolicy.from_dict(payload, default_role=existing_role)
         self._policies[safe] = policy
         self._store.save_user_policy(policy)
         if not self._config.setup_completed:
             self._config.setup_completed = True
             self._store.save_daemon_config(self._config)
-        self._countdowns.pop(safe, None)
+        self._clear_lockout_state(safe, clear_verified=True)
         self._history.record_event(
             safe,
             "policy_update",
@@ -759,7 +1072,7 @@ class EnforcementRuntime:
             policy, state, int(delta_seconds), str(mode), now_local, note=clean_note
         )
         self._store.save_user_state(state)
-        self._countdowns.pop(safe, None)
+        self._clear_lockout_state(safe, clear_verified=True)
         self._history.record_daily_delta(safe, now_local.date().isoformat(), bonus_sec=applied)
         self._history.record_event(
             safe,
@@ -798,7 +1111,7 @@ class EnforcementRuntime:
             hide_tray_while_paused=bool(hide_tray),
         )
         self._store.save_user_policy(policy)
-        self._countdowns.pop(safe, None)
+        self._clear_lockout_state(safe, clear_verified=True)
         self._history.record_event(safe, "pause", actor=actor, detail=policy.pause.to_dict())
         self._emit_policy_changed(safe)
         status = self.compute_status(safe)
@@ -846,7 +1159,7 @@ class EnforcementRuntime:
             blocked_categories=raw.get("blocked_categories", cur.get("blocked_categories", [])),
         )
         self._store.save_user_policy(policy)
-        self._countdowns.pop(safe, None)
+        self._clear_lockout_state(safe, clear_verified=True)
         self._history.record_event(
             safe,
             "homework_start" if active else "homework_end",
@@ -883,7 +1196,7 @@ class EnforcementRuntime:
             reset=bool(raw.get("reset", False)),
         )
         self._store.save_user_state(state)
-        self._countdowns.pop(safe, None)
+        self._clear_lockout_state(safe, clear_verified=True)
         self._history.record_event(safe, "today_override", actor=actor, detail=res)
         status = self.compute_status(safe)
         self._emit_status(safe, status)
@@ -1206,7 +1519,7 @@ class EnforcementRuntime:
         now_local = self._now_fn()
         res = apply_save_grace(policy, state, now_local)
         self._store.save_user_state(state)
-        self._countdowns.pop(safe, None)
+        self._clear_lockout_state(safe, clear_verified=True)
         self._history.record_event(safe, "save_grace", actor=safe, detail=res)
         status = self.compute_status(safe)
         self._emit_status(safe, status)

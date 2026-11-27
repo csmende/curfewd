@@ -17,6 +17,7 @@ import shutil
 import subprocess  # nosec B404
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from curfewd.models import LockResult
@@ -752,6 +753,48 @@ class ScreenLockEnforcer:
         logger.warning("session %r for user %r: %s", ctx.session_id, ctx.username, msg)
         return _done(False, False, "", "failed", msg)
 
+    def verify_session_lock_detailed(self, ctx: SessionContext) -> LockResult:
+        """Query whether any candidate desktop screensaver is active without triggering a lock."""
+        t0 = time.monotonic()
+        backends = select_backends(ctx.desktop)
+        active, active_be = self.is_screensaver_active(ctx, backends)
+        elapsed = int((time.monotonic() - t0) * 1000)
+        if active is True:
+            logger.debug(
+                "session %r for user %r remains locked (verified via %s)",
+                ctx.session_id,
+                ctx.username,
+                active_be,
+            )
+            return LockResult(
+                session_id=ctx.session_id,
+                username=ctx.username,
+                locked=True,
+                verified=True,
+                backend=str(active_be or "screensaver"),
+                stage="verify",
+                elapsed_ms=elapsed,
+            )
+        if active is None:
+            return LockResult(
+                session_id=ctx.session_id,
+                username=ctx.username,
+                locked=False,
+                verified=False,
+                backend="",
+                stage="verify_unverifiable",
+                elapsed_ms=elapsed,
+            )
+        return LockResult(
+            session_id=ctx.session_id,
+            username=ctx.username,
+            locked=False,
+            verified=True,
+            backend=str(active_be or ""),
+            stage="verify_unlocked",
+            elapsed_ms=elapsed,
+        )
+
     def enforce_session_lock(
         self, ctx: SessionContext, release_x11_grab: bool = True, lock_message: str = ""
     ) -> bool:
@@ -761,7 +804,11 @@ class ScreenLockEnforcer:
         ).locked
 
     def enforce_session_lock_async(
-        self, ctx: SessionContext, release_x11_grab: bool = True, lock_message: str = ""
+        self,
+        ctx: SessionContext,
+        release_x11_grab: bool = True,
+        lock_message: str = "",
+        on_complete: Callable[[LockResult], None] | None = None,
     ) -> bool:
         """Spawn a non-blocking daemon thread with per-session in-flight deduplication."""
         key = f"{ctx.uid}:{ctx.session_id}"
@@ -771,14 +818,33 @@ class ScreenLockEnforcer:
                 return False
             self._in_flight.add(key)
 
+        custom_override = (
+            type(self).enforce_session_lock is not ScreenLockEnforcer.enforce_session_lock
+        )
+
         def _worker() -> None:
+            res: LockResult | None = None
             try:
-                if lock_message:
-                    self.enforce_session_lock(
-                        ctx, release_x11_grab=release_x11_grab, lock_message=lock_message
+                if custom_override:
+                    ok = (
+                        self.enforce_session_lock(
+                            ctx, release_x11_grab=release_x11_grab, lock_message=lock_message
+                        )
+                        if lock_message
+                        else self.enforce_session_lock(ctx, release_x11_grab=release_x11_grab)
+                    )
+                    res = LockResult(
+                        session_id=ctx.session_id,
+                        username=ctx.username,
+                        locked=bool(ok),
+                        verified=bool(ok),
+                        backend="custom",
+                        stage="custom",
                     )
                 else:
-                    self.enforce_session_lock(ctx, release_x11_grab=release_x11_grab)
+                    res = self.enforce_session_lock_detailed(
+                        ctx, release_x11_grab=release_x11_grab, lock_message=lock_message
+                    )
             except Exception as exc:
                 logger.error(
                     "unexpected error in screenlock helper for session %r: %s", ctx.session_id, exc
@@ -786,9 +852,54 @@ class ScreenLockEnforcer:
             finally:
                 with self._lock:
                     self._in_flight.discard(key)
+            if res is not None and on_complete is not None:
+                try:
+                    on_complete(res)
+                except Exception as exc:
+                    logger.debug(
+                        "lock completion callback failed for session %r: %s", ctx.session_id, exc
+                    )
 
         thread = threading.Thread(
             target=_worker, name=f"curfewd-lock-{ctx.session_id}", daemon=True
+        )
+        thread.start()
+        return True
+
+    def verify_session_lock_async(
+        self,
+        ctx: SessionContext,
+        on_complete: Callable[[LockResult], None] | None = None,
+    ) -> bool:
+        """Spawn a lightweight non-blocking screensaver check sharing per-session deduplication."""
+        key = f"{ctx.uid}:{ctx.session_id}"
+        with self._lock:
+            if key in self._in_flight:
+                logger.debug("lock/verify already in progress for session %r", ctx.session_id)
+                return False
+            self._in_flight.add(key)
+
+        def _worker() -> None:
+            res: LockResult | None = None
+            try:
+                res = self.verify_session_lock_detailed(ctx)
+            except Exception as exc:
+                logger.debug(
+                    "unexpected error verifying screenlock for session %r: %s", ctx.session_id, exc
+                )
+            finally:
+                with self._lock:
+                    self._in_flight.discard(key)
+            if res is not None and on_complete is not None:
+                try:
+                    on_complete(res)
+                except Exception as exc:
+                    logger.debug(
+                        "verify completion callback failed for session %r: %s", ctx.session_id, exc
+                    )
+
+        thread = threading.Thread(
+            target=_worker, name=f"curfewd-verify-{ctx.session_id}", daemon=True
         )
         thread.start()
         return True

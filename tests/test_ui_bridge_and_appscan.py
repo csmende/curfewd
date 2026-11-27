@@ -330,6 +330,54 @@ class TestAppScanner(unittest.TestCase):
             self.assertEqual(len(apps), len(DEFAULT_CURATED_APPS))
             self.assertTrue(all(not a["installed"] for a in apps))
 
+    def test_scan_steam_games_reads_acf_manifests_filters_proton_and_rejects_symlinks(self):
+        from curfewd.ui.appscan import scan_steam_games
+
+        with tempfile.TemporaryDirectory() as fake_home:
+            primary_steamapps = os.path.join(fake_home, ".local", "share", "Steam", "steamapps")
+            extra_lib = os.path.join(fake_home, "ExtraLibrary")
+            extra_steamapps = os.path.join(extra_lib, "steamapps")
+            os.makedirs(primary_steamapps, exist_ok=True)
+            os.makedirs(extra_steamapps, exist_ok=True)
+
+            with open(
+                os.path.join(primary_steamapps, "appmanifest_3072000.acf"),
+                "w",
+                encoding="utf-8",
+            ) as fh:
+                fh.write('"AppState"\n{\n\t"appid"\t\t"3072000"\n\t"name"\t\t"Cozy Adventure"\n}\n')
+            with open(
+                os.path.join(primary_steamapps, "appmanifest_1493710.acf"),
+                "w",
+                encoding="utf-8",
+            ) as fh:
+                fh.write(
+                    '"AppState"\n{\n\t"appid"\t\t"1493710"\n\t"name"\t\t"Proton Experimental"\n}\n'
+                )
+            with open(
+                os.path.join(primary_steamapps, "libraryfolders.vdf"), "w", encoding="utf-8"
+            ) as fh:
+                fh.write(
+                    f'"libraryfolders"\n{{\n\t"1"\n\t{{\n\t\t"path"\t\t"{extra_lib}"\n\t}}\n}}\n'
+                )
+            with open(
+                os.path.join(extra_steamapps, "appmanifest_413150.acf"), "w", encoding="utf-8"
+            ) as fh:
+                fh.write('"AppState"\n{\n\t"appid"\t\t"413150"\n\t"name"\t\t"Stardew Valley"\n}\n')
+
+            # Symlinked manifest must be rejected by O_NOFOLLOW
+            real_secret = os.path.join(fake_home, "symlink_target.acf")
+            with open(real_secret, "w", encoding="utf-8") as fh:
+                fh.write('"AppState"\n{\n\t"appid"\t\t"999999"\n\t"name"\t\t"Symlink Game"\n}\n')
+            os.symlink(real_secret, os.path.join(primary_steamapps, "appmanifest_999999.acf"))
+
+            games = scan_steam_games(target_home=fake_home)
+            by_id = {g["steam_app_id"]: g for g in games}
+            self.assertEqual(by_id["3072000"]["label"], "Cozy Adventure")
+            self.assertEqual(by_id["413150"]["label"], "Stardew Valley")
+            self.assertNotIn("1493710", by_id)
+            self.assertNotIn("999999", by_id)
+
 
 class TestUIBridgeAndPrefs(unittest.TestCase):
     def test_prefs_store_roundtrip_and_restrictive_mode(self):
@@ -593,6 +641,43 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
                 deb_install,
                 f"UI asset missing from debian/install: {rel}",
             )
+
+    def test_systemd_units_autostart_and_postinst_packaging_invariants(self):
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        with open(
+            os.path.join(repo_root, "resource/server/systemd/curfewd.service"),
+            encoding="utf-8",
+        ) as fh:
+            daemon_unit = fh.read()
+        with open(
+            os.path.join(repo_root, "resource/server/systemd/curfewd-tray.service"),
+            encoding="utf-8",
+        ) as fh:
+            tray_unit = fh.read()
+        with open(
+            os.path.join(repo_root, "resource/launchers/curfewd-tray.desktop"),
+            encoding="utf-8",
+        ) as fh:
+            tray_desktop = fh.read()
+        with open(os.path.join(repo_root, "bin/curfewd-tray"), encoding="utf-8") as fh:
+            tray_bin = fh.read()
+        with open(os.path.join(repo_root, "debian/postinst"), encoding="utf-8") as fh:
+            postinst = fh.read()
+
+        # #9: StateDirectory=curfewd must preserve root:curfewd group ownership
+        self.assertIn("Group=curfewd", daemon_unit)
+        self.assertIn("chown -hR root:curfewd /var/lib/curfewd", postinst)
+
+        # #8: Cross-DE tray supervision via --autostart handoff and non-blocking unit
+        self.assertNotIn("PartOf=graphical-session.target", tray_unit)
+        self.assertIn("Exec=/usr/bin/curfewd-tray --autostart", tray_desktop)
+        self.assertIn('if [ "${1:-}" = "--autostart" ]', tray_bin)
+        self.assertIn("curfewd-tray.service", postinst)
+
+        # #10: dh_installsystemd manages curfewd.service lifecycle once (no manual double restart)
+        self.assertNotIn("systemctl restart", postinst)
+        self.assertNotIn("systemctl enable", postinst)
+        self.assertIn("#DEBHELPER#", postinst)
 
 
 if __name__ == "__main__":

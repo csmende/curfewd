@@ -161,6 +161,88 @@ class TestAppLimitsMonitor(unittest.TestCase):
         passive_keys = {k for k, _, _ in res.passive_apps}
         self.assertIn("steam:413150", passive_keys)
 
+    def test_passive_insights_uses_catalog_steam_titles_foreground_gating_and_ignore_list(self):
+        import os
+        import tempfile
+
+        from curfewd.models import CategoryLimitRule
+
+        with tempfile.TemporaryDirectory() as fake_proc:
+            os.makedirs(os.path.join(fake_proc, "401"))
+            with open(os.path.join(fake_proc, "401", "environ"), "wb") as fh:
+                fh.write(b"SteamAppId=3072000\x00")
+            os.makedirs(os.path.join(fake_proc, "402"))
+            with open(os.path.join(fake_proc, "402", "cgroup"), "w", encoding="utf-8") as fh:
+                fh.write("0::/user.slice/app-flatpak-app.twintaillauncher.ttl-101.scope\n")
+            os.makedirs(os.path.join(fake_proc, "403"))
+            with open(os.path.join(fake_proc, "403", "cgroup"), "w", encoding="utf-8") as fh:
+                fh.write("0::/user.slice/app-flatpak-io.github.jeffshee.hidamari-102.scope\n")
+            os.makedirs(os.path.join(fake_proc, "404"))
+            with open(os.path.join(fake_proc, "404", "cgroup"), "w", encoding="utf-8") as fh:
+                fh.write("0::/user.slice/app-flatpak-org.example.trayhelper-103.scope\n")
+
+            def _p(pid: int, name: str):
+                p = _fake_proc(pid, 1000, name, f"/usr/bin/{name}", [name])
+                p.info["ppid"] = 1
+                return p
+
+            procs = [
+                _p(401, "game.exe"),
+                _p(402, "ttl"),
+                _p(403, "hidamari"),
+                _p(404, "trayhelper"),
+            ]
+            catalog = [
+                {
+                    "pattern": "steam_app_3072000",
+                    "label": "Cozy Adventure",
+                    "category": "Gaming",
+                    "steam_app_id": "3072000",
+                },
+                {
+                    "pattern": "ttl",
+                    "label": "TwintailLauncher",
+                    "category": "Gaming",
+                    "flatpak_id": "app.twintaillauncher.ttl",
+                },
+            ]
+            monitor = AppLimitsMonitor(proc_root=fake_proc)
+            with mock.patch("curfewd.engine.applimits.psutil") as fake_psutil:
+                fake_psutil.Error = Exception
+                fake_psutil.process_iter.return_value = procs
+
+                # 1. Foreground PID known (401 Steam game): background Flatpaks & wallpaper excluded
+                res_fg = monitor.scan_user_processes(
+                    1000,
+                    [],
+                    category_limits=[CategoryLimitRule("Gaming", daily_limit_sec=3600)],
+                    catalog=catalog,
+                    active_window_pid=401,
+                    passive_ignore_list=["org.example.trayhelper"],
+                )
+                self.assertEqual(
+                    res_fg.passive_apps, [("steam:3072000", "Cozy Adventure", "Gaming")]
+                )
+                # Category enforcement MUST still detect background Gaming apps!
+                cat_patterns = {m["pattern"] for m in res_fg.category_matches}
+                self.assertIn("app.twintaillauncher.ttl", cat_patterns)
+
+                # 2. Active window unknown (Wayland/Flatpak): catalog labels used; hidamari & ignore_list excluded
+                res_no_fg = monitor.scan_user_processes(
+                    1000,
+                    [],
+                    catalog=catalog,
+                    active_window_pid=None,
+                    passive_ignore_list=["org.example.trayhelper"],
+                )
+                passive_map = {k: (lbl, cat) for k, lbl, cat in res_no_fg.passive_apps}
+                self.assertEqual(passive_map["steam:3072000"], ("Cozy Adventure", "Gaming"))
+                self.assertEqual(
+                    passive_map["app.twintaillauncher.ttl"], ("TwintailLauncher", "Gaming")
+                )
+                self.assertNotIn("io.github.jeffshee.hidamari", passive_map)
+                self.assertNotIn("org.example.trayhelper", passive_map)
+
 
 if __name__ == "__main__":
     unittest.main()

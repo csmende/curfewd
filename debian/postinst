@@ -2,7 +2,6 @@
 set -e
 
 CURFEWD_DIR="/usr/lib/python3/dist-packages/curfewd"
-CURFEWD_UNIT="curfewd.service"
 
 # Create system admin group for headless curfewctl access without sudo
 getent group curfewd >/dev/null || groupadd -r curfewd
@@ -10,6 +9,7 @@ getent group curfewd >/dev/null || groupadd -r curfewd
 # Ensure config, state, and dconf directories exist with safe ownership and modes
 install -d -m 0755 -o root -g root /etc/curfewd /etc/dconf
 install -d -m 0750 -o root -g curfewd /var/lib/curfewd /var/lib/curfewd/users /var/lib/curfewd/state
+chown -hR root:curfewd /var/lib/curfewd
 
 # Clean stale bytecode caches and renamed pre-1.1 tray icon files
 if [ -d "${CURFEWD_DIR}" ]; then
@@ -18,15 +18,12 @@ if [ -d "${CURFEWD_DIR}" ]; then
 fi
 rm -f /usr/share/curfewd/icons/timekpr-padlock-*.svg 2>/dev/null || true
 
-# Reload systemd/D-Bus and enable/restart curfewd.service
+# Clean stale v0.6.x alias symlink and reload D-Bus policy before dh_installsystemd restarts curfewd.service once
 if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
     if [ -L /etc/systemd/system/curfewd.service ]; then
         rm -f /etc/systemd/system/curfewd.service
     fi
-    systemctl daemon-reload || true
     systemctl reload dbus 2>/dev/null || true
-    systemctl enable "${CURFEWD_UNIT}" || true
-    systemctl restart "${CURFEWD_UNIT}" || true
 fi
 
 if command -v gtk-update-icon-cache >/dev/null 2>&1 && [ -d /usr/share/icons/hicolor ]; then
@@ -39,3 +36,32 @@ if command -v update-desktop-database >/dev/null 2>&1 && [ -d /usr/share/applica
 fi
 
 #DEBHELPER#
+
+# Migrate active graphical sessions from legacy/XDG-autostart tray instances to curfewd-tray.service
+if [ "${1:-}" = "configure" ] && [ -d /run/systemd/system ] \
+    && command -v loginctl >/dev/null 2>&1 && command -v systemctl >/dev/null 2>&1; then
+    seen_uids=" "
+    loginctl list-sessions --no-legend 2>/dev/null | while read -r sid uid uname _rest; do
+        [ -n "${sid}" ] && [ -n "${uid}" ] && [ -n "${uname}" ] || continue
+        case "${seen_uids}" in
+            *" ${uid} "*) continue ;;
+        esac
+        stype="$(loginctl show-session "${sid}" -p Type --value 2>/dev/null || true)"
+        sclass="$(loginctl show-session "${sid}" -p Class --value 2>/dev/null || true)"
+        case "${stype}" in
+            x11|wayland|mir) ;;
+            *) continue ;;
+        esac
+        [ "${sclass}" = "user" ] || continue
+        [ -S "/run/user/${uid}/bus" ] || continue
+        seen_uids="${seen_uids}${uid} "
+
+        systemctl --machine="${uname}@.host" --user stop curfewd-tray.service 2>/dev/null || true
+        if command -v pkill >/dev/null 2>&1 \
+            && pkill -u "${uid}" -f 'python3 -m curfewd\.tray' 2>/dev/null; then
+            sleep 1
+        fi
+        systemctl --machine="${uname}@.host" --user daemon-reload 2>/dev/null || true
+        systemctl --machine="${uname}@.host" --user restart curfewd-tray.service 2>/dev/null || true
+    done
+fi

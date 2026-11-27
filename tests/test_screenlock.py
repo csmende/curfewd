@@ -435,6 +435,56 @@ class TestScreenLockEnforcer(unittest.TestCase):
         self.assertEqual(method2, "cli:cinnamon-screensaver-command")
         self.assertIn("--away-message=Screen time finished for today", cli_calls[0])
 
+    def test_verify_session_lock_and_async_completion_callback(self):
+        state = {"active": True}
+
+        def fake_runner(cmd, **kwargs):
+            if "org.freedesktop.DBus.NameHasOwner" in cmd:
+                return _proc_result(
+                    0, "(true,)\n" if cmd[-1] == "org.cinnamon.ScreenSaver" else "(false,)\n"
+                )
+            if "org.cinnamon.ScreenSaver.GetActive" in cmd:
+                return _proc_result(0, "(true,)\n" if state["active"] else "(false,)\n")
+            if "org.cinnamon.ScreenSaver.Lock" in cmd:
+                state["active"] = True
+                return _proc_result(0, "()\n")
+            return _proc_result(1)
+
+        enforcer = screenlock.ScreenLockEnforcer(
+            runner=fake_runner,
+            which_fn=lambda n: f"/usr/bin/{n}",
+            sleep_fn=lambda _s: None,
+        )
+        ctx = self._make_ctx("X-Cinnamon")
+
+        res_locked = enforcer.verify_session_lock_detailed(ctx)
+        self.assertTrue(res_locked.locked)
+        self.assertTrue(res_locked.verified)
+        self.assertEqual(res_locked.stage, "verify")
+
+        state["active"] = False
+        done = threading.Event()
+        captured = []
+
+        def _on_done(res):
+            captured.append(res)
+            done.set()
+
+        self.assertTrue(enforcer.verify_session_lock_async(ctx, on_complete=_on_done))
+        self.assertTrue(done.wait(timeout=2.0))
+        self.assertFalse(captured[0].locked)
+        self.assertTrue(captured[0].verified)
+        self.assertEqual(captured[0].stage, "verify_unlocked")
+
+        done.clear()
+        captured.clear()
+        self.assertTrue(
+            enforcer.enforce_session_lock_async(ctx, release_x11_grab=False, on_complete=_on_done)
+        )
+        self.assertTrue(done.wait(timeout=2.0))
+        self.assertTrue(captured[0].locked)
+        self.assertTrue(captured[0].verified)
+
 
 class TestLiveDBusIntegration(unittest.TestCase):
     """End-to-end wire test against a real ephemeral dbus-daemon using real /usr/bin/gdbus."""
