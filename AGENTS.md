@@ -40,3 +40,9 @@ Before committing or opening a PR:
 2. Run the full test suite: `/usr/bin/python3 -m unittest discover -s tests -v`
 3. Run lint, format, typecheck, and JS syntax checks: `ruff check curfewd tests`, `ruff format --check curfewd tests`, `mypy curfewd`, and `for f in curfewd/ui/web/app.js curfewd/ui/web/js/*.js; do node --check "$f"; done`
 4. Verify Debian metadata & security gates: `dpkg-parsechangelog`, Bandit (`bandit -r curfewd` — `0` Low/Medium/High findings), ShellCheck (`0` warnings), and GitHub Actions `CI`, `Security`, and `CodeQL`.
+
+## 5. Approval-First PR Processing Policy
+
+- Get explicit user approval in chat before making non-trivial code, spec, packaging, or release changes (unless the user already instructed you to make them).
+- Once the user approves the change and all local verification gates pass, process the PR end-to-end automatically: branch -> commit -> push -> open PR -> wait for `CI`, `Security`, and `CodeQL` checks (`gh pr checks --watch`) -> squash-merge (`gh pr merge --squash --delete-branch`) -> switch cleanly back to `main`.
+- Clearly state in both the PR description and chat summary whether the change is only in Git/source or already packaged/installed live. Pause instead of merging if any CI/security check fails or conflicts arise.
