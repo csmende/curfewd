@@ -7,7 +7,7 @@ if [ "${1:-}" = "--autostart" ]; then
         # Export graphical session vars for desktops (Cinnamon/MATE/XFCE) without graphical-session.target
         systemctl --user import-environment \
             DISPLAY XAUTHORITY WAYLAND_DISPLAY \
-            XDG_CURRENT_DESKTOP DESKTOP_SESSION XDG_SESSION_TYPE \
+            XDG_CURRENT_DESKTOP DESKTOP_SESSION XDG_SESSION_TYPE XDG_SESSION_ID \
             DBUS_SESSION_BUS_ADDRESS 2>/dev/null || true
         if systemctl --user start --no-block curfewd-tray.service 2>/dev/null; then
             exit 0

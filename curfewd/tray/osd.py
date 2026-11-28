@@ -8,6 +8,7 @@ import shutil
 # Subprocess is strictly limited to trusted-PATH, list-argv X11 inspection (shell=False).
 import subprocess  # nosec B404
 from collections.abc import Callable, Mapping
+from contextlib import suppress
 from typing import Any
 
 from curfewd.engine.screenlock import TRUSTED_BIN_PATH
@@ -91,9 +92,19 @@ class FullscreenOsdBanner:
         self._timeout_id: int | None = None
         self._css_loaded = False
 
-    def dismiss(self) -> bool:
-        """Close any currently displayed OSD banner."""
+    def _on_timeout(self) -> bool:
         self._timeout_id = None
+        return self.dismiss()
+
+    def dismiss(self) -> bool:
+        """Close any currently displayed OSD banner and cancel pending timers."""
+        if self._timeout_id is not None:
+            timeout_id = self._timeout_id
+            self._timeout_id = None
+            with suppress(Exception):
+                from gi.repository import GLib
+
+                GLib.source_remove(timeout_id)
         if self._window is not None:
             try:
                 self._window.destroy()
@@ -213,7 +224,7 @@ class FullscreenOsdBanner:
                 gdk_win.raise_()
 
             self._window = win
-            self._timeout_id = int(GLib.timeout_add(max(1000, int(duration_ms)), self.dismiss))
+            self._timeout_id = int(GLib.timeout_add(max(1000, int(duration_ms)), self._on_timeout))
             return True
         except Exception as exc:
             logger.debug("fullscreen OSD skipped: %s", exc)

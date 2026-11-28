@@ -312,6 +312,10 @@ class CurfewClient:
         )
         return bool(res)
 
+    def notify_session_unlocked(self) -> bool:
+        res = self._call(DBUS_CLIENT_INTERFACE, "NotifySessionUnlocked")
+        return bool(res)
+
     def request_more_time(
         self,
         requested_sec: int = 900,

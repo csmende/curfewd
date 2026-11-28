@@ -688,5 +688,275 @@ class TestUIBridgeAndPrefs(unittest.TestCase):
         self.assertIn("#DEBHELPER#", postinst)
 
 
+class TestUIHostLifecycleAndDedup(unittest.TestCase):
+    def test_rpc_worker_stop_joins_thread_and_closes_bus(self):
+        import types
+        from unittest import mock
+
+        from curfewd.ui.app import _RPCWorker
+
+        closed = {"bus": False}
+        responses: list[tuple[str, dict]] = []
+
+        class _FakeBus:
+            def close(self) -> None:
+                closed["bus"] = True
+
+        fake_dbus = types.SimpleNamespace(
+            SessionBus=lambda private=False: _FakeBus(),
+            SystemBus=lambda private=False: _FakeBus(),
+        )
+
+        class _FakeBridge:
+            def __init__(self, client=None) -> None:
+                self.client = client
+
+            def handle(self, action: str, params: dict) -> dict:
+                return {"ok": True, "action": action, "params": params}
+
+        with (
+            mock.patch.dict("sys.modules", {"dbus": fake_dbus}),
+            mock.patch("curfewd.ui.app.CurfewClient", side_effect=lambda **_kw: object()),
+            mock.patch("curfewd.ui.app.UIBridge", _FakeBridge),
+        ):
+            worker = _RPCWorker(
+                session_bus=True, on_response=lambda rid, res: responses.append((rid, res))
+            )
+            worker.submit("req-1", "ping", {"x": 1})
+            worker.stop(timeout=2.0)
+
+        self.assertFalse(worker._thread.is_alive())
+        self.assertTrue(closed["bus"])
+        self.assertEqual(responses, [("req-1", {"ok": True, "action": "ping", "params": {"x": 1}})])
+
+    def _assert_unified_gtk_application(self, gtk_major: int) -> None:
+        import signal
+        import types
+
+        from curfewd.ui.app import _run_gtk_application
+
+        events: dict[str, object] = {
+            "default_ctx_called": False,
+            "contexts": [],
+            "windows": [],
+            "webviews": [],
+            "signals": [],
+            "backend_starts": 0,
+            "backend_cleanups": 0,
+        }
+
+        class _FakeWebContext:
+            def __init__(self) -> None:
+                self.schemes: list[str] = []
+                events["contexts"].append(self)  # type: ignore[union-attr]
+
+            @classmethod
+            def get_default(cls):
+                events["default_ctx_called"] = True
+                raise AssertionError("Must not register URI scheme on default WebContext")
+
+            def register_uri_scheme(self, scheme: str, handler) -> None:
+                self.schemes.append(scheme)
+
+        class _FakeUCM:
+            def __init__(self) -> None:
+                self.handlers: list[tuple] = []
+                self.connected: list[str] = []
+
+            def register_script_message_handler(self, *args) -> None:
+                self.handlers.append(args)
+
+            def connect(self, sig: str, cb) -> None:
+                self.connected.append(sig)
+
+        class _FakeSettings:
+            def set_enable_developer_extras(self, _v: bool) -> None:
+                pass
+
+            def set_javascript_can_open_windows_automatically(self, _v: bool) -> None:
+                pass
+
+            def set_allow_file_access_from_file_urls(self, _v: bool) -> None:
+                pass
+
+            def set_allow_universal_access_from_file_urls(self, _v: bool) -> None:
+                pass
+
+        class _FakeWebView:
+            def __init__(self, *, web_context=None, user_content_manager=None) -> None:
+                self.web_context = web_context
+                self.ucm = user_content_manager
+                self.uris: list[str] = []
+                self.js_calls: list[str] = []
+                self.signals: list[str] = []
+                events["webviews"].append(self)  # type: ignore[union-attr]
+
+            def get_settings(self):
+                return _FakeSettings()
+
+            def connect(self, sig: str, cb) -> None:
+                self.signals.append(sig)
+
+            def load_uri(self, uri: str) -> None:
+                self.uris.append(uri)
+
+            def evaluate_javascript(self, code: str, *_args) -> None:
+                self.js_calls.append(code)
+
+            def run_javascript(self, code: str, *_args) -> None:
+                self.js_calls.append(code)
+
+        class _FakeWindow:
+            def __init__(self, application=None) -> None:
+                self.application = application
+                self.title = ""
+                self.size = (0, 0)
+                self.icon = ""
+                self.child = None
+                self.presented = 0
+                self.shown_all = 0
+                self.destroyed = False
+                self.callbacks: dict[str, object] = {}
+                events["windows"].append(self)  # type: ignore[union-attr]
+
+            def set_title(self, t: str) -> None:
+                self.title = t
+
+            def set_default_size(self, w: int, h: int) -> None:
+                self.size = (w, h)
+
+            def set_icon_name(self, name: str) -> None:
+                self.icon = name
+
+            def set_child(self, w) -> None:
+                self.child = w
+
+            def add(self, w) -> None:
+                self.child = w
+
+            def show_all(self) -> None:
+                self.shown_all += 1
+
+            def present(self) -> None:
+                self.presented += 1
+
+            def connect(self, sig: str, cb) -> None:
+                self.callbacks[sig] = cb
+
+            def destroy(self) -> None:
+                self.destroyed = True
+                cb = self.callbacks.get("destroy")
+                if callable(cb):
+                    cb(self)
+
+        class _FakeCmdLine:
+            def __init__(self, args: list[str]) -> None:
+                self._args = args
+
+            def get_arguments(self) -> list[str]:
+                return list(self._args)
+
+        class _FakeApplication:
+            def __init__(self, application_id: str, flags: int) -> None:
+                self.application_id = application_id
+                self.flags = flags
+                self.handlers: dict[str, object] = {}
+                self.quit_called = False
+
+            def connect(self, sig: str, cb) -> None:
+                self.handlers[sig] = cb
+
+            def quit(self) -> None:
+                self.quit_called = True
+
+            def run(self, argv: list[str]) -> int:
+                # Primary command-line launch -> creates single window
+                self.handlers["command-line"](self, _FakeCmdLine(argv))  # type: ignore[operator]
+                # Second launch with --ask-time -> must reuse & raise existing window!
+                self.handlers["command-line"](self, _FakeCmdLine(["curfewd-ui", "--ask-time"]))  # type: ignore[operator]
+                return 0
+
+        fake_gtk = types.SimpleNamespace(
+            Application=_FakeApplication,
+            ApplicationWindow=_FakeWindow,
+        )
+        fake_webkit = types.SimpleNamespace(
+            WebContext=_FakeWebContext,
+            UserContentManager=_FakeUCM,
+            WebView=_FakeWebView,
+            PolicyDecisionType=types.SimpleNamespace(NAVIGATION_ACTION=1, NEW_WINDOW_ACTION=2),
+        )
+        fake_glib = types.SimpleNamespace(
+            PRIORITY_DEFAULT=0,
+            unix_signal_add=lambda _prio, sig, cb: events["signals"].append((sig, cb)),  # type: ignore[union-attr]
+        )
+        fake_gio = types.SimpleNamespace(
+            ApplicationFlags=types.SimpleNamespace(HANDLES_COMMAND_LINE=8)
+        )
+
+        webview_ref: dict[str, object] = {"view": None, "win": None, "context": None}
+
+        def _start_backend() -> None:
+            events["backend_starts"] = int(events["backend_starts"]) + 1  # type: ignore[arg-type]
+
+        def _cleanup_backend() -> None:
+            events["backend_cleanups"] = int(events["backend_cleanups"]) + 1  # type: ignore[arg-type]
+
+        rc = _run_gtk_application(
+            gtk_major,
+            fake_gtk,
+            fake_webkit,
+            fake_glib,
+            fake_gio,
+            web_dir="/tmp",
+            my_mode=True,
+            ask_time=False,
+            webview_ref=webview_ref,
+            on_rpc_message=lambda _raw: None,
+            ensure_backend_started=_start_backend,
+            cleanup_backend=_cleanup_backend,
+        )
+
+        self.assertEqual(rc, 0)
+        self.assertFalse(events["default_ctx_called"])
+        # Single private WebContext, single window, single WebView created despite 2 launches
+        self.assertEqual(len(events["contexts"]), 1)  # type: ignore[arg-type]
+        self.assertEqual(events["contexts"][0].schemes, ["curfewd"])  # type: ignore[index]
+        self.assertEqual(len(events["windows"]), 1)  # type: ignore[arg-type]
+        self.assertEqual(len(events["webviews"]), 1)  # type: ignore[arg-type]
+        win = events["windows"][0]  # type: ignore[index]
+        wv = events["webviews"][0]  # type: ignore[index]
+        self.assertIs(wv.web_context, events["contexts"][0])  # type: ignore[index]
+        self.assertEqual(win.presented, 2)
+        self.assertEqual(win.shown_all, 0 if gtk_major == 4 else 1)
+        self.assertTrue(any("openAskTimeModal" in js for js in wv.js_calls))
+        # SIGINT & SIGTERM wired
+        wired_sigs = {sig for sig, _ in events["signals"]}  # type: ignore[misc]
+        self.assertEqual(wired_sigs, {signal.SIGINT, signal.SIGTERM})
+        # Explicit teardown cleared references and cleaned backend
+        self.assertIsNone(webview_ref["view"])
+        self.assertIsNone(webview_ref["win"])
+        self.assertIsNone(webview_ref["context"])
+        self.assertEqual(events["backend_starts"], 1)
+        self.assertEqual(events["backend_cleanups"], 1)
+
+    def test_unified_gtk_application_private_webcontext_single_instance_and_signals(self):
+        for gtk_major in (3, 4):
+            with self.subTest(gtk_major=gtk_major):
+                self._assert_unified_gtk_application(gtk_major)
+
+    def test_ui_main_entrypoint_flushes_stdio_and_calls_os_exit(self):
+        import runpy
+        from unittest import mock
+
+        exit_codes: list[int] = []
+        with (
+            mock.patch("curfewd.ui.app.main", return_value=0),
+            mock.patch("os._exit", side_effect=exit_codes.append),
+        ):
+            runpy.run_module("curfewd.ui.__main__", run_name="__main__")
+        self.assertEqual(exit_codes, [0])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -37,6 +37,20 @@ fi
 
 #DEBHELPER#
 
+run_user_systemctl() {
+    _target_user="$1"
+    _target_uid="$2"
+    shift 2
+    if command -v runuser >/dev/null 2>&1; then
+        runuser -u "${_target_user}" -- env \
+            XDG_RUNTIME_DIR="/run/user/${_target_uid}" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${_target_uid}/bus" \
+            systemctl --user "$@" 2>/dev/null || true
+    else
+        systemctl --machine="${_target_user}@.host" --user "$@" 2>/dev/null || true
+    fi
+}
+
 # Migrate active graphical sessions from legacy/XDG-autostart tray instances to curfewd-tray.service
 if [ "${1:-}" = "configure" ] && [ -d /run/systemd/system ] \
     && command -v loginctl >/dev/null 2>&1 && command -v systemctl >/dev/null 2>&1; then
@@ -56,13 +70,13 @@ if [ "${1:-}" = "configure" ] && [ -d /run/systemd/system ] \
         [ -S "/run/user/${uid}/bus" ] || continue
         seen_uids="${seen_uids}${uid} "
 
-        systemctl --machine="${uname}@.host" --user stop curfewd-tray.service 2>/dev/null || true
+        run_user_systemctl "${uname}" "${uid}" stop curfewd-tray.service
         if command -v pkill >/dev/null 2>&1 \
             && pkill -u "${uid}" -f 'python3 -m curfewd\.tray' 2>/dev/null; then
             sleep 1
         fi
-        systemctl --machine="${uname}@.host" --user daemon-reload 2>/dev/null || true
-        systemctl --machine="${uname}@.host" --user reset-failed curfewd-tray.service 2>/dev/null || true
-        systemctl --machine="${uname}@.host" --user restart curfewd-tray.service 2>/dev/null || true
+        run_user_systemctl "${uname}" "${uid}" daemon-reload
+        run_user_systemctl "${uname}" "${uid}" reset-failed curfewd-tray.service
+        run_user_systemctl "${uname}" "${uid}" restart curfewd-tray.service
     done
 fi

@@ -15,7 +15,8 @@ import stat
 import subprocess  # nosec B404
 import sys
 import threading
-from collections.abc import Callable
+import time
+from collections.abc import Callable, Mapping
 from contextlib import suppress
 from typing import Any
 
@@ -126,6 +127,38 @@ class SessionScreensaverProbe:
                         if attempt == 0:
                             continue
         return False
+
+    def watch_active_changed(self, callback: Callable[[bool], None]) -> list[Any]:
+        """Subscribe to desktop screensaver ActiveChanged(bool) signals on the SessionBus."""
+        matches: list[Any] = []
+        try:
+            bus = self._get_bus()
+        except Exception as exc:
+            logger.debug("screensaver ActiveChanged watch unavailable: %s", exc)
+            return matches
+
+        seen_ifaces: set[str] = set()
+        for backend in select_backends(self._desktop):
+            if backend.dbus_interface in seen_ifaces:
+                continue
+            seen_ifaces.add(backend.dbus_interface)
+
+            def _on_active_changed(active: Any, _cb: Callable[[bool], None] = callback) -> None:
+                with suppress(Exception):
+                    _cb(bool(active))
+
+            try:
+                match = bus.add_signal_receiver(
+                    _on_active_changed,
+                    signal_name="ActiveChanged",
+                    dbus_interface=backend.dbus_interface,
+                )
+                matches.append(match)
+            except Exception as exc:
+                logger.debug(
+                    "could not subscribe to %s.ActiveChanged: %s", backend.dbus_interface, exc
+                )
+        return matches
 
 
 class SessionTelemetryProbe:
@@ -263,6 +296,11 @@ class DesktopNotifier:
             duration_ms = 9000 if eff_urgency >= 2 else 5500
             self._osd_banner.show(summary, body, duration_ms=duration_ms, accent=accent)
 
+    def dismiss(self) -> None:
+        """Dismiss any currently displayed fullscreen OSD banner."""
+        if self._osd_banner is not None:
+            self._osd_banner.dismiss()
+
 
 class TrayController:
     """Testable controller handling daemon auto-reconnect, status updates, HUD, chimes, and challenges."""
@@ -293,13 +331,36 @@ class TrayController:
         self.connected = False
         self.last_status: dict[str, Any] | None = None
         self.reconnect_count = 0
+        self._last_unlock_hint_mono = 0.0
+        self._screensaver_signal_matches: list[Any] = []
 
     def attach(self) -> None:
-        """Subscribe to daemon signals and NameOwnerChanged auto-reconnect."""
+        """Subscribe to daemon signals, NameOwnerChanged auto-reconnect, and screensaver unlocks."""
         self.client.subscribe_signal("UserStatusChanged", self.on_status_changed)
         self.client.subscribe_signal("ClientNotification", self.on_client_notification)
         self.client.subscribe_signal("ScreensaverChallenge", self.on_screensaver_challenge)
         self.client.watch_daemon_owner(self.on_daemon_owner_changed)
+        watch_fn = getattr(self.screensaver, "watch_active_changed", None)
+        if callable(watch_fn):
+            self._screensaver_signal_matches = watch_fn(self.on_screensaver_active_changed)
+
+    def on_screensaver_active_changed(self, active: bool) -> None:
+        """Send a fail-closed early unlock interrupt when unlocked during active lockout."""
+        if active:
+            return
+        status = self.last_status or {}
+        if status.get("enforcement_state") != "locked_out":
+            return
+        now_mono = time.monotonic()
+        if (now_mono - self._last_unlock_hint_mono) < 1.0:
+            return
+        self._last_unlock_hint_mono = now_mono
+        notify_fn = getattr(self.client, "notify_session_unlocked", None)
+        if callable(notify_fn):
+            try:
+                notify_fn()
+            except CurfewError as exc:
+                logger.debug("early unlock interrupt skipped: %s", exc)
 
     def on_daemon_owner_changed(self, new_owner: str) -> None:
         """Automatically re-sync when curfewd starts or restarts (e.g. during upgrades)."""
@@ -643,7 +704,11 @@ def _launch_my_screen_time(session_bus: bool = False, ask_time: bool = False) ->
         logger.warning("Could not launch curfewd-ui: %s", exc)
 
 
-def _try_build_indicator(controller: TrayController, session_bus: bool = False):
+def _try_build_indicator(
+    controller: TrayController,
+    session_bus: bool = False,
+    on_cleanup: list[Callable[[], None]] | None = None,
+):
     """Build an AyatanaAppIndicator3 / AppIndicator3 tray icon if available."""
     try:
         import gi
@@ -787,9 +852,131 @@ def _try_build_indicator(controller: TrayController, session_bus: bool = False):
             else:
                 item_grace.hide()
 
+        if on_cleanup is not None:
+            on_cleanup.append(lambda: indicator.set_status(indicator_mod.IndicatorStatus.PASSIVE))
         return _update
     except Exception as exc:
         logger.info("AppIndicator unavailable (%s); running in notification-only mode", exc)
+        return None
+
+
+def _has_active_graphical_display(
+    env: Mapping[str, str] | None = None,
+    gtk_check: Callable[[], bool] | None = None,
+) -> bool:
+    """Return True when a graphical display is configured and reachable."""
+    environ = os.environ if env is None else env
+    display = str(environ.get("DISPLAY") or "").strip()
+    wayland = str(environ.get("WAYLAND_DISPLAY") or "").strip()
+    if not display and not wayland:
+        return False
+    if gtk_check is not None:
+        return bool(gtk_check())
+    try:
+        import gi
+
+        gi.require_version("Gdk", "3.0")
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gdk, Gtk
+
+        ok, _ = Gtk.init_check([])
+        if not ok:
+            return False
+        return Gdk.Display.get_default() is not None
+    except (ImportError, ValueError):
+        # GTK3/GDK bindings not installed; allow notification-only fallback when env is set.
+        return True
+    except Exception:
+        return False
+
+
+def _attach_session_exit_handlers(
+    on_quit: Callable[[], Any],
+    *,
+    system_bus: Any = None,
+    session_bus: Any = None,
+    session_id: str | None = None,
+    gdk_display: Any = None,
+) -> list[Any]:
+    """Subscribe to login1, SessionBus, and GDK display close events for clean exit(0)."""
+    handles: list[Any] = []
+    if system_bus is not None:
+
+        def _on_prepare_for_shutdown(active: Any) -> None:
+            if bool(active):
+                logger.info("system shutdown initiated; exiting curfewd-tray cleanly")
+                on_quit()
+
+        with suppress(Exception):
+            handles.append(
+                system_bus.add_signal_receiver(
+                    _on_prepare_for_shutdown,
+                    signal_name="PrepareForShutdown",
+                    dbus_interface="org.freedesktop.login1.Manager",
+                    bus_name="org.freedesktop.login1",
+                    path="/org/freedesktop/login1",
+                )
+            )
+
+        my_sid = str(session_id or "").strip()
+        if my_sid:
+
+            def _on_session_removed(removed_id: Any, _obj_path: Any = "") -> None:
+                if str(removed_id) == my_sid:
+                    logger.info("graphical session %r ended; exiting curfewd-tray cleanly", my_sid)
+                    on_quit()
+
+            with suppress(Exception):
+                handles.append(
+                    system_bus.add_signal_receiver(
+                        _on_session_removed,
+                        signal_name="SessionRemoved",
+                        dbus_interface="org.freedesktop.login1.Manager",
+                        bus_name="org.freedesktop.login1",
+                        path="/org/freedesktop/login1",
+                    )
+                )
+
+    if session_bus is not None:
+        if hasattr(session_bus, "set_exit_on_disconnect"):
+            with suppress(Exception):
+                session_bus.set_exit_on_disconnect(False)
+
+        def _on_bus_disconnected(*_args: Any) -> None:
+            logger.info("session D-Bus disconnected; exiting curfewd-tray cleanly")
+            on_quit()
+
+        with suppress(Exception):
+            handles.append(
+                session_bus.add_signal_receiver(
+                    _on_bus_disconnected,
+                    signal_name="Disconnected",
+                    dbus_interface="org.freedesktop.DBus.Local",
+                    path="/org/freedesktop/DBus/Local",
+                )
+            )
+
+    if gdk_display is not None:
+
+        def _on_display_closed(*_args: Any) -> None:
+            logger.info("graphical display closed; exiting curfewd-tray cleanly")
+            on_quit()
+
+        with suppress(Exception):
+            handles.append(gdk_display.connect("closed", _on_display_closed))
+
+    return handles
+
+
+def _get_default_gdk_display() -> Any:
+    try:
+        import gi
+
+        gi.require_version("Gdk", "3.0")
+        from gi.repository import Gdk
+
+        return Gdk.Display.get_default()
+    except Exception:
         return None
 
 
@@ -806,6 +993,9 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
+    if not args.session_bus and not _has_active_graphical_display():
+        logger.info("no active graphical display; exiting cleanly")
+        return 0
     if not args.session_bus and not acquire_tray_lock():
         logger.info("curfewd-tray is already running for this session; exiting")
         return 0
@@ -819,11 +1009,17 @@ def main(argv: list[str] | None = None) -> int:
     from gi.repository import GLib
 
     bus = dbus.SessionBus() if args.session_bus else dbus.SystemBus()
+    session_bus: Any = bus if args.session_bus else None
+    if session_bus is None:
+        with suppress(Exception):
+            session_bus = dbus.SessionBus()
+
     client = CurfewClient(bus=bus)
     username = getpass.getuser()
 
     loop = GLib.MainLoop()
     controller_ref: list[TrayController] = []
+    cleanup_callbacks: list[Callable[[], None]] = []
 
     def _on_save_grace() -> None:
         if controller_ref:
@@ -838,26 +1034,51 @@ def main(argv: list[str] | None = None) -> int:
     controller = TrayController(
         username=username,
         client=client,
-        screensaver=SessionScreensaverProbe(),
-        notifier=DesktopNotifier(),
+        screensaver=SessionScreensaverProbe(session_bus=session_bus),
+        notifier=DesktopNotifier(session_bus=session_bus),
         hud=hud,
         idle_dispatch=GLib.idle_add,
     )
     controller_ref.append(controller)
-    ui_cb = _try_build_indicator(controller, session_bus=bool(args.session_bus))
+    ui_cb = _try_build_indicator(
+        controller, session_bus=bool(args.session_bus), on_cleanup=cleanup_callbacks
+    )
     controller.ui_callback = ui_cb
     controller.attach()
 
+    quit_done = [False]
+
     def _quit(*_args) -> bool:
-        hud.hide()
-        loop.quit()
+        if quit_done[0]:
+            return False
+        quit_done[0] = True
+        for cleanup in cleanup_callbacks:
+            with suppress(Exception):
+                cleanup()
+        with suppress(Exception):
+            hud.hide()
+        with suppress(Exception):
+            controller.notifier.dismiss()
+        if loop.is_running():
+            loop.quit()
         return False
 
-    for sig in (signal.SIGINT, signal.SIGTERM):
+    exit_handles = _attach_session_exit_handlers(
+        _quit,
+        system_bus=None if args.session_bus else bus,
+        session_bus=session_bus,
+        session_id=os.getenv("XDG_SESSION_ID"),
+        gdk_display=None if args.session_bus else _get_default_gdk_display(),
+    )
+
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         try:
             GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, _quit)
         except AttributeError:
             signal.signal(sig, lambda _s, _f: _quit())
 
-    loop.run()
+    try:
+        loop.run()
+    finally:
+        exit_handles.clear()
     return 0
