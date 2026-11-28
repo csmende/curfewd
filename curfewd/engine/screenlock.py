@@ -28,6 +28,18 @@ logger = logging.getLogger("curfewd.screenlock")
 TRUSTED_BIN_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
 # Extra subprocess timeout headroom above gdbus --timeout so gdbus returns cleanly on D-Bus timeout.
 _GDBUS_SUBPROCESS_HEADROOM_SEC = 1.0
+# Static log labels for known screenlock helpers (avoids logging dynamic paths).
+_KNOWN_HELPER_LABELS: dict[str, str] = {
+    "gdbus": "gdbus",
+    "cinnamon-screensaver-command": "cinnamon-screensaver-command",
+    "xfce4-screensaver-command": "xfce4-screensaver-command",
+    "xflock4": "xflock4",
+    "mate-screensaver-command": "mate-screensaver-command",
+    "gnome-screensaver-command": "gnome-screensaver-command",
+    "xdg-screensaver": "xdg-screensaver",
+    "xdotool": "xdotool",
+    "wmctrl": "wmctrl",
+}
 
 # Environment variables safe to propagate from a user's graphical session.
 _SAFE_SESSION_ENV_KEYS = (
@@ -399,6 +411,7 @@ def _run_as_user(ctx: SessionContext, argv: list[str], timeout: float = 3.0, run
         return None
 
     cmd = [bin_path, *argv[1:]]
+    helper_label = _KNOWN_HELPER_LABELS.get(os.path.basename(bin_path), "screenlock-helper")
     env = build_safe_env(ctx)
     kwargs = {
         "env": env,
@@ -417,10 +430,10 @@ def _run_as_user(ctx: SessionContext, argv: list[str], timeout: float = 3.0, run
     try:
         return runner(cmd, **kwargs)
     except subprocess.TimeoutExpired:
-        logger.info("screenlock helper timed out after %.1fs: %s", timeout, cmd[0])
+        logger.info("screenlock helper timed out after %.1fs: %s", timeout, helper_label)
         return None
     except OSError as exc:
-        logger.debug("screenlock helper failed to launch (%s): %s", cmd[0], exc)
+        logger.debug("screenlock helper failed to launch (%s): %s", helper_label, exc)
         return None
 
 
