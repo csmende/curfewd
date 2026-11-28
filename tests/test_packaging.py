@@ -104,6 +104,18 @@ class TestDebianPackaging(unittest.TestCase):
         self.assertGreater(reset_idx, 0)
         self.assertGreater(restart_idx, reset_idx)
 
+    def test_postinst_uses_runuser_for_user_bus_and_tray_imports_session_id(self):
+        postinst = (REPO_ROOT / "debian" / "postinst").read_text(encoding="utf-8")
+        self.assertIn("run_user_systemctl()", postinst)
+        self.assertIn('runuser -u "${_target_user}" -- env', postinst)
+        self.assertIn('XDG_RUNTIME_DIR="/run/user/${_target_uid}"', postinst)
+        self.assertIn('DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${_target_uid}/bus"', postinst)
+        # Only the runuser-missing fallback inside run_user_systemctl may reference --machine
+        self.assertEqual(postinst.count("--machine="), 1)
+
+        tray_bin = (REPO_ROOT / "bin" / "curfewd-tray").read_text(encoding="utf-8")
+        self.assertIn("XDG_SESSION_ID", tray_bin)
+
 
 if __name__ == "__main__":
     unittest.main()

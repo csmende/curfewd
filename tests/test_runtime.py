@@ -380,18 +380,19 @@ class TestEnforcementRuntime(unittest.TestCase):
                 self.assertEqual(sess_mon.lock_calls, 2)
                 self.assertTrue(sess_mon.screensaver_locked)
 
-                # Subsequent 8 ticks (24s) while still locked -> zero lock calls, zero verify calls
-                for _ in range(8):
-                    fake_mono[0] += 3.0
-                    rt.tick()
+                # Next tick (+3s < 5s locked-out re-verify interval) -> 0 lock calls, 0 verify calls
+                fake_mono[0] += 3.0
+                rt.tick()
                 self.assertEqual(sess_mon.lock_calls, 2)
                 self.assertEqual(sess_mon.verify_calls, 0)
 
-                # After 30s -> lightweight verify runs, confirms locked, still no new lock call
-                fake_mono[0] += 10.0
-                rt.tick()
+                # Subsequent ticks across 24s while still locked -> lightweight verify runs every >=5s,
+                # confirming locked with ZERO duplicate lock calls or lockout inflation
+                for _ in range(7):
+                    fake_mono[0] += 3.0
+                    rt.tick()
                 self.assertEqual(sess_mon.lock_calls, 2)
-                self.assertEqual(sess_mon.verify_calls, 1)
+                self.assertGreaterEqual(sess_mon.verify_calls, 3)
 
                 rep1 = hist.get_usage_history(
                     "alice",
@@ -404,11 +405,13 @@ class TestEnforcementRuntime(unittest.TestCase):
                     1,
                 )
 
-                # Simulate child bypassing/unlocking screensaver while still locked out
+                # Simulate child bypassing/unlocking screensaver while still locked out (without tray!)
+                # Caught within 5s locked-out re-verify interval instead of 30s
+                prev_verifies = sess_mon.verify_calls
                 sess_mon.screensaver_locked = False
-                fake_mono[0] += 31.0
+                fake_mono[0] += 6.0
                 rt.tick()  # triggers lightweight verify -> discovers unlocked
-                self.assertEqual(sess_mon.verify_calls, 2)
+                self.assertEqual(sess_mon.verify_calls, prev_verifies + 1)
                 fake_mono[0] += 3.0
                 rt.tick()  # re-locks immediately & records genuine 2nd lockout
                 self.assertEqual(sess_mon.lock_calls, 3)
@@ -424,6 +427,129 @@ class TestEnforcementRuntime(unittest.TestCase):
                     len([e for e in rep2["events"] if e["kind"] == "lockout"]),
                     2,
                 )
+
+    def test_early_unlock_interrupt_and_immediate_relock_recheck(self):
+        """F2: Tray early-unlock hint triggers root re-verify and immediate re-lock on unlock."""
+        from curfewd.models import LockResult
+
+        class _FastVerifyMonitor(_StubSessionMonitor):
+            def __init__(self, username: str) -> None:
+                super().__init__(username)
+                self.screensaver_locked = False
+                self.lock_calls = 0
+                self.verify_calls = 0
+
+            def enforce_lockout_action(
+                self,
+                action,
+                username,
+                _uid,
+                sessions,
+                _config,
+                lock_message="",
+                on_lock_result=None,
+            ):
+                self.lockout_actions.append((action, username))
+                self.lock_calls += 1
+                self.screensaver_locked = True
+                if on_lock_result:
+                    on_lock_result(
+                        LockResult(
+                            session_id=sessions[0]["session_id"],
+                            username=username,
+                            locked=True,
+                            verified=True,
+                            backend="dbus:org.cinnamon.ScreenSaver",
+                            stage="dbus_or_cli",
+                        )
+                    )
+
+            def verify_user_sessions_locked(self, sessions, _config, on_complete=None):
+                self.verify_calls += 1
+                if on_complete:
+                    on_complete(
+                        LockResult(
+                            session_id=sessions[0]["session_id"],
+                            username=self.username,
+                            locked=self.screensaver_locked,
+                            verified=True,
+                            backend="cinnamon",
+                            stage="verify" if self.screensaver_locked else "verify_unlocked",
+                        )
+                    )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AtomicJsonStore(
+                config_dir=os.path.join(tmp, "etc"),
+                state_dir=os.path.join(tmp, "var"),
+            )
+            store.ensure_dirs()
+            store.save_daemon_config(DaemonConfig(final_countdown_sec=0))
+            store.save_user_policy(
+                UserPolicy(
+                    username="alice",
+                    daily_limits=dict.fromkeys(WEEKDAYS, 3600),
+                    curfew_windows={d: [TimeWindow("08:00", "21:00")] for d in WEEKDAYS},
+                )
+            )
+            store.save_user_state(
+                UserAccountingState(
+                    username="alice",
+                    date="2026-11-25",
+                    week_key="2026-W48",
+                    month_key="2026-11",
+                    spent_today=3600,
+                    spent_balance=3600,
+                )
+            )
+
+            sess_mon = _FastVerifyMonitor("alice")
+            fake_mono = [2000.0]
+            challenges: list[tuple[str, str]] = []
+            unlock_callbacks: list[str] = []
+
+            with (
+                HistoryStore(os.path.join(tmp, "var", "history.db")) as hist,
+                mock.patch(
+                    "curfewd.engine.runtime.time.monotonic", side_effect=lambda: fake_mono[0]
+                ),
+            ):
+                rt = EnforcementRuntime(
+                    store=store,
+                    history=hist,
+                    session_monitor=sess_mon,
+                    now_fn=lambda: datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc),
+                    on_screensaver_challenge=lambda u, n: challenges.append((u, n)),
+                    on_unlock_detected=unlock_callbacks.append,
+                )
+                # Not yet evaluated -> trigger_unlock_reverify returns False cleanly
+                self.assertFalse(rt.trigger_unlock_reverify("alice"))
+
+                # Initial lockout locks and verifies
+                rt.tick()
+                self.assertEqual(sess_mon.lock_calls, 1)
+                self.assertEqual(len(challenges), 1)
+
+                # Locked-out challenge cadence is tightened to 3s (instead of 15s)
+                fake_mono[0] += 3.0
+                rt.tick()
+                self.assertEqual(len(challenges), 2)
+
+                # User manually unlocks 0.5s later; tray fires NotifySessionUnlocked -> immediate verify
+                sess_mon.screensaver_locked = False
+                fake_mono[0] += 0.5
+                self.assertTrue(rt.trigger_unlock_reverify("alice"))
+                self.assertEqual(sess_mon.verify_calls, 1)
+                # Root verification discovered unlock -> on_unlock_detected fired
+                self.assertEqual(unlock_callbacks, ["alice"])
+
+                # Rate-limited to >=1s against rapid duplicates
+                self.assertFalse(rt.trigger_unlock_reverify("alice"))
+
+                # Main-loop callback re-locks immediately without waiting for next tick!
+                rt.enforce_unlock_recheck("alice")
+                self.assertEqual(sess_mon.lock_calls, 2)
+                self.assertTrue(sess_mon.screensaver_locked)
 
     def test_schema_v2_migration_defaults_admin_users_to_parent_role(self):
         """Regression test for #11: v2 policies lacking 'role' default sudo/admin users to 'parent'."""

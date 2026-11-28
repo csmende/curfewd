@@ -1,6 +1,7 @@
 """Native WebKitGTK desktop window host for curfewd-ui (GTK4/WebKit 6.0 with GTK3/WebKit2 4.1 fallback)."""
 
 import argparse
+import gc
 import json
 import logging
 import os
@@ -8,6 +9,7 @@ import queue
 import signal
 import sys
 import threading
+from collections.abc import Callable
 from contextlib import suppress
 from typing import Any
 
@@ -90,14 +92,22 @@ class _RPCWorker:
         self._session_bus = session_bus
         self._on_response = on_response
         self._queue: queue.Queue[tuple[str, str, dict[str, Any]] | None] = queue.Queue()
+        self._stopped = False
         self._thread = threading.Thread(target=self._run, name="curfewd-ui-rpc", daemon=True)
         self._thread.start()
 
     def submit(self, req_id: str, action: str, params: dict[str, Any]) -> None:
         self._queue.put((req_id, action, params))
 
-    def stop(self) -> None:
-        self._queue.put(None)
+    def join(self, timeout: float = 1.5) -> None:
+        if self._thread.is_alive() and threading.current_thread() is not self._thread:
+            self._thread.join(timeout=timeout)
+
+    def stop(self, timeout: float = 1.5) -> None:
+        if not self._stopped:
+            self._stopped = True
+            self._queue.put(None)
+        self.join(timeout=timeout)
 
     def _run(self) -> None:
         import dbus
@@ -171,12 +181,11 @@ def _extract_js_message(gtk_major: int, payload) -> str:
     return str(payload)
 
 
-def _register_uri_scheme_once(WebKit, web_dir: str, Gio, GLib, registered_flag: list[bool]) -> None:
-    if registered_flag[0]:
-        return
-    context = WebKit.WebContext.get_default()
+def _create_web_context(WebKit, web_dir: str, Gio, GLib):
+    """Create a dedicated non-default WebContext to avoid atexit singleton teardown crashes."""
+    context = WebKit.WebContext()
     context.register_uri_scheme("curfewd", _build_uri_scheme_handler(web_dir, Gio, GLib))
-    registered_flag[0] = True
+    return context
 
 
 def _configure_webview(
@@ -186,10 +195,11 @@ def _configure_webview(
     Gio,
     GLib,
     on_rpc_message,
-    registered_flag: list[bool] | None = None,
-):
-    flag = registered_flag if registered_flag is not None else [False]
-    _register_uri_scheme_once(WebKit, web_dir, Gio, GLib, flag)
+    web_context: Any | None = None,
+) -> tuple[Any, Any]:
+    context = (
+        web_context if web_context is not None else _create_web_context(WebKit, web_dir, Gio, GLib)
+    )
 
     ucm = WebKit.UserContentManager()
     if gtk_major == 4:
@@ -203,10 +213,7 @@ def _configure_webview(
 
     ucm.connect("script-message-received::curfewd", _on_script_msg)
 
-    if gtk_major == 4:
-        webview = WebKit.WebView(user_content_manager=ucm)
-    else:
-        webview = WebKit.WebView.new_with_user_content_manager(ucm)
+    webview = WebKit.WebView(web_context=context, user_content_manager=ucm)
 
     settings = webview.get_settings()
     settings.set_enable_developer_extras(False)
@@ -234,7 +241,7 @@ def _configure_webview(
         return False
 
     webview.connect("decide-policy", _decide_policy)
-    return webview
+    return webview, context
 
 
 def _attach_live_signals(session_bus: bool, GLib, push_event) -> None:
@@ -268,6 +275,110 @@ def _attach_live_signals(session_bus: bool, GLib, push_event) -> None:
         logger.debug("Live D-Bus signal subscription unavailable: %s", exc)
 
 
+def _run_gtk_application(
+    gtk_major: int,
+    Gtk,
+    WebKit,
+    GLib,
+    Gio,
+    *,
+    web_dir: str,
+    my_mode: bool,
+    ask_time: bool,
+    webview_ref: dict[str, Any],
+    on_rpc_message: Callable[[str], None],
+    ensure_backend_started: Callable[[], None],
+    cleanup_backend: Callable[[], None],
+) -> int:
+    """Run unified single-instance Gtk.Application across both GTK3 and GTK4."""
+    mode = "my_status" if my_mode else "admin"
+    title = "curfewd — My Screen Time" if my_mode else "curfewd — Screen Time Control"
+    width, height = (620, 780) if my_mode else (1160, 790)
+    app_id = "org.curfewd.curfewd.mystatus" if my_mode else "org.curfewd.curfewd"
+
+    app = Gtk.Application(
+        application_id=app_id,
+        flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
+    )
+
+    def _clear_refs() -> None:
+        webview_ref["view"] = None
+        webview_ref["win"] = None
+        webview_ref["context"] = None
+
+    def _show_or_create_window(gtk_app, open_ask: bool = False) -> None:
+        existing_win = webview_ref.get("win")
+        existing_wv = webview_ref.get("view")
+        if existing_win is not None and existing_wv is not None:
+            existing_win.present()
+            if open_ask:
+                _eval_js(
+                    existing_wv,
+                    gtk_major,
+                    "window.CurfewUI && window.CurfewUI.openAskTimeModal && window.CurfewUI.openAskTimeModal();",
+                )
+            return
+
+        ensure_backend_started()
+        win = Gtk.ApplicationWindow(application=gtk_app)
+        win.set_title(title)
+        win.set_default_size(width, height)
+        win.set_icon_name("curfewd")
+        wv, context = _configure_webview(gtk_major, WebKit, web_dir, Gio, GLib, on_rpc_message)
+        webview_ref["view"] = wv
+        webview_ref["win"] = win
+        webview_ref["context"] = context
+
+        def _on_destroy(*_a) -> None:
+            _clear_refs()
+
+        win.connect("destroy", _on_destroy)
+        uri = f"curfewd://app/index.html?mode={mode}" + ("&ask=1" if open_ask else "")
+        if gtk_major == 4:
+            win.set_child(wv)
+            wv.load_uri(uri)
+            win.present()
+        else:
+            win.add(wv)
+            wv.load_uri(uri)
+            win.show_all()
+            win.present()
+
+    def _on_activate(gtk_app) -> None:
+        _show_or_create_window(gtk_app, open_ask=ask_time)
+
+    def _on_command_line(gtk_app, cmdline) -> int:
+        raw_args = list(cmdline.get_arguments() or [])
+        open_ask = "--ask-time" in raw_args
+        _show_or_create_window(gtk_app, open_ask=open_ask)
+        return 0
+
+    app.connect("activate", _on_activate)
+    app.connect("command-line", _on_command_line)
+
+    def _on_unix_signal(*_a) -> bool:
+        app.quit()
+        return False
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        if hasattr(GLib, "unix_signal_add"):
+            GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, _on_unix_signal)
+        else:
+            signal.signal(sig, lambda *_a: app.quit())
+
+    fwd_argv = ["curfewd-ui"] + (["--ask-time"] if ask_time else [])
+    try:
+        return int(app.run(fwd_argv))
+    finally:
+        win = webview_ref.get("win")
+        if win is not None:
+            with suppress(Exception):
+                win.destroy()
+        _clear_refs()
+        cleanup_backend()
+        gc.collect()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="curfewd-ui", description="curfewd native Material Design 3 desktop UI"
@@ -296,14 +407,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     my_mode = bool(args.my_status or args.ask_time)
-    mode = "my_status" if my_mode else "admin"
-    title = "curfewd — My Screen Time" if my_mode else "curfewd — Screen Time Control"
-    width, height = (620, 780) if my_mode else (1160, 790)
-    ask_q = "&ask=1" if args.ask_time else ""
-    start_uri = f"curfewd://app/index.html?mode={mode}{ask_q}"
-
-    webview_ref: dict[str, Any] = {"view": None, "win": None}
-    scheme_registered = [False]
+    webview_ref: dict[str, Any] = {"view": None, "win": None, "context": None}
+    backend_ref: dict[str, Any] = {"worker": None, "started": False}
 
     def _deliver_response(req_id: str, payload: dict[str, Any]) -> None:
         js = f"window.__curfewdResolve && window.__curfewdResolve({json.dumps(req_id)}, {json.dumps(payload)});"
@@ -323,7 +428,20 @@ def main(argv: list[str] | None = None) -> int:
             _eval_js(wv, gtk_major, js)
         return False
 
-    worker = _RPCWorker(session_bus=bool(args.session_bus), on_response=_deliver_response)
+    def _ensure_backend_started() -> None:
+        if backend_ref["started"]:
+            return
+        backend_ref["started"] = True
+        backend_ref["worker"] = _RPCWorker(
+            session_bus=bool(args.session_bus), on_response=_deliver_response
+        )
+        _attach_live_signals(bool(args.session_bus), GLib, _push_event)
+
+    def _cleanup_backend() -> None:
+        worker = backend_ref.get("worker")
+        backend_ref["worker"] = None
+        if worker is not None:
+            worker.stop()
 
     def _on_rpc_message(raw: str) -> None:
         try:
@@ -333,88 +451,21 @@ def main(argv: list[str] | None = None) -> int:
             params = msg.get("params") or {}
         except (ValueError, KeyError, TypeError):
             return
-        worker.submit(req_id, action, params)
+        worker = backend_ref.get("worker")
+        if worker is not None:
+            worker.submit(req_id, action, params)
 
-    _attach_live_signals(bool(args.session_bus), GLib, _push_event)
-
-    if gtk_major == 4:
-        app_id = "org.curfewd.curfewd.mystatus" if my_mode else "org.curfewd.curfewd"
-        app = Gtk.Application(
-            application_id=app_id,
-            flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
-        )
-
-        def _show_or_create_window(gtk_app, open_ask: bool = False) -> None:
-            existing_win = webview_ref.get("win")
-            existing_wv = webview_ref.get("view")
-            if existing_win is not None and existing_wv is not None:
-                existing_win.present()
-                if open_ask:
-                    _eval_js(
-                        existing_wv,
-                        4,
-                        "window.CurfewUI && window.CurfewUI.openAskTimeModal && window.CurfewUI.openAskTimeModal();",
-                    )
-                return
-
-            win = Gtk.ApplicationWindow(application=gtk_app)
-            win.set_title(title)
-            win.set_default_size(width, height)
-            win.set_icon_name("curfewd")
-            wv = _configure_webview(
-                4, WebKit, web_dir, Gio, GLib, _on_rpc_message, scheme_registered
-            )
-            webview_ref["view"] = wv
-            webview_ref["win"] = win
-
-            def _on_destroy(*_a) -> None:
-                webview_ref["view"] = None
-                webview_ref["win"] = None
-
-            win.connect("destroy", _on_destroy)
-            win.set_child(wv)
-            uri = f"curfewd://app/index.html?mode={mode}" + ("&ask=1" if open_ask else "")
-            wv.load_uri(uri)
-            win.present()
-
-        def _on_activate(gtk_app) -> None:
-            _show_or_create_window(gtk_app, open_ask=bool(args.ask_time))
-
-        def _on_command_line(gtk_app, cmdline) -> int:
-            raw_args = list(cmdline.get_arguments() or [])
-            open_ask = "--ask-time" in raw_args
-            _show_or_create_window(gtk_app, open_ask=open_ask)
-            return 0
-
-        app.connect("activate", _on_activate)
-        app.connect("command-line", _on_command_line)
-        signal.signal(signal.SIGINT, lambda *_a: app.quit())
-        fwd_argv = ["curfewd-ui"] + (["--ask-time"] if args.ask_time else [])
-        try:
-            return int(app.run(fwd_argv))
-        finally:
-            worker.stop()
-
-    # GTK3 + WebKit2 4.1 / 4.0 host
-    win = Gtk.Window(title=title)
-    win.set_default_size(width, height)
-    win.set_icon_name("curfewd")
-    wv = _configure_webview(3, WebKit, web_dir, Gio, GLib, _on_rpc_message, scheme_registered)
-    webview_ref["view"] = wv
-    webview_ref["win"] = win
-    win.add(wv)
-
-    def _on_gtk3_destroy(*_a) -> None:
-        webview_ref["view"] = None
-        webview_ref["win"] = None
-        Gtk.main_quit()
-
-    win.connect("destroy", _on_gtk3_destroy)
-    signal.signal(signal.SIGINT, lambda *_a: Gtk.main_quit())
-    wv.load_uri(start_uri)
-    win.show_all()
-    try:
-        Gtk.main()
-    finally:
-        worker.stop()
-    return 0
+    return _run_gtk_application(
+        gtk_major,
+        Gtk,
+        WebKit,
+        GLib,
+        Gio,
+        web_dir=web_dir,
+        my_mode=my_mode,
+        ask_time=bool(args.ask_time),
+        webview_ref=webview_ref,
+        on_rpc_message=_on_rpc_message,
+        ensure_backend_started=_ensure_backend_started,
+        cleanup_backend=_cleanup_backend,
+    )

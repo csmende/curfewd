@@ -81,6 +81,7 @@ class CurfewDaemonService(dbus.service.Object):
             on_client_notification=lambda u, p: self.ClientNotification(u, json.dumps(p)),
             on_screensaver_challenge=self.ScreensaverChallenge,
             on_time_request_updated=lambda u, r: self.TimeRequestUpdated(u, json.dumps(r)),
+            on_unlock_detected=self._schedule_unlock_recheck,
         )
 
         if own_name:
@@ -113,6 +114,16 @@ class CurfewDaemonService(dbus.service.Object):
         """Flush cached state and stop the bounded async RPC worker pool."""
         self._runtime.flush_states()
         self._rpc_pool.shutdown(wait=False, cancel_futures=True)
+
+    def _schedule_unlock_recheck(self, username: str) -> None:
+        """Marshal worker-thread unlock detections back to the GLib main loop safely."""
+        from gi.repository import GLib
+
+        def _run_on_main() -> bool:
+            self._runtime.enforce_unlock_recheck(username)
+            return False
+
+        GLib.idle_add(_run_on_main)
 
     # ---------------- Auth, Validation & Async Helpers ---------------- #
 
@@ -914,6 +925,14 @@ class CurfewDaemonService(dbus.service.Object):
             return self._runtime.verify_client_telemetry(caller_user, nonce, raw)
         except (ValueError, TypeError) as exc:
             raise _DBusTypedError(DBUS_ERR_VALIDATION, f"Invalid telemetry: {exc}") from exc
+
+    @dbus.service.method(
+        DBUS_CLIENT_INTERFACE, in_signature="", out_signature="b", sender_keyword="sender"
+    )
+    def NotifySessionUnlocked(self, sender: str = "") -> bool:
+        """Fail-closed early unlock interrupt from tray; triggers root-verified lock re-check."""
+        caller_user = self._resolve_caller(sender)
+        return self._runtime.trigger_unlock_reverify(caller_user)
 
     @dbus.service.method(
         DBUS_CLIENT_INTERFACE, in_signature="s", out_signature="s", sender_keyword="sender"

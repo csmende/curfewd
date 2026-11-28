@@ -485,6 +485,82 @@ class TestScreenLockEnforcer(unittest.TestCase):
         self.assertTrue(captured[0].locked)
         self.assertTrue(captured[0].verified)
 
+    def test_gdbus_timeout_headroom_and_default_lock_timeout(self):
+        captured: list[tuple[list[str], float]] = []
+
+        def fake_runner(cmd, **kwargs):
+            captured.append((list(cmd), float(kwargs.get("timeout", 0.0))))
+            if "org.freedesktop.DBus.NameHasOwner" in cmd:
+                return _proc_result(0, "(true,)\n")
+            if "org.cinnamon.ScreenSaver.GetActive" in cmd:
+                return _proc_result(0, "(false,)\n")
+            if "org.cinnamon.ScreenSaver.Lock" in cmd:
+                return _proc_result(0, "()\n")
+            return _proc_result(1)
+
+        enforcer = screenlock.ScreenLockEnforcer(
+            runner=fake_runner,
+            which_fn=lambda n: f"/usr/bin/{n}",
+            sleep_fn=lambda _s: None,
+        )
+        ctx = self._make_ctx("X-Cinnamon")
+        enforcer.is_screensaver_active(ctx, screenlock.select_backends("X-Cinnamon"))
+        ok, _ = enforcer.invoke_backend_lock(ctx, screenlock.BACKENDS["cinnamon"])
+        self.assertTrue(ok)
+
+        for cmd, subproc_timeout in captured:
+            if "--timeout" in cmd:
+                gdbus_timeout = float(cmd[cmd.index("--timeout") + 1])
+                self.assertGreaterEqual(
+                    subproc_timeout,
+                    gdbus_timeout + 1.0,
+                    f"subprocess timeout {subproc_timeout}s must exceed gdbus --timeout {gdbus_timeout}s",
+                )
+        lock_calls = [(c, t) for c, t in captured if "org.cinnamon.ScreenSaver.Lock" in c]
+        self.assertEqual(len(lock_calls), 1)
+        self.assertEqual(lock_calls[0][0][lock_calls[0][0].index("--timeout") + 1], "4")
+        self.assertEqual(lock_calls[0][1], 5.0)
+
+    def test_is_screensaver_active_skips_alias_and_cli_when_owned_backend_times_out(self):
+        calls: list[list[str]] = []
+
+        def fake_runner(cmd, **kwargs):
+            calls.append(list(cmd))
+            if "org.freedesktop.DBus.NameHasOwner" in cmd:
+                return _proc_result(0, "(true,)\n")
+            if "org.cinnamon.ScreenSaver.GetActive" in cmd:
+                return _proc_result(1, "", "Error: Timeout was reached\n")
+            return _proc_result(1)
+
+        enforcer = screenlock.ScreenLockEnforcer(
+            runner=fake_runner,
+            which_fn=lambda n: f"/usr/bin/{n}",
+            sleep_fn=lambda _s: None,
+        )
+        active, backend = enforcer.is_screensaver_active(
+            self._make_ctx("X-Cinnamon"), screenlock.select_backends("X-Cinnamon")
+        )
+        self.assertIsNone(active)
+        self.assertIsNone(backend)
+        # Must NOT probe org.freedesktop.ScreenSaver alias or hang on cinnamon-screensaver-command -q
+        self.assertFalse(any("org.freedesktop.ScreenSaver" in c for c in calls))
+        self.assertFalse(any(c[0].endswith("cinnamon-screensaver-command") for c in calls))
+
+    def test_helper_timeout_logs_info_not_warning(self):
+        def timeout_runner(cmd, **kwargs):
+            raise subprocess.TimeoutExpired(cmd, kwargs.get("timeout", 1.0))
+
+        with self.assertLogs("curfewd.screenlock", level="INFO") as cm:
+            res = screenlock._run_as_user(
+                self._make_ctx("X-Cinnamon"),
+                ["/usr/bin/gdbus", "call"],
+                timeout=3.0,
+                runner=timeout_runner,
+            )
+        self.assertIsNone(res)
+        self.assertTrue(any(rec.levelname == "INFO" for rec in cm.records))
+        self.assertFalse(any(rec.levelname == "WARNING" for rec in cm.records))
+
 
 class TestLiveDBusIntegration(unittest.TestCase):
     """End-to-end wire test against a real ephemeral dbus-daemon using real /usr/bin/gdbus."""

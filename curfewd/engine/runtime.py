@@ -46,10 +46,16 @@ logger = logging.getLogger("curfewd.runtime")
 
 # Re-challenge desktop tray screensaver/telemetry state every N seconds
 _CHALLENGE_INTERVAL_SEC = 15.0
+# Tighter tray challenge cadence while actively enforcing lockout (DEs without logind LockedHint)
+_LOCKED_OUT_CHALLENGE_INTERVAL_SEC = 3.0
 # Minimum interval between repetitive lock retries while unlocked during lockout
 _LOCK_RETRY_INTERVAL_SEC = 3.0
 # Lightweight root re-verification interval once sessions are verified locked (DEs without logind LockedHint)
 _LOCK_REVERIFY_INTERVAL_SEC = 30.0
+# Tighter root re-verification interval during active lockout (zero-trust backstop even if tray is killed)
+_LOCKED_OUT_REVERIFY_INTERVAL_SEC = 5.0
+# Minimum spacing for fail-closed early unlock verification hints from tray
+_UNLOCK_HINT_MIN_INTERVAL_SEC = 1.0
 # Fail-closed max age for root-verified lock state if re-verification does not complete
 _LOCK_VERIFY_MAX_AGE_SEC = 65.0
 # Cache installed desktop/Steam app catalog per user for passive insight classification
@@ -90,6 +96,7 @@ class EnforcementRuntime:
         on_client_notification: Callable[[str, dict[str, Any]], None] | None = None,
         on_screensaver_challenge: Callable[[str, str], None] | None = None,
         on_time_request_updated: Callable[[str, dict[str, Any]], None] | None = None,
+        on_unlock_detected: Callable[[str], None] | None = None,
         app_catalog_loader: Callable[[str], list[dict[str, Any]]] | None = None,
     ) -> None:
         self._store = store
@@ -105,6 +112,7 @@ class EnforcementRuntime:
         self._on_client_notification = on_client_notification
         self._on_screensaver_challenge = on_screensaver_challenge
         self._on_time_request_updated = on_time_request_updated
+        self._on_unlock_detected = on_unlock_detected
         self._app_catalog_loader = app_catalog_loader
 
         self._store.ensure_dirs()
@@ -248,6 +256,12 @@ class EnforcementRuntime:
                     now_mono,
                     str(result.backend or ""),
                 )
+        if (
+            result.stage == "verify_unlocked"
+            and not result.locked
+            and self._on_unlock_detected is not None
+        ):
+            self._on_unlock_detected(safe)
 
     def _clear_lockout_state(self, safe: str, clear_verified: bool = True) -> None:
         """Reset per-user lockout episode counters and optional root-verified lock cache."""
@@ -278,6 +292,7 @@ class EnforcementRuntime:
         safe: str,
         sessions: list[dict[str, Any]],
         now_mono: float,
+        reverify_interval: float = _LOCK_REVERIFY_INTERVAL_SEC,
     ) -> tuple[bool, bool, list[dict[str, Any]]]:
         """Return (all_locked, needs_reverify, sessions_to_reverify) from root-verified LockResults."""
         if not sessions:
@@ -309,7 +324,7 @@ class EnforcementRuntime:
             if not is_locked or age > _LOCK_VERIFY_MAX_AGE_SEC:
                 all_locked = False
                 continue
-            if age >= _LOCK_REVERIFY_INTERVAL_SEC or (
+            if age >= reverify_interval or (
                 tray_reports_unlocked and tray_ts is not None and tray_ts > ts
             ):
                 needs_reverify = True
@@ -724,7 +739,12 @@ class EnforcementRuntime:
             elapsed,
             date_str,
         )
-        self._maybe_send_challenge(safe, now_mono)
+        challenge_interval = (
+            _LOCKED_OUT_CHALLENGE_INTERVAL_SEC
+            if (eval_res.should_enforce and any_active and not logind_locked)
+            else _CHALLENGE_INTERVAL_SEC
+        )
+        self._maybe_send_challenge(safe, now_mono, interval=challenge_interval)
 
         status = self.build_status_from_eval(
             safe=safe,
@@ -825,16 +845,81 @@ class EnforcementRuntime:
         fn(action, safe, uid, sessions, self._config, **kwargs)
 
     def _maybe_reverify_locked_sessions(
-        self, safe: str, reverify_sessions: list[dict[str, Any]], now_mono: float
-    ) -> None:
+        self,
+        safe: str,
+        reverify_sessions: list[dict[str, Any]],
+        now_mono: float,
+        min_interval: float = _LOCK_RETRY_INTERVAL_SEC,
+    ) -> bool:
         if not reverify_sessions:
-            return
-        if (now_mono - self._last_reverify_mono.get(safe, 0.0)) < _LOCK_RETRY_INTERVAL_SEC:
-            return
+            return False
+        if (now_mono - self._last_reverify_mono.get(safe, 0.0)) < min_interval:
+            return False
         self._last_reverify_mono[safe] = now_mono
         verify_fn = getattr(self._sessions, "verify_user_sessions_locked", None)
         if callable(verify_fn):
             verify_fn(reverify_sessions, self._config, on_complete=self.record_lock_result)
+            return True
+        return False
+
+    def trigger_unlock_reverify(self, caller_user: str) -> bool:
+        """Fail-closed early unlock interrupt from tray; triggers root-verified lock check only."""
+        try:
+            safe = validate_username(caller_user)
+        except ValueError:
+            return False
+        sessions = self._last_sessions.get(safe, [])
+        eval_res = self._last_eval.get(safe)
+        if not sessions or eval_res is None or not eval_res.should_enforce:
+            return False
+        any_active = any(s.get("active", False) for s in sessions)
+        logind_locked = (
+            any(s.get("locked", False) for s in sessions) if self._config.use_locked_hint else False
+        )
+        if not any_active or logind_locked:
+            return False
+        now_mono = time.monotonic()
+        all_verified_locked, _, _ = self._root_verified_lock_status(
+            safe, sessions, now_mono, reverify_interval=_LOCKED_OUT_REVERIFY_INTERVAL_SEC
+        )
+        if not all_verified_locked:
+            return False
+        target_sessions = [
+            s for s in sessions if not (self._config.use_locked_hint and s.get("locked", False))
+        ]
+        return self._maybe_reverify_locked_sessions(
+            safe, target_sessions, now_mono, min_interval=_UNLOCK_HINT_MIN_INTERVAL_SEC
+        )
+
+    def enforce_unlock_recheck(self, username: str) -> None:
+        """GLib-thread re-lock check fired immediately after root re-verification detects unlock."""
+        try:
+            safe = validate_username(username)
+        except ValueError:
+            return
+        sessions = self._last_sessions.get(safe, [])
+        eval_res = self._last_eval.get(safe)
+        if not sessions or eval_res is None or not eval_res.should_enforce:
+            return
+        any_active = any(s.get("active", False) for s in sessions)
+        logind_locked = (
+            any(s.get("locked", False) for s in sessions) if self._config.use_locked_hint else False
+        )
+        if not any_active or logind_locked:
+            return
+        policy = self.get_policy(safe)
+        self._enforce_session_lockout(
+            safe,
+            int(sessions[0]["uid"]),
+            policy,
+            eval_res,
+            sessions,
+            any_active,
+            logind_locked,
+            time.monotonic(),
+            0,
+            self._now_fn().date().isoformat(),
+        )
 
     def _enforce_session_lockout(
         self,
@@ -859,7 +944,7 @@ class EnforcementRuntime:
             return
 
         all_verified_locked, needs_reverify, reverify_sessions = self._root_verified_lock_status(
-            safe, sessions, now_mono
+            safe, sessions, now_mono, reverify_interval=_LOCKED_OUT_REVERIFY_INTERVAL_SEC
         )
         if all_verified_locked:
             self._countdowns.pop(safe, None)
@@ -926,8 +1011,10 @@ class EnforcementRuntime:
                     detail={"action": policy.lockout_action},
                 )
 
-    def _maybe_send_challenge(self, safe: str, now_mono: float) -> None:
-        if (now_mono - self._last_challenge_mono.get(safe, 0.0)) >= _CHALLENGE_INTERVAL_SEC:
+    def _maybe_send_challenge(
+        self, safe: str, now_mono: float, interval: float = _CHALLENGE_INTERVAL_SEC
+    ) -> None:
+        if (now_mono - self._last_challenge_mono.get(safe, 0.0)) >= interval:
             self._last_challenge_mono[safe] = now_mono
             nonce = secrets.token_urlsafe(16)
             self._pending_nonces[safe] = nonce

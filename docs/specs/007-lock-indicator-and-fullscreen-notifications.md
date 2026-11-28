@@ -44,7 +44,7 @@ Two usability gaps remained in `v2.0.0-rc3`:
 ### 3.2 Fullscreen Game Notification Delivery
 - `curfewd.tray.osd.is_fullscreen_window_active()` checks X11 `_NET_ACTIVE_WINDOW` + `_NET_WM_STATE_FULLSCREEN` via `xprop` (with `Gdk.WindowState.FULLSCREEN` fallback).
 - `FullscreenOsdBanner` renders a top-center, non-focus-stealing GTK3 `Gtk.WindowType.POPUP` (`override_redirect=True`, `set_keep_above(True)`, `set_accept_focus(False)`) banner above unredirected fullscreen windows.
-- `DesktopNotifier.send()` elevates `urgency=2`, sets `transient=False` and `x-cinnamon-override-dnd=True`, shows `FullscreenOsdBanner` when fullscreen is active, and `TrayController` triggers `AudioChimePlayer.play()`.
+- `DesktopNotifier.send()` elevates `urgency=2`, sets `transient=False` and `x-cinnamon-override-dnd=True`, shows `FullscreenOsdBanner` when fullscreen is active, and `TrayController` triggers `AudioChimePlayer.play()`. `DesktopNotifier.dismiss()` cancels pending OSD timeout sources and destroys active banners cleanly on tray shutdown.
 
 ---
 

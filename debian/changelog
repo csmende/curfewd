@@ -33,6 +33,29 @@ curfewd (2.0.0) unstable; urgency=medium
     - Add `curfewd.tray.osd` (X11 `_NET_WM_STATE_FULLSCREEN` detection via
       `xprop`/`Gdk`, non-focus-stealing GTK3 `override-redirect` OSD banner,
       critical/DND-override hints, and fullscreen `AudioChimePlayer` trigger)
+  * v2.0.0 RC6 pre-GA hardening (F1-F4):
+    - Fix `curfewd-ui` deterministic `SIGSEGV` on window close by moving
+      `curfewd://` URI scheme registration to a private `WebKit.WebContext()`
+      with explicit teardown, `_RPCWorker.join()`, and flushed `os._exit(rc)`
+      in `curfewd/ui/__main__.py`; unify GTK3 & GTK4 onto single-instance
+      `Gtk.Application(HANDLES_COMMAND_LINE)` with `SIGINT`/`SIGTERM` handling
+    - Eliminate `curfewd.screenlock` `gdbus`/subprocess timeout races (+1.0s
+      subprocess headroom, 4.0s default `cmd_timeout_sec`, `INFO`-level
+      transient timeout logging) and skip redundant `freedesktop`/CLI fallback
+      queries when an owned DE screensaver D-Bus service times out
+    - Cut Cinnamon unlock-to-relock latency from 10-19s to <2s via tightened
+      locked-out root re-verification (5s) / challenge cadence (3s), immediate
+      GLib re-lock on `verify_unlocked`, and fail-closed `ActiveChanged(false)`
+      -> `NotifySessionUnlocked()` early-unlock trigger in `curfewd-tray`
+    - Fix `curfewd-tray.service` `status=1/FAILURE` on Cinnamon logout/shutdown
+      by importing `XDG_SESSION_ID`, disabling `SessionBus` exit-on-disconnect,
+      handling `login1` `PrepareForShutdown`/`SessionRemoved`, `Disconnected`,
+      `Gdk.Display` `closed`, and `SIGHUP`, dismissing active OSD banners in
+      `_quit()`, and exiting `0` cleanly when no graphical display is reachable
+    - Switch `debian/postinst` user-bus `systemctl --user` calls from
+      `--machine` (`systemd-stdio-bridge` / `pam_lastlog.so` errors on Ubuntu
+      24.04 / Mint 22.3) to privilege-dropped `runuser -u` against
+      `/run/user/${uid}/bus` with fallback
   * v2.0.0 RC5 packaging & release-gate fix:
     - Switch `debian/install` Python package and Web UI JS listings to
       directory globs (`curfewd/*.py`, `curfewd/*/*.py`,
@@ -67,7 +90,7 @@ curfewd (2.0.0) unstable; urgency=medium
       with `wal_autocheckpoint=200` + `TRUNCATE` checkpoints, and stamp RC
       versions into `curfewd/__init__.py` during pre-release builds
 
- -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Thu, 26 Nov 2026 23:55:00 +0000
+ -- Christopher Mende <29665166+csmende@users.noreply.github.com>  Sat, 28 Nov 2026 03:45:00 +0000
 
 curfewd (1.2.0) unstable; urgency=medium
 

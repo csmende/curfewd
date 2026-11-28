@@ -26,6 +26,20 @@ logger = logging.getLogger("curfewd.screenlock")
 
 # Trusted system binary search path to prevent user PATH hijacking.
 TRUSTED_BIN_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
+# Extra subprocess timeout headroom above gdbus --timeout so gdbus returns cleanly on D-Bus timeout.
+_GDBUS_SUBPROCESS_HEADROOM_SEC = 1.0
+# Static log labels for known screenlock helpers (avoids logging dynamic paths).
+_KNOWN_HELPER_LABELS: dict[str, str] = {
+    "gdbus": "gdbus",
+    "cinnamon-screensaver-command": "cinnamon-screensaver-command",
+    "xfce4-screensaver-command": "xfce4-screensaver-command",
+    "xflock4": "xflock4",
+    "mate-screensaver-command": "mate-screensaver-command",
+    "gnome-screensaver-command": "gnome-screensaver-command",
+    "xdg-screensaver": "xdg-screensaver",
+    "xdotool": "xdotool",
+    "wmctrl": "wmctrl",
+}
 
 # Environment variables safe to propagate from a user's graphical session.
 _SAFE_SESSION_ENV_KEYS = (
@@ -397,6 +411,7 @@ def _run_as_user(ctx: SessionContext, argv: list[str], timeout: float = 3.0, run
         return None
 
     cmd = [bin_path, *argv[1:]]
+    helper_label = _KNOWN_HELPER_LABELS.get(os.path.basename(bin_path), "screenlock-helper")
     env = build_safe_env(ctx)
     kwargs = {
         "env": env,
@@ -415,10 +430,10 @@ def _run_as_user(ctx: SessionContext, argv: list[str], timeout: float = 3.0, run
     try:
         return runner(cmd, **kwargs)
     except subprocess.TimeoutExpired:
-        logger.warning("screenlock helper timed out after %.1fs: %s", timeout, cmd[0])
+        logger.info("screenlock helper timed out after %.1fs: %s", timeout, helper_label)
         return None
     except OSError as exc:
-        logger.debug("screenlock helper failed to launch (%s): %s", cmd[0], exc)
+        logger.debug("screenlock helper failed to launch (%s): %s", helper_label, exc)
         return None
 
 
@@ -444,7 +459,7 @@ class ScreenLockEnforcer:
         logind_settle_sec: float = 0.25,
         verify_settle_sec: float = 0.60,
         grab_settle_sec: float = 0.25,
-        cmd_timeout_sec: float = 3.0,
+        cmd_timeout_sec: float = 4.0,
     ) -> None:
         self._runner = runner
         self._which = which_fn
@@ -488,11 +503,18 @@ class ScreenLockEnforcer:
                 "org.freedesktop.DBus.NameHasOwner",
                 bus_name,
             ],
-            timeout=2.5,
+            timeout=2.0 + _GDBUS_SUBPROCESS_HEADROOM_SEC,
         )
         if res is None or res.returncode != 0:
             return None
         return _parse_gdbus_bool(res.stdout)
+
+    @staticmethod
+    def _is_gdbus_timeout(res) -> bool:
+        if res is None:
+            return True
+        err = (res.stderr or "").lower()
+        return "timed out" in err or "timeout" in err
 
     def is_screensaver_active(
         self,
@@ -502,9 +524,14 @@ class ScreenLockEnforcer:
         """Check whether any candidate screensaver reports an active lock screen."""
         saw_inactive = False
         inactive_backend: str | None = None
+        owned_bus_errors: set[str] = set()
+        timed_out_owned_de = False
 
         if ctx.dbus_address and self._which("gdbus"):
             for backend in backends:
+                # On DEs (e.g. Cinnamon), org.freedesktop.ScreenSaver is aliased to the same daemon.
+                if backend.name == "freedesktop" and timed_out_owned_de:
+                    continue
                 has_owner = self._gdbus_has_owner(ctx, backend.dbus_dest)
                 if has_owner is False:
                     saw_inactive = True
@@ -513,6 +540,8 @@ class ScreenLockEnforcer:
                 if has_owner is not True:
                     continue
 
+                got_valid_bool = False
+                saw_timeout = False
                 for obj_path in backend.dbus_paths:
                     res = self._exec(
                         ctx,
@@ -529,7 +558,7 @@ class ScreenLockEnforcer:
                             "--method",
                             f"{backend.dbus_interface}.GetActive",
                         ],
-                        timeout=2.5,
+                        timeout=2.0 + _GDBUS_SUBPROCESS_HEADROOM_SEC,
                     )
                     if res is not None and res.returncode == 0:
                         state = _parse_gdbus_bool(res.stdout)
@@ -538,12 +567,23 @@ class ScreenLockEnforcer:
                         if state is False:
                             saw_inactive = True
                             inactive_backend = backend.name
+                            got_valid_bool = True
                             break
+                    elif self._is_gdbus_timeout(res):
+                        saw_timeout = True
+
+                if not got_valid_bool:
+                    owned_bus_errors.add(backend.name)
+                    if saw_timeout and backend.name != "freedesktop":
+                        timed_out_owned_de = True
 
         if saw_inactive:
             return False, inactive_backend
 
         for backend in backends:
+            if backend.name in owned_bus_errors:
+                # Skip CLI query against an already-owned, unresponsive D-Bus screensaver service.
+                continue
             for cli in backend.query_clis:
                 res = self._exec(ctx, list(cli), timeout=2.5)
                 if res is not None and res.returncode == 0:
@@ -570,13 +610,15 @@ class ScreenLockEnforcer:
             (clean_msg,) if (backend.name == "cinnamon" and clean_msg) else backend.lock_dbus_args
         )
         if ctx.dbus_address and self._which("gdbus"):
+            gdbus_timeout = max(1, int(self._cmd_timeout_sec))
+            subproc_timeout = float(gdbus_timeout) + _GDBUS_SUBPROCESS_HEADROOM_SEC
             for obj_path in backend.dbus_paths:
                 argv = [
                     "gdbus",
                     "call",
                     "--session",
                     "--timeout",
-                    str(int(self._cmd_timeout_sec)),
+                    str(gdbus_timeout),
                     "--dest",
                     backend.dbus_dest,
                     "--object-path",
@@ -587,7 +629,7 @@ class ScreenLockEnforcer:
                 if dbus_args:
                     argv.append("--")
                     argv.extend(dbus_args)
-                res = self._exec(ctx, argv)
+                res = self._exec(ctx, argv, timeout=subproc_timeout)
                 if res is not None and res.returncode == 0:
                     return True, f"dbus:{backend.dbus_dest}"
 
